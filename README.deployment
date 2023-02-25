@@ -1,0 +1,19 @@
+A coordinator needs:
+
+- a IPFS instance (kubo), refered to the API with: IPFS_HTTP_API_HOST
+- a MySQL server, database initialised with contents of db/init.sql
+  - TOSI_DB_HOST
+  - TOSI_DB_USERTOSI_DB_HOST
+  - TOSI_DB_PASSWORD
+  - TOSI_DB_PASSWORD
+- a remote Ethereum RPC, TOSI_ETH_RPC - Arbitrum Testnet/Mainnet
+
+Environment secrets:
+- TOSI_BLS_SECRET
+- TOSI_ETH_WALLET_SECRET
+
+Public information:
+- TOSI_MINTER_PUBKEY
+- TOSI_STAKE_POOL_PUBKEY
+
+API is exported on port 20001

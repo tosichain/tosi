@@ -1,0 +1,136 @@
+FROM golang:1.17.1 as go-ipfs-build
+
+WORKDIR /app
+
+RUN git clone "https://github.com/ipfs/go-ipfs.git" -b v0.12.1
+RUN cd go-ipfs
+
+WORKDIR /app/go-ipfs
+
+RUN go mod download
+
+RUN CGO_ENABLED=0 make nofuse
+
+
+FROM debian:stable-slim as kernel-base
+
+ARG KERNEL_VERSION="5.5.19"
+ARG KERNEL_URL="https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-${KERNEL_VERSION}.tar.gz"
+
+WORKDIR /build/kernel
+
+RUN apt update
+RUN apt install -y \
+  bc \
+  bison \
+  build-essential \
+  cpio \
+  flex \
+  libelf-dev \
+  libssl-dev \
+  wget \
+  gcc-x86-64-linux-gnu
+
+RUN wget "$KERNEL_URL"
+RUN tar xvzf "linux-${KERNEL_VERSION}.tar.gz" -C /build/kernel
+
+FROM kernel-base as kernel-kvm
+ARG KERNEL_VERSION="5.5.19"
+
+WORKDIR "/build/kernel/linux-${KERNEL_VERSION}"
+
+COPY src/verifier/validator-kernel-config "/build/kernel/linux-${KERNEL_VERSION}/.config"
+RUN make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- olddefconfig
+RUN make -j $(nproc) ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- bzImage
+
+
+FROM kernel-base as kernel-nokvm
+ARG KERNEL_VERSION="5.5.19"
+
+WORKDIR "/build/kernel/linux-${KERNEL_VERSION}"
+
+COPY src/verifier/validator-kernel-q35-nokvm-config "/build/kernel/linux-${KERNEL_VERSION}/.config"
+RUN make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- olddefconfig
+RUN make -j $(nproc) ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- bzImage
+
+
+# =====
+FROM alpine:3.15.0 as cartesi-build
+
+ARG CARTESI_EMULATOR_REPO="https://github.com/cartesi/machine-emulator.git"
+
+RUN apk --no-cache add alpine-sdk
+
+RUN apk --no-cache add grpc-cli
+RUN apk --no-cache add grpc-dev
+RUN apk --no-cache add patchelf
+RUN apk --no-cache add perl-utils
+RUN apk --no-cache add wget
+
+RUN apk --no-cache add boost-dev
+RUN apk --no-cache add protobuf-dev
+RUN apk --no-cache add readline-dev
+
+RUN apk --no-cache add coreutils bash
+
+# -----------------------------------------------------------------------------
+WORKDIR "/build"
+
+RUN git clone "${CARTESI_EMULATOR_REPO}"
+
+WORKDIR "/build/machine-emulator"
+
+RUN git checkout v0.7.0
+
+RUN make -j $(nproc) submodules
+RUN make -j $(nproc) dep
+RUN make install-dep
+RUN sed -i "s/echo/printf/g" Makefile
+RUN cat Makefile
+
+WORKDIR /build/machine-emulator/src
+RUN sed -i "s/-lgrpc++ -lgrpc -lprotobuf/-lgpr -labsl_synchronization -lgrpc++ -lgrpc -lprotobuf/g" Makefile
+RUN make merkle-tree-hash luacartesi grpc
+RUN patchelf --set-rpath /opt/cartesi/lib merkle-tree-hash
+
+RUN mkdir -p /opt/cartesi/bin
+RUN cp /build/machine-emulator/src/merkle-tree-hash /opt/cartesi/bin
+
+WORKDIR /build/machine-emulator
+RUN SHELL=/bin/bash make install-emulator install-dep
+RUN patchelf --set-rpath /opt/cartesi/lib /opt/cartesi/bin/luapp5.3
+
+# =============================================================================
+FROM alpine:3.15.0 as image
+
+ARG KERNEL_VERSION="5.5.19"
+
+RUN apk --no-cache add qemu-system-x86_64 qemu-accel-tcg-x86_64 python3 openssh-server e2tools xxd libgomp boost1.77-serialization py3-pip gcc musl-dev
+COPY --from=go-ipfs-build "/app/go-ipfs/cmd/ipfs/ipfs" "/usr/bin/ipfs"
+RUN sed -i '/^#Port 22/s/^#//' /etc/ssh/sshd_config \
+    && sed -i '/^#PasswordAuthentication/s/^#//' /etc/ssh/sshd_config \
+    && sed -i '/^#PermitEmptyPasswords no/s/^#PermitEmptyPasswords no/PermitEmptyPasswords yes/' /etc/ssh/sshd_config \
+    && sed -i '/^#PermitRootLogin prohibit-password/s/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && echo "root:Docker!" | chpasswd
+
+WORKDIR /app
+
+COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" /app
+COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/.config" /app
+COPY --from=kernel-nokvm "/build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" /app/bzImage-nokvm-q35
+COPY --from=kernel-nokvm "/build/kernel/linux-${KERNEL_VERSION}/.config" /app/.config-nokvm
+COPY --from=cartesi-build "/opt/cartesi" "/opt/cartesi"
+
+RUN mkdir -p /opt/verifier
+RUN pip install pycryptodome
+
+COPY ./src/court/keccak256.py /app/keccak256.py
+COPY ./src/court/log2.py /app/log2.py
+COPY ./src/verifier/qemu-run-task.sh /app/qemu-run-task.sh
+COPY ./src/verifier/qemu-test.sh /app/qemu-test.sh
+COPY ./src/verifier/qemu-test-task.sh /app/qemu-test-task.sh
+COPY ./src/verifier/ssh.sh /app/ssh.sh
+COPY ./src/verifier/grab-and-hash.sh /app/grab-and-hash.sh
+RUN chmod +x /app/ssh.sh /app/grab-and-hash.sh /app/qemu-run-task.sh
+
+CMD [ "/app/ssh.sh" ]

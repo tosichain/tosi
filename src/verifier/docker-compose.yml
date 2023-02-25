@@ -1,0 +1,12 @@
+version: '3.3'
+services:
+  verifier:
+    build: .
+    volumes:
+      - "./app:/app/app"
+      - "./court:/app/court"
+      - "./data:/app/data"
+    environment:
+      - NO_KVM=1
+    devices:
+      - "/dev/kvm:/dev/kvm"

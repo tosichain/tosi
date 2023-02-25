@@ -1,0 +1,39 @@
+#!/bin/bash
+
+SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+GRPCDIR=$SCRIPTPATH/deps/grpc-interfaces
+OUTDIR_GRPC=$SCRIPTPATH/proto/grpc
+OUTDIR_GRPCJS=$SCRIPTPATH/proto/grpcjs
+PROTOFILES="ipfs.proto"
+
+mkdir -p $OUTDIR_GRPC
+mkdir -p $OUTDIR_GRPCJS
+
+# grpc
+# JavaScript code generating
+#$SCRIPTPATH/node_modules/.bin/grpc_tools_node_protoc \
+#--js_out=import_style=commonjs,binary:$OUTDIR_GRPC \
+#--grpc_out=$OUTDIR_GRPC \
+#--plugin=protoc-gen-grpc=$SCRIPTPATH/node_modules/.bin/grpc_tools_node_protoc_plugin \
+#-I $GRPCDIR \
+#$PROTOFILES
+
+$SCRIPTPATH/node_modules/.bin/grpc_tools_node_protoc \
+--plugin=protoc-gen-ts=$SCRIPTPATH/node_modules/.bin/protoc-gen-ts \
+--ts_out=$OUTDIR_GRPC \
+-I $GRPCDIR \
+$PROTOFILES
+
+# grpc-js
+# JavaScript code generating
+$SCRIPTPATH/node_modules/.bin/grpc_tools_node_protoc \
+--js_out=import_style=commonjs,binary:$OUTDIR_GRPCJS \
+--grpc_out=grpc_js:$OUTDIR_GRPCJS \
+-I $GRPCDIR \
+$PROTOFILES
+
+$SCRIPTPATH/node_modules/.bin/grpc_tools_node_protoc \
+--plugin=protoc-gen-ts=$SCRIPTPATH/node_modules/.bin/protoc-gen-ts \
+--ts_out=grpc_js:$OUTDIR_GRPCJS \
+-I $GRPCDIR \
+$PROTOFILES

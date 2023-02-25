@@ -1,0 +1,6 @@
+export const BLOCK_VERSION_SIZE = 4;
+export const GENESIS_BLOCK_VERSION = 0;
+
+export const DRAND_BEACON_LIFE_TIME = 600; // 10 minutes;
+
+export const STAKE_AMOUNT_TO_NUMBER_DENOMINATOR = 1000000000000000000n;

@@ -1,0 +1,1 @@
+export const COORDINATOR_BLOCK_VERSION = 0;

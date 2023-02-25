@@ -1,0 +1,4 @@
+app/build
+court/build
+init_state.squashfs
+scratch.ext2

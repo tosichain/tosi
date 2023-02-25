@@ -1,0 +1,9 @@
+.app*
+.env*
+.git
+.ipfs*
+node_modules
+build
+dapp_data_*
+machines
+data-prepopulate

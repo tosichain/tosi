@@ -1,0 +1,366 @@
+# Have to be used with -p option:
+# docker compose --profile build -p tosi-chain -f docker-compose-tosi-chain.yml build
+version: "3.3"
+secrets:
+  ipfs_swarm_key:
+    file: swarm.key
+
+services:
+  coordinator-base:
+    extends:
+      file: docker-compose/templates.yml
+      service: coordinator-base
+
+  localnet:
+    extends:
+      file: docker-compose/templates.yml
+      service: localnet
+    command: ["npx", "hardhat", "node", "--fork", "https://goerli-rollup.arbitrum.io/rpc"]
+
+  db-1:
+    extends:
+      file: docker-compose/templates.yml
+      service: db
+
+  # IPFS instance 1
+  ipfs-1:
+    extends:
+      file: docker-compose/templates.yml
+      service: ipfs-private
+    ports:
+      - "127.0.0.1:50011:5001"
+
+  # Coordinator node.
+  coordinator:
+    extends:
+      file: docker-compose/templates.yml
+      service: coordinator
+    depends_on:
+      ipfs-1:
+        condition: service_healthy
+      db-1:
+        condition: service_healthy
+      localnet:
+        condition: service_healthy
+    links:
+      - ipfs-1
+
+    environment:
+      DB_HOST: "db-1"
+      DB_USER: "root"
+      DB_PASSWORD: "example"
+      DB_DB: "tosi"
+      IPFS_HTTP_API_HOST: "ipfs-1"
+      IPFS_BLOCKCHAIN_SYNC_PERIOD: 1000 # 1 second
+      API_PORT: 20001
+      ETH_RPC: "http://localnet:8545"
+      ETH_RPC_RETRY_PERIOD: 1000 # 1 second
+      ETH_RPC_TIMEOUT: 5000 # 5 seconds
+      ETH_WALLET_SECRET: "0x2cca4b1846d60c2a417ad601ff7b5bfad7343c9de8bdbd19d5ca4a3e0f492dd7"
+      ETH_DESCARTES_CONTRACT_ADDRESS: "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
+      CHAIN_BLOCK_PERIOD: 1000 # 1 second
+      OFFCHAIN_DA_COMMITEE_SAMPLE_SIZE: 2
+      OFFCHAIN_DAS_REQUEST_BROADCAST_PERIOD: 300000 # 5 minutes
+      OFFCHAIN_DAS_REQUEST_TIEMOUT: 60000 # 1 minute
+      COORDINATOR_SMART_CONTRACT: "0x4731A0Dd87e637321D4E4980BeF351f992F14b77"
+      BLS_SECRET: "0f3cfbb5c038bdcd6814b0840e97385259d6d13748bb52397513574fbebf737e"
+      TOSI_MINTER_PUBKEY: "87f2f8a1a5c2b002828045ed6b76ff5033ba9983b5856f35d7f4dfd6dbe76b773bd71cb7336dd5e5dbaea3a8d0f11df8"
+      TOSI_STAKE_POOL_PUBKEY: "a9d5f32c309aa7c06d453688b605fd13dcff59c4ba68a1e122ca0765f2871ac628ddd6a91849f347eff1df1787730cb1"
+      IMPERSONATE_ADDRESS: "0xD63A9d27E7A573e28889A363310443Cba076D546"
+
+  # For testing
+  client-base:
+    extends:
+      file: docker-compose/templates.yml
+      service: client-base
+  verifier:
+    extends:
+      file: docker-compose/templates.yml
+      service: verifier
+
+  # IPFS instance 2
+  ipfs-2:
+    extends:
+      file: docker-compose/templates.yml
+      service: ipfs-private
+
+  # Descartes IPFS service 2
+  descartes-ipfs-2:
+    extends:
+      file: docker-compose/templates.yml
+      service: descartes-ipfs
+    depends_on:
+      ipfs-2:
+        condition: service_healthy
+    volumes:
+      - ./dapp_data_2:/opt/cartesi/srv/descartes
+    command: ["-g", "http://ipfs-2:5001"]
+
+  db-2:
+    extends:
+      file: docker-compose/templates.yml
+      service: db
+
+  # Client node.
+  client:
+    extends:
+      file: docker-compose/templates.yml
+      service: client
+
+    depends_on:
+      coordinator:
+        condition: service_healthy
+      ipfs-2:
+        condition: service_healthy
+      descartes-ipfs-2:
+        condition: service_healthy
+      db-2:
+        condition: service_healthy
+
+    links:
+      - coordinator
+      - descartes-ipfs-2
+    ports:
+      - "127.0.0.1:30001:30001" # For integration tests.
+
+    environment:
+      TOSI_MINTER_PUBKEY: "87f2f8a1a5c2b002828045ed6b76ff5033ba9983b5856f35d7f4dfd6dbe76b773bd71cb7336dd5e5dbaea3a8d0f11df8"
+      TOSI_STAKE_POOL_PUBKEY: "a9d5f32c309aa7c06d453688b605fd13dcff59c4ba68a1e122ca0765f2871ac628ddd6a91849f347eff1df1787730cb1"
+      BLS_SEC_KEY: "4d5a78da4f26be1d69593b19fac383abe5344668ae5671b1e6a8d72c1507f509"
+      IPFS_HTTP_API_HOST: "ipfs-2"
+      IPFS_SERVICE_HOST_PORT: "descartes-ipfs-2:50051"
+      STORAGE_DB_PATH: "./tosi-blockchain-db"
+      COORDINATOR_PUB_KEY: "9514e6d6ea03d953a9b8ae4157e96f6523ff8f4819839842892ba180b9c2a6eb5bc23bf7e5a4ea64c0fba491bc7b5f78"
+      COORDINATOR_API_URL: "http://coordinator:20001/api"
+      VERIFIER_HOST: "client-verifier"
+      SYNC_ETH_RPC: "http://localnet:8545"
+      SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x4731A0Dd87e637321D4E4980BeF351f992F14b77" # UUPSProxy contract.
+      SYNC_PERIOD: 1000 # 1 second
+      OFFCHAIN_DA_COMMITEE_SAMPLE_SIZE: 2
+      API_PORT: 30001
+      ROLE_IS_DA_VERIFIER: false
+      DB_HOST: "db-2"
+      DB_USER: "root"
+      DB_PASSWORD: "example"
+      DB_DB: "tosi"
+
+  client-verifier:
+    extends:
+      file: docker-compose/templates.yml
+      service: verifier-service
+
+  # IPFS instance 3
+  ipfs-3:
+    extends:
+      file: docker-compose/templates.yml
+      service: ipfs-private
+
+  db-3:
+    extends:
+      file: docker-compose/templates.yml
+      service: db
+
+  # Descartes IPFS service 3
+  descartes-ipfs-3:
+    extends:
+      file: docker-compose/templates.yml
+      service: descartes-ipfs
+    depends_on:
+      ipfs-3:
+        condition: service_healthy
+    volumes:
+      - ./dapp_data_3:/opt/cartesi/srv/descartes
+    command: ["-g", "http://ipfs-3:5001"]
+
+  # DA checker 1
+  da-checker-1:
+    extends:
+      file: docker-compose/templates.yml
+      service: client
+
+    depends_on:
+      coordinator:
+        condition: service_healthy
+      ipfs-3:
+        condition: service_healthy
+      descartes-ipfs-3:
+        condition: service_healthy
+      db-3:
+        condition: service_healthy
+
+    links:
+      - coordinator
+      - descartes-ipfs-3
+    ports:
+      - "127.0.0.1:30002:30001" # For integration tests.
+
+    environment:
+      TOSI_MINTER_PUBKEY: "87f2f8a1a5c2b002828045ed6b76ff5033ba9983b5856f35d7f4dfd6dbe76b773bd71cb7336dd5e5dbaea3a8d0f11df8"
+      TOSI_STAKE_POOL_PUBKEY: "a9d5f32c309aa7c06d453688b605fd13dcff59c4ba68a1e122ca0765f2871ac628ddd6a91849f347eff1df1787730cb1"
+      BLS_SEC_KEY: "22b8a5c1e4f51b1cade56c80edc963fe05e93192a08e77a1fe38f50b8f7d9f01"
+      IPFS_HTTP_API_HOST: "ipfs-3"
+      IPFS_SERVICE_HOST_PORT: "descartes-ipfs-3:50051"
+      STORAGE_DB_PATH: "./tosi-blockchain-db"
+      COORDINATOR_PUB_KEY: "9514e6d6ea03d953a9b8ae4157e96f6523ff8f4819839842892ba180b9c2a6eb5bc23bf7e5a4ea64c0fba491bc7b5f78"
+      COORDINATOR_API_URL: "http://coordinator:20001/api"
+      SYNC_ETH_RPC: "http://localnet:8545"
+      SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x4731A0Dd87e637321D4E4980BeF351f992F14b77" # UUPSProxy contract.
+      SYNC_PERIOD: 1000 # 1 second
+      VERIFIER_HOST: "da-checker-1-verifier"
+      API_PORT: 30001
+      ROLE_IS_DA_VERIFIER: true
+      OFFCHAIN_DA_COMMITEE_SAMPLE_SIZE: 2
+      ROLE_DA_VERIFIER_DA_CHECK_TIMEOUT: 15 # 15 seconds
+      DB_HOST: "db-3"
+      DB_USER: "root"
+      DB_PASSWORD: "example"
+      DB_DB: "tosi"
+
+  da-checker-1-verifier:
+    extends:
+      file: docker-compose/templates.yml
+      service: verifier-service
+
+  # IPFS instance 4
+  ipfs-4:
+    extends:
+      file: docker-compose/templates.yml
+      service: ipfs-private
+
+  db-4:
+    extends:
+      file: docker-compose/templates.yml
+      service: db
+
+  # Descartes IPFS service 4
+  descartes-ipfs-4:
+    extends:
+      file: docker-compose/templates.yml
+      service: descartes-ipfs
+    depends_on:
+      ipfs-4:
+        condition: service_healthy
+    volumes:
+      - ./dapp_data_4:/opt/cartesi/srv/descartes
+    command: ["-g", "http://ipfs-4:5001"]
+
+  # DA checker 2
+  da-checker-2:
+    extends:
+      file: docker-compose/templates.yml
+      service: client
+
+    depends_on:
+      coordinator:
+        condition: service_healthy
+      ipfs-4:
+        condition: service_healthy
+      descartes-ipfs-4:
+        condition: service_healthy
+      db-4:
+        condition: service_healthy
+
+    links:
+      - coordinator
+      - descartes-ipfs-3
+    ports:
+      - "127.0.0.1:30003:30001" # For integration tests.
+
+    environment:
+      TOSI_MINTER_PUBKEY: "87f2f8a1a5c2b002828045ed6b76ff5033ba9983b5856f35d7f4dfd6dbe76b773bd71cb7336dd5e5dbaea3a8d0f11df8"
+      TOSI_STAKE_POOL_PUBKEY: "a9d5f32c309aa7c06d453688b605fd13dcff59c4ba68a1e122ca0765f2871ac628ddd6a91849f347eff1df1787730cb1"
+      BLS_SEC_KEY: "18513804a1a2d3af9ca16829535a5ceea4218e508109f10466a453eb8ba8751f"
+      IPFS_HTTP_API_HOST: "ipfs-4"
+      IPFS_SERVICE_HOST_PORT: "descartes-ipfs-4:50051"
+      STORAGE_DB_PATH: "./tosi-blockchain-db"
+      COORDINATOR_PUB_KEY: "9514e6d6ea03d953a9b8ae4157e96f6523ff8f4819839842892ba180b9c2a6eb5bc23bf7e5a4ea64c0fba491bc7b5f78"
+      COORDINATOR_API_URL: "http://coordinator:20001/api"
+      VERIFIER_HOST: "da-checker-2-verifier"
+      SYNC_ETH_RPC: "http://localnet:8545"
+      SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x4731A0Dd87e637321D4E4980BeF351f992F14b77" # UUPSProxy contract.
+      SYNC_PERIOD: 1000 # 1 second
+      API_PORT: 30001
+      ROLE_IS_DA_VERIFIER: true
+      OFFCHAIN_DA_COMMITEE_SAMPLE_SIZE: 2
+      ROLE_DA_VERIFIER_DA_CHECK_TIMEOUT: 15 # 15 seconds
+      DB_HOST: "db-4"
+      DB_USER: "root"
+      DB_PASSWORD: "example"
+      DB_DB: "tosi"
+
+  da-checker-2-verifier:
+    extends:
+      file: docker-compose/templates.yml
+      service: verifier-service
+
+  # IPFS instance 5
+  ipfs-5:
+    extends:
+      file: docker-compose/templates.yml
+      service: ipfs-private
+
+  db-5:
+    extends:
+      file: docker-compose/templates.yml
+      service: db
+
+  # Descartes IPFS service 5
+  descartes-ipfs-5:
+    extends:
+      file: docker-compose/templates.yml
+      service: descartes-ipfs
+    depends_on:
+      ipfs-5:
+        condition: service_healthy
+    volumes:
+      - ./dapp_data_5:/opt/cartesi/srv/descartes
+    command: ["-g", "http://ipfs-5:5001"]
+
+  # DA checker 3
+  da-checker-3:
+    extends:
+      file: docker-compose/templates.yml
+      service: client
+
+    depends_on:
+      coordinator:
+        condition: service_healthy
+      ipfs-5:
+        condition: service_healthy
+      descartes-ipfs-5:
+        condition: service_healthy
+      db-5:
+        condition: service_healthy
+
+    links:
+      - coordinator
+      - descartes-ipfs-5
+    ports:
+      - "127.0.0.1:30004:30001" # For integration tests.
+
+    environment:
+      TOSI_MINTER_PUBKEY: "87f2f8a1a5c2b002828045ed6b76ff5033ba9983b5856f35d7f4dfd6dbe76b773bd71cb7336dd5e5dbaea3a8d0f11df8"
+      TOSI_STAKE_POOL_PUBKEY: "a9d5f32c309aa7c06d453688b605fd13dcff59c4ba68a1e122ca0765f2871ac628ddd6a91849f347eff1df1787730cb1"
+      BLS_SEC_KEY: "34a4db75366744ce1aef1702a981dac83bede3c90e8777dfb47d1992d557da7e"
+      IPFS_HTTP_API_HOST: "ipfs-5"
+      IPFS_SERVICE_HOST_PORT: "descartes-ipfs-5:50051"
+      STORAGE_DB_PATH: "./tosi-blockchain-db"
+      COORDINATOR_PUB_KEY: "9514e6d6ea03d953a9b8ae4157e96f6523ff8f4819839842892ba180b9c2a6eb5bc23bf7e5a4ea64c0fba491bc7b5f78"
+      COORDINATOR_API_URL: "http://coordinator:20001/api"
+      VERIFIER_HOST: "da-checker-3-verifier"
+      SYNC_ETH_RPC: "http://localnet:8545"
+      SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x4731A0Dd87e637321D4E4980BeF351f992F14b77" # UUPSProxy contract.
+      SYNC_PERIOD: 1000 # 1 second
+      API_PORT: 30001
+      ROLE_IS_DA_VERIFIER: true
+      OFFCHAIN_DA_COMMITEE_SAMPLE_SIZE: 2
+      ROLE_DA_VERIFIER_DA_CHECK_TIMEOUT: 15 # 15 seconds
+      DB_HOST: "db-5"
+      DB_USER: "root"
+      DB_PASSWORD: "example"
+      DB_DB: "tosi"
+
+  da-checker-3-verifier:
+    extends:
+      file: docker-compose/templates.yml
+      service: verifier-service
