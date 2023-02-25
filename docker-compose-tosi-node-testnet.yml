@@ -65,7 +65,7 @@ services:
       IPFS_HTTP_API_HOST: "ipfs-2"
       IPFS_SERVICE_HOST_PORT: "descartes-ipfs-2:50051"
       STORAGE_DB_PATH: "./tosi-blockchain-db"
-      COORDINATOR_PUB_KEY: "9514e6d6ea03d953a9b8ae4157e96f6523ff8f4819839842892ba180b9c2a6eb5bc23bf7e5a4ea64c0fba491bc7b5f78"
+      COORDINATOR_PUB_KEY: "8ea14bd457eaa9d91a4ad862f6252d67462232a5e3d88ea8a752875725e6e3843b2d1533cc507f59f4c732c266e52417"
       COORDINATOR_API_URL: "https://coordinator.dev.tosichain.com/api"
       VERIFIER_HOST: "client-verifier"
       SYNC_ETH_RPC: "https://goerli-rollup.arbitrum.io/rpc"
