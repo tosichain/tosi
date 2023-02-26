@@ -15,7 +15,7 @@ services:
     extends:
       file: docker-compose/templates.yml
       service: localnet
-    command: ["npx", "hardhat", "node", "--fork", "https://goerli-rollup.arbitrum.io/rpc"]
+    command: ["npx", "hardhat", "node", "--fork", "https://goerli-rollup.arbitrum.io/rpc", "--fork-block-number", "8342901"]
 
   db-1:
     extends:
