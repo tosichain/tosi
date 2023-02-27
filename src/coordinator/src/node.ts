@@ -257,6 +257,9 @@ export class CoordinatorNode {
         for (const [txn, err] of rejectedTxns) {
           this.log.info(`transaction ${stringifySignedTransaction(txn)} rejected - ${err.message}`);
         }
+        if (acceptedTxns.length == 0) {
+          this.log.error("failed to mint next block - all transactions were rejected");
+        }
 
         // Commit minted block;
         const blockHash = hashBlock(nextBlock);
