@@ -1,0 +1,61 @@
+name: Testnet Sync CI
+
+on: [push]
+
+jobs:
+  testnet-sync:
+    runs-on: [self-hosted, linux, x64]
+    strategy:
+      matrix:
+        include:
+          - name: "testnet sync"
+            compose-file: docker-compose-tosi-node-testnet.yml           
+            logfile: testnet-sync
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Stop all containers
+        run: |
+          docker ps -q | awk '{print $1}' | grep -v CONTAINER | xargs -L1 -r docker stop
+      - name: Rming all containers
+        run: |
+          docker ps -q | awk '{print $1}' | grep -v CONTAINER | xargs -L1 -r docker rm
+      - name: Clean up docker envionment
+        run: |
+          docker volume prune -f
+      - name: Check docker-compose version
+        run: |
+          docker compose version
+      - name: Set up caching
+        uses: jpribyl/action-docker-layer-caching@v0.1.1
+        # Ignore the failure of a step and avoid terminating the job.
+        continue-on-error: true
+      - name: Build the containers
+        run: |
+          docker compose --profile build -p tosi-chain -f ${{ matrix.compose-file }} build
+      - name: Stop and remove any leftovers
+        run: |
+          docker compose -p tosi-chain -f ${{ matrix.compose-file }} down --remove-orphans
+      - name: Check the status of the running docker containers
+        run: |
+          docker ps -a
+      - name: create .env file
+        run: |
+          echo "TOSI_CLIENT_BLS_SEC_KEY=73a8fd9a114ba3d5c916af9b04c7ea8135d319db455816fa2681a6f5b3ebabf1" > .env
+      - name: Start testnet
+        run: |
+          docker compose -p tosi-chain -f ${{ matrix.compose-file }} up --remove-orphans --detach --wait
+      - name: sync logs
+        run: |
+          docker compose -p tosi-chain -f ${{ matrix.compose-file }} logs -f &
+      - name: Wait for sync
+        run: |
+          curl http://localhost:30001/api/syncStatus
+      - name: Save log
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.logfile }}.log
+          path: ${{ matrix.logfile }}.log
+      - name: Stop testnet
+        run: |
+          docker compose -p tosi-chain -f ${{ matrix.compose-file }} down
