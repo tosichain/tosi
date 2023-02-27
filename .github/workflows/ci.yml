@@ -75,7 +75,7 @@ jobs:
         run: docker run --network=host test:1.0 npx hardhat test
       - name: Run integration tests - tosi client
         run: |
-          sleep 90 && docker run --network=host test:1.0 yarn ${{ matrix.citest }}
+          sleep 120 && docker run --network=host test:1.0 yarn ${{ matrix.citest }}
       - name: Grab logs
         if: ${{ always() }}
         run: |
