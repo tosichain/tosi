@@ -1,5 +1,7 @@
 /* eslint-disable no-console */
 import { ethers, upgrades } from "hardhat";
+import fs from "fs";
+import path from "path";
 
 async function main() {
   // Deploying
@@ -16,8 +18,22 @@ async function main() {
     });
   } catch (error) {}
 
-  console.log(`proxy: ${instance.address}`);
-  console.log(`implementation: ${implementation}`);
+  const contractInfo = {
+    instance: {
+      address: instance.address,
+    },
+    implementation: {
+      address: implementation,
+    },
+  };
+
+  const deploymentPath = path.join("deployments", hre.network.name);
+  // create directory if it doesn't exist
+  if (!fs.existsSync(deploymentPath)) {
+    fs.mkdirSync(deploymentPath, { recursive: true });
+  }
+  // write to file
+  fs.writeFileSync(path.join(deploymentPath, "datachain.json"), JSON.stringify(contractInfo, null, 2));
 }
 
 main();
