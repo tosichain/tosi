@@ -16,6 +16,7 @@ import { IPFS } from "../node/ipfs";
 import { hashComputeClaim } from "../blockchain/util";
 
 const FAKE_CID = "bafybeibnikymft2ikuygct6phxedz7x623cqlvcwxztgdds5fzbb5mhdk4";
+const BLOCK_WITH_INVALID_TXN_WAIT_PERIOD = 15; // 15 seconds
 
 const stakePoolPrivKey = Buffer.from("6b53ec86c32b1b044e3b8acd89a3961809679b263b61ad845085c18c49210fe9").toString();
 const stakePoolPubKey = Buffer.from(BLS.getPublicKey(stakePoolPrivKey)).toString("hex");
@@ -42,7 +43,7 @@ let daVerifier1: ClientNodeAPIClient;
 let daVerifier2: ClientNodeAPIClient;
 let daVerifier3: ClientNodeAPIClient;
 let ipfs: IPFS;
-let clientLastHeadBlockHash: string;
+let lastHeadBlockHash: string;
 
 before(async () => {
   log = winston.createLogger({
@@ -90,7 +91,7 @@ before(async () => {
     log,
   );
 
-  clientLastHeadBlockHash = await client.getLatestLocalHash();
+  lastHeadBlockHash = await coordinator.getHeadBblockHash();
 
   ipfs = new IPFS({ host: "127.0.0.1", port: 50011 }, log);
   await ipfs.up(log);
@@ -98,38 +99,37 @@ before(async () => {
   await setupDACommittee();
 });
 
-async function waitForClientSync(timeout: number | undefined): Promise<void> {
+async function waitForNewBlock(timeout: number | undefined): Promise<void> {
   const clients: ClientNodeAPIClient[] = [client, daVerifier1, daVerifier2, daVerifier3];
 
   const startTime = currentUnixTime();
 
   while (true) {
+    if (timeout) {
+      if (currentUnixTime() - startTime > timeout) {
+        return;
+      }
+    }
+
     // Sleep for 1 second.
     await new Promise((resolve) => {
       setTimeout(resolve, 1000);
     });
 
-    const headBlockHashQuery = clients.map(async (node) => await node.getLatestLocalHash());
-    const headBlockHash = await Promise.all(headBlockHashQuery);
-    if (!headBlockHash.every((h) => h == headBlockHash[0])) {
+    // Check if coordinator has new block.
+    const coordinatorHeadBlockHash: string = await coordinator.getHeadBblockHash();
+    if (coordinatorHeadBlockHash == lastHeadBlockHash) {
       continue;
     }
 
-    const isSyncedQuery = clients.map(async (node) => await node.getSyncStatus());
-    const isSynced = await Promise.all(isSyncedQuery);
-    if (!isSynced.every((s) => s == isSynced[0])) {
-      continue;
-    }
-
-    if (isSynced[0] && headBlockHash[0] != clientLastHeadBlockHash) {
-      clientLastHeadBlockHash = headBlockHash[0];
+    // Check if all clients have fetched new block.
+    const clientHeadBlockHashQuery = clients.map(async (node) => await node.getLatestLocalHash());
+    const clientHeadhBlockHash = await Promise.all(clientHeadBlockHashQuery);
+    if (clientHeadhBlockHash.every((h) => h == "0x" + coordinatorHeadBlockHash)) {
+      lastHeadBlockHash = coordinatorHeadBlockHash;
       return;
-    }
-
-    if (timeout) {
-      if (currentUnixTime() - startTime > timeout) {
-        return;
-      }
+    } else {
+      continue;
     }
   }
 }
@@ -170,7 +170,7 @@ async function setupDACommittee() {
   };
   await coordinator.submitTransaction(await signTransaction(txn4, minterPrivKey));
 
-  await waitForClientSync(undefined);
+  await waitForNewBlock(undefined);
 
   // Each DA verifier stakes tokens.
   await daVerifier1.submitTransaction({
@@ -192,7 +192,7 @@ async function setupDACommittee() {
     nonce: 0,
   });
 
-  await waitForClientSync(undefined);
+  await waitForNewBlock(undefined);
 }
 
 interface DummyClaim {
@@ -255,7 +255,7 @@ describe("DA verification is performed correctly", function () {
 
     await client.submitTransaction(txn);
 
-    await waitForClientSync(undefined);
+    await waitForNewBlock(undefined);
     await verifyHeadClaim(rootClaimHash, txn.addChain.rootClaim);
   });
 
@@ -277,7 +277,7 @@ describe("DA verification is performed correctly", function () {
 
     await client.submitTransaction(txn);
 
-    await waitForClientSync(undefined);
+    await waitForNewBlock(undefined);
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 
@@ -312,7 +312,7 @@ describe("DA verification is performed correctly", function () {
 
     await client.submitTransaction(invalidTxn);
 
-    await waitForClientSync(10);
+    await waitForNewBlock(BLOCK_WITH_INVALID_TXN_WAIT_PERIOD);
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 
@@ -346,7 +346,7 @@ describe("DA verification is performed correctly", function () {
 
     await client.submitTransaction(invalidTxn);
 
-    await waitForClientSync(10);
+    await waitForNewBlock(BLOCK_WITH_INVALID_TXN_WAIT_PERIOD);
     await verifyHeadClaim(invalidRootClaimHash, undefined);
   });
 
@@ -380,7 +380,7 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
 
     await client.submitTransaction(txn);
 
-    await waitForClientSync(10);
+    await waitForNewBlock(BLOCK_WITH_INVALID_TXN_WAIT_PERIOD);
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 
@@ -410,7 +410,7 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
 
     await client.submitTransaction(invalidTxn);
 
-    await waitForClientSync(undefined);
+    await waitForNewBlock(undefined);
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 
@@ -440,7 +440,7 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
 
     await client.submitTransaction(invalidTxn);
 
-    await waitForClientSync(undefined);
+    await waitForNewBlock(undefined);
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 });
