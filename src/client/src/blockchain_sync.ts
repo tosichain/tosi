@@ -38,8 +38,6 @@ export class BlockchainClientSync {
   private readonly ethProvider: ethers.providers.JsonRpcProvider;
   private readonly claimContract: DatachainV1;
 
-  private syncing: boolean;
-
   constructor(
     daCommitteeSampleSize: number,
     config: BlockchainClientSyncConfig,
@@ -61,71 +59,65 @@ export class BlockchainClientSync {
 
     this.ethProvider = new ethers.providers.JsonRpcProvider(this.config.eth.rpc);
     this.claimContract = DatachainV1__factory.connect(this.config.eth.claimContractAddress, this.ethProvider);
-    this.syncing = false;
   }
 
-  public start(): void {
-    setInterval(async () => {
-      await this.syncBlocks();
-    }, this.config.syncPeriod);
+  public async start(): Promise<void> {
+    this.syncBlocks();
   }
 
   private async syncBlocks(): Promise<void> {
-    if (this.syncing) {
-       this.log.info("sync in progress, not repeating");
-       return;
-    }
-    this.syncing = true;
-    
-    this.log.info("starting block sync");
+    while (true) {
+      try {
+        await new Promise((resolve, _) => {
+          setTimeout(resolve, this.config.syncPeriod);
+        });
 
-    // Starting from head block fetch, all blocks, until
-    // block, already committed to local stroage, is found.
-    try {
-      // Check if any blocks have been submitted to smart contract.
-      let blockIndex = (await this.claimContract.blockNumber()).toNumber();
-      if (blockIndex == 0) {
-        this.log.info("no blocks were submitted to smart contract");
-        this.syncing = false;
-        return;
-      }
+        this.log.info("starting block sync");
 
-      // Check if local copy of blockchain is up-to-date.
-      const headBlockHash = await this.getContractHeadBlockHash();
-      this.log.info(`head block in smart contract ${headBlockHash}`);
-      const localHeadBlockHash = await this.storage.getHeadBlockHash();
-      this.log.info(`head block in local storage - ${localHeadBlockHash}`);
-      if (headBlockHash == localHeadBlockHash) {
-        this.log.info("local blockchain copy is up-to-date");
-        this.syncing = false;
-        return;
-      }
+        // Starting from head block fetch, all blocks, until
+        // block, already committed to local stroage, is found.
 
-      const blocksToCommit: Block[] = [];
-      // Fetch blocks until first minted block is reached or previous block is in local storage.
-      while (blockIndex > 0) {
-        const block = await this.fetchBlock(blockIndex);
-        blocksToCommit.push(block);
-        // Previous block is in local storage.
-        if (block.prevBlockHash == localHeadBlockHash) {
-          this.log.info("hit local head block hash");
-          break;
-        } else {
-          this.log.info("local head block hash not in local storage, continuing");
+        // Check if any blocks have been submitted to smart contract.
+        let blockIndex = (await this.claimContract.blockNumber()).toNumber();
+        if (blockIndex == 0) {
+          this.log.info("no blocks were submitted to smart contract");
+          continue;
         }
-        blockIndex--;
+
+        // Check if local copy of blockchain is up-to-date.
+        const headBlockHash = await this.getContractHeadBlockHash();
+        this.log.info(`head block in smart contract ${headBlockHash}`);
+        const localHeadBlockHash = await this.storage.getHeadBlockHash();
+        this.log.info(`head block in local storage - ${localHeadBlockHash}`);
+        if (headBlockHash == localHeadBlockHash) {
+          this.log.info("local blockchain copy is up-to-date");
+          continue;
+        }
+
+        const blocksToCommit: Block[] = [];
+        // Fetch blocks until first minted block is reached or previous block is in local storage.
+        while (blockIndex > 0) {
+          const block = await this.fetchBlock(blockIndex);
+          blocksToCommit.push(block);
+          // Previous block is in local storage.
+          if (block.prevBlockHash == localHeadBlockHash) {
+            this.log.info("hit local head block hash");
+            break;
+          } else {
+            this.log.info("local head block hash not in local storage, continuing");
+          }
+          blockIndex--;
+        }
+        this.log.info("done fetching blocks");
+        // Commit block to local storage in correct order.
+        blocksToCommit.reverse();
+        for (const block of blocksToCommit) {
+          await this.applyBlockTxns(block);
+        }
+        this.log.info("block sync finished");
+      } catch (err: any) {
+        this.log.error(`failed to sync blocks - ${err.message}`);
       }
-      this.log.info("done fetching blocks");
-      // Commit block to local storage in correct order.
-      blocksToCommit.reverse();
-      for (const block of blocksToCommit) {
-        await this.applyBlockTxns(block);
-      }
-      this.log.info("block sync finished");
-      this.syncing = false;
-    } catch (err: any) {
-      this.log.error(`failed to sync blocks - ${err.message}`);
-      this.syncing = false;
     }
   }
 
@@ -148,12 +140,11 @@ export class BlockchainClientSync {
 
     const realBlockHash = hashBlock(lastBlock);
     if (realBlockHash != blockHash) {
-      this.log.info("hash block, fetched from coordinator smart contract, does not match hash of block, fetched from IPFS");
       throw new Error(
         `hash block, fetched from coordinator smart contract, does not match hash of block, fetched from IPFS`,
       );
     }
-    
+
     return lastBlock;
   }
 
@@ -186,7 +177,9 @@ export class BlockchainClientSync {
     const [state, headBlock] = await this.storage.getNextBlockInput();
     const headBlockHash = hashBlock(headBlock);
     if (block.prevBlockHash != headBlockHash) {
-      throw new Error(`prevHash of new block ` + block.prevBlockHash + ` does not match current hash of current head block ` + headBlockHash);
+      throw new Error(
+        `prevHash of new block ${block.prevBlockHash} does not match hash of current head block ${headBlockHash}`,
+      );
     }
 
     if (!(await verifyBlockProof(block, this.storage, this.daCommiteeSampleSize))) {

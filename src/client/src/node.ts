@@ -106,9 +106,9 @@ export class ClientNode {
   public async start(): Promise<void> {
     await this.ipfs.up(this.log);
     await this.storage.init();
-    this.blockchainSync.start();
-    this.daVerifier?.start();
-    this.apiServer.start();
+    await this.blockchainSync.start();
+    await this.daVerifier?.start();
+    await this.apiServer.start();
   }
 
   // API methods.
