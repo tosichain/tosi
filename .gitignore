@@ -23,3 +23,5 @@ out/
 broadcast/**
 dapp_data_*
 tosi-ledger-db
+client-db*
+client-ipfs-db*

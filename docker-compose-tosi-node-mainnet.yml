@@ -18,7 +18,7 @@ services:
       file: docker-compose/templates.yml
       service: ipfs-public-2
     volumes:
-      - "./client-ipfs-db:/data/ipfs"
+      - "./client-ipfs-db-mainnet:/data/ipfs"
 
   # Descartes IPFS service 2
   descartes-ipfs-2:
@@ -29,7 +29,7 @@ services:
       ipfs-2:
         condition: service_healthy
     volumes:
-      - ./dapp_data_2:/opt/cartesi/srv/descartes
+      - ./dapp_data_2-mainnet:/opt/cartesi/srv/descartes
     command: ["-g", "http://ipfs-2:5001"]
 
   db-2:
@@ -37,7 +37,7 @@ services:
       file: docker-compose/templates.yml
       service: db
     volumes:
-      - "./client-db:/var/lib/mysql"
+      - "./client-db-mainnet:/var/lib/mysql"
 
   # Client node.
   client:
@@ -59,14 +59,14 @@ services:
       - "127.0.0.1:30001:30001" # For API
 
     environment:
-      TOSI_MINTER_PUBKEY: "ab92bd04cb362bf07ce6380727fb956379963da44c6027fea2cbeddf516f7151320491a27b7f4df4106f94224641a6f4"
-      TOSI_STAKE_POOL_PUBKEY: "a5a31c6de185d5fe861bca71bcc9b86d8ab27133e244afbe5ac988d3d622bcbf52a2ce0b84b129f32d92219919a34307"
+      TOSI_MINTER_PUBKEY: "8490ca0575998160e2fcb0381b6f95edd7d1ab9e8e4640010476c0c535334b5ea2889ebee4bba46bee6cbbdc9421e95c"
+      TOSI_STAKE_POOL_PUBKEY: "a44838a77e8e56a696864f1fdae920e158479300c4f2d43abf40ac19922ae9cd270bd775a28718660baa4c9223e901b9"
       BLS_SEC_KEY: "${TOSI_CLIENT_BLS_SEC_KEY}"
       IPFS_HTTP_API_HOST: "ipfs-2"
       IPFS_SERVICE_HOST_PORT: "descartes-ipfs-2:50051"
       STORAGE_DB_PATH: "./tosi-blockchain-db"
-      COORDINATOR_PUB_KEY: "9514e6d6ea03d953a9b8ae4157e96f6523ff8f4819839842892ba180b9c2a6eb5bc23bf7e5a4ea64c0fba491bc7b5f78"
-      COORDINATOR_API_URL: "https://coordinator.dev.tosichain.com/api"
+      COORDINATOR_PUB_KEY: "aee7ecc1c86bfb526a3940dc2b1065f7ec436db34ea74022cb8934224ac97b6fa2eba1da0f5344d474f8a7816ec8e650"
+      COORDINATOR_API_URL: "https://coordinator.tosichain.com/api"
       VERIFIER_HOST: "client-verifier"
       SYNC_ETH_RPC: "https://arb1.arbitrum.io/rpc"
       SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x630809d980b66B36ea733bE3899615339E428C55" # UUPSProxy contract.
@@ -83,3 +83,4 @@ services:
     extends:
       file: docker-compose/templates.yml
       service: verifier-service
+
