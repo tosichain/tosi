@@ -55,6 +55,7 @@ jobs:
         run: |
           until [[ "$(curl -s $SYNC_API_URL | jq -r '.isSynced')" = "true" ]]; do
             echo "Waiting for sync to complete..."
+            sleep 5
           done
           echo "Sync completed successfully."
       - name: Save log
