@@ -60,7 +60,7 @@ import { createInitialStateFromEnv } from "../../blockchain/util";
   );
 
   const node = new ClientNode(config, log);
-  node.start();
+  await node.start();
 })().catch((err) => {
   // eslint-disable-next-line no-console
   console.log(err);
