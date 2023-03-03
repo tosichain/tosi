@@ -16,7 +16,7 @@ services:
   ipfs-2:
     extends:
       file: docker-compose/templates.yml
-      service: ipfs-public-2
+      service: ipfs-public
     volumes:
       - "./client-ipfs-db:/data/ipfs"
 
