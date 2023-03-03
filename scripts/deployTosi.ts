@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { ethers, upgrades } from "hardhat";
 import fs from "fs";
 import path from "path";
