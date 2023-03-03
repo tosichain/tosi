@@ -286,7 +286,7 @@ export class CoordinatorNode {
           throw new Error("can not fetch hash of head block from storage");
         }
         while (true) {
-          const uploadedBlock: Block | undefined = await this.uploadBlockToIPFS(blockHash);
+          const uploadedBlock: Block | undefined = await this.uploadBlockToIPFS(blockHash, force);
           // Сurrent block and all previous blocks are already uploaded.
           if (uploadedBlock == undefined) {
             // this.log.info(`block ${blockHash} is already uploaded to ipfs`);
