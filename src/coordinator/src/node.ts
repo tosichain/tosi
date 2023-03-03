@@ -147,7 +147,8 @@ export class CoordinatorNode {
     await this.offchainManager.start();
 
     this.createNextBlock();
-    this.uploadBlockchainToIPFS();
+    await this.uploadBlockchainToIPFS(true);
+    this.uploadBlockchainToIPFS(false);
   }
 
   private async connectEthContract(): Promise<void> {
@@ -271,7 +272,7 @@ export class CoordinatorNode {
     }
   }
 
-  private async uploadBlockchainToIPFS(): Promise<void> {
+  private async uploadBlockchainToIPFS(force: boolean = false): Promise<void> {
     while (true) {
       try {
         await new Promise((resolve, _) => {
@@ -288,7 +289,7 @@ export class CoordinatorNode {
           const uploadedBlock: Block | undefined = await this.uploadBlockToIPFS(blockHash);
           // Сurrent block and all previous blocks are already uploaded.
           if (uploadedBlock == undefined) {
-            this.log.info(`block ${blockHash} is already uploaded to ipfs`);
+            // this.log.info(`block ${blockHash} is already uploaded to ipfs`);
             break;
           }
           // Genesis block does not have previous block.
@@ -298,27 +299,30 @@ export class CoordinatorNode {
           }
           blockHash = uploadedBlock.prevBlockHash;
         }
+        if (force) {
+          break;
+        }
       } catch (err: any) {
         this.log.error(`failed to upload blockchain to IPFS - ${err.message}`);
       }
     }
   }
 
-  private async uploadBlockToIPFS(blockHash: string): Promise<Block | undefined> {
+  private async uploadBlockToIPFS(blockHash: string, force: boolean = false): Promise<Block | undefined> {
     // Check if block is already uploaded.
     const blockMetaExists = await this.storage.getBlockMetadata(blockHash);
-    if (blockMetaExists != undefined) {
+    if (blockMetaExists != undefined && !force) {
       return undefined;
     }
 
     // Get block content and upload it to IPFS.
-    this.log.info(`uploading block ${blockHash} to ipfs`);
+    this.log.info(`uploading block ${blockHash} to ipfs: force ` + force);
     const block = await this.storage.getBlock(blockHash);
     if (block == undefined) {
       throw Error("block metadata exists in db while block itself is missing");
     }
     const rawBlock = await serializeBlock(block);
-    const blockCID = await this.ipfs.getIPFS().dag.put(rawBlock);
+    const blockCID = await this.ipfs.getIPFS().dag.put(rawBlock, { pin: true });
 
     // Mark block as uploaded in storage.
     const blockMeta: BlockMetadata = {
