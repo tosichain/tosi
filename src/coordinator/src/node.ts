@@ -227,8 +227,7 @@ export class CoordinatorNode {
         );
         const daCheckResult = await this.offchainManager.checkTxnBundleDA(txnBundle, blockRandProof, daCommittee);
         for (const txn of daCheckResult.rejectedTxns) {
-          const txnHash = hashSignedTransaction(txn);
-          await this.storage.removePendingTransaction(txnHash);
+          await this.storage.removePendingTransaction(txn);
         }
         if (daCheckResult.acceptedTxns.length == 0) {
           this.log.error(`failed to mint next block - all transactions have failed DA verification`);
@@ -257,6 +256,7 @@ export class CoordinatorNode {
         }
         for (const [txn, err] of rejectedTxns) {
           this.log.info(`transaction ${stringifySignedTransaction(txn)} rejected - ${err.message}`);
+          await this.storage.removePendingTransaction(txn);
         }
 
         // Commit minted block;
@@ -264,8 +264,8 @@ export class CoordinatorNode {
         const rawBlock = serializeBlock(nextBlock);
         await this.claimContract?.submitBlock(rawBlock);
         this.log.info(`block ${blockHash} committed to smart contract`);
+
         await this.storage.commitNextBlock(state, nextBlock);
-        this.log.info(`block ${hashBlock(nextBlock)} committed to local storage`);
       } catch (err: any) {
         this.log.error(`failed to mint next block - ${err.message}`);
       }
