@@ -2,7 +2,7 @@ import process from "process";
 import keccak256 from "keccak256";
 import JSONbigint from "json-bigint";
 
-import { WorldState, SignedTransaction, Transaction, ComputeClaim, Staker, Block, TransactionBundle } from "./types";
+import { WorldState, SignedTransaction, Transaction, ComputeClaim, Staker, Block, TransactionBundle, Account } from "./types";
 import { createAccount } from "./transaction";
 import {
   serializeBlock,
@@ -65,6 +65,10 @@ export function stringifyTransaction(txn: Transaction): string {
 
 export function stringifySignedTransaction(txn: SignedTransaction): string {
   return JSONbigint.stringify(txn);
+}
+
+export function stringifyAccount(account: Account): string {
+  return JSONbigint.stringify(account);
 }
 
 export function stringifyStaker(staker: Staker): string {

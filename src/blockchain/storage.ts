@@ -188,8 +188,11 @@ export class BlockchainStorage {
     this.log.info(`transaction ${stringifySignedTransaction(txn)} submitted to the mempool`);
   }
 
-  public async removePendingTransaction(txnHash: string): Promise<void> {
+  public async removePendingTransaction(txn: SignedTransaction): Promise<void> {
+    const txnHash = hashSignedTransaction(txn);
     this.clearKey("mempool", txnHash);
+    await this.clearKey("mempool", txnHash);
+    this.log.info(`transaction ${txnHash} removed from the mempool`);
   }
 
   public async getNextBlockInput(): Promise<[WorldState, Block, SignedTransaction[]]> {
@@ -224,13 +227,19 @@ export class BlockchainStorage {
   public async commitNextBlock(state: WorldState, block: Block): Promise<void> {
     const rawBlock = serializeBlock(block);
     const nextBlockHash = hashBlock(block);
+
     /* TODO: turn this atomic */
     await this.putValue("main", DB_KEY_HEAD_BLOCK, encodeStringValue(nextBlockHash));
     await this.putValue("state", DB_KEY_STATE_VALUE, serializeWorldState(state));
     await this.putValue("block", nextBlockHash, rawBlock);
+    this.log.info(`block ${nextBlockHash} committed to smart contract`);
 
-    // Clear mempool.
-    await this.clearAllKeys("mempool");
+    // Remove block transactions from mempool.
+    for (const txn of block.transactions) {
+      const txnHash = hashSignedTransaction(txn);
+      await this.clearKey("mempool", txnHash);
+      this.log.info(`transaction ${txnHash} removed from the mempool`);
+    }
   }
 
   public async getAccount(pubKey: string): Promise<Account | undefined> {
