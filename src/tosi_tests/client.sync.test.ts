@@ -27,7 +27,6 @@ const accTwoPubKey = Buffer.from(BLS.getPublicKey(accTwoPrivKey)).toString("hex"
 let log: winston.Logger;
 let coordinator: CoordinatorAPIClient;
 let client: ClientNodeAPIClient;
-let lastHeadBlockHash: string;
 
 before(async () => {
   log = winston.createLogger({
@@ -54,29 +53,46 @@ before(async () => {
     },
     log,
   );
-
-  lastHeadBlockHash = await coordinator.getHeadBblockHash();
 });
 
-async function waitForNewBlock(): Promise<void> {
+async function waitForAccountNonce(accountNonce: Record<string, number>): Promise<void> {
   while (true) {
     // Sleep for 1 second.
     await new Promise((resolve) => {
       setTimeout(resolve, 1000);
     });
 
-    // Check if coordinator has new block.
-    const coordinatorHeadBlockHash: string = await coordinator.getHeadBblockHash();
-    if (coordinatorHeadBlockHash == lastHeadBlockHash) {
+    // Check if coordinator has accepted/rejected transactions from accounts.
+    let coordinatorCheck = true;
+    for (const accPubKey of Object.keys(accountNonce)) {
+      const account = await coordinator.getAccount(accPubKey);
+      if (!account) {
+        coordinatorCheck = false;
+        break;
+      }
+      if (account.nonce != accountNonce[accOnePubKey]) {
+        coordinatorCheck = false;
+        break;
+      }
+    }
+    if (!coordinatorCheck) {
       continue;
     }
 
-    // Check if client has fetched new block.
-    const clientHeadBlockHash: string = await client.getLatestLocalHash();
-    if (clientHeadBlockHash == "0x" + coordinatorHeadBlockHash) {
-      lastHeadBlockHash = coordinatorHeadBlockHash;
-      return;
-    } else {
+    // Check if client has accepted/rejected transactions from accounts.
+    let clientCheck = true;
+    for (const accPubKey of Object.keys(accountNonce)) {
+      const account = await client.getAccount(accPubKey);
+      if (!account) {
+        clientCheck = false;
+        break;
+      }
+      if (account.nonce != accountNonce[accOnePubKey]) {
+        clientCheck = false;
+        break;
+      }
+    }
+    if (!clientCheck) {
       continue;
     }
   }
@@ -190,7 +206,9 @@ describe("client node correctly replays MintToken transactions", function () {
       stake: 0n,
     };
 
-    await waitForNewBlock();
+    await waitForAccountNonce({
+      minterPubKey: 1,
+    });
     await checkHeadBlock();
     await checkAccounts(accounts);
   });
@@ -238,7 +256,9 @@ describe("client node correctly replays MintToken transactions", function () {
       stake: 0n,
     };
 
-    await waitForNewBlock();
+    await waitForAccountNonce({
+      minterPubKey: 3,
+    });
     await checkHeadBlock();
     await checkAccounts(accounts);
   });
@@ -318,7 +338,10 @@ describe("client node correctly replays TransferToken transactions", function ()
       stake: 0n,
     };
 
-    await waitForNewBlock();
+    await waitForAccountNonce({
+      accOnePubKey: 1,
+      accTwoPubKey: 1,
+    });
     await checkHeadBlock();
     await checkAccounts(accounts);
   });
@@ -370,7 +393,10 @@ describe("client node correctly replays StakeToken transactions", function () {
       stake: 0n,
     };
 
-    await waitForNewBlock();
+    await waitForAccountNonce({
+      accOnePubKey: 2,
+      accTwoPubKey: 2,
+    });
     await checkHeadBlock();
     await checkAccounts(accounts);
     await checkStakerList([accOnePubKey, accTwoPubKey]);
@@ -423,7 +449,10 @@ describe("client node correctly replays UnstakeToken transactions", function () 
       stake: 0n,
     };
 
-    await waitForNewBlock();
+    await waitForAccountNonce({
+      accOnePubKey: 3,
+      accTwoPubKey: 3,
+    });
     await checkHeadBlock();
     await checkAccounts(accounts);
     await checkStakerList([accOnePubKey]);
@@ -456,7 +485,9 @@ describe("client node does not replay invalid transactions", function () {
       stake: 0n,
     };
 
-    await waitForNewBlock();
+    await waitForAccountNonce({
+      accOnePubKey: 3,
+    });
     await checkHeadBlock();
     await checkAccounts(accounts);
   });
@@ -483,7 +514,9 @@ describe("client node does not replay invalid transactions", function () {
       stake: 0n,
     };
 
-    await waitForNewBlock();
+    await waitForAccountNonce({
+      accOnePubKey: 3,
+    });
     await checkHeadBlock();
     await checkAccounts(accounts);
   });
@@ -510,7 +543,9 @@ describe("client node does not replay invalid transactions", function () {
       stake: 0n,
     };
 
-    await waitForNewBlock();
+    await waitForAccountNonce({
+      accOnePubKey: 3,
+    });
     await checkHeadBlock();
     await checkAccounts(accounts);
   });
