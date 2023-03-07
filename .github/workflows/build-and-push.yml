@@ -26,6 +26,9 @@ jobs:
           dockerfile: Dockerfile-verifier
         
     runs-on: [self-hosted, linux, x64]
+    concurrency:
+      group: '${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}'
+      cancel-in-progress: true
     steps:
       - name: Dump Contexts
         env:
