@@ -23,12 +23,19 @@ WORKDIR /computechain/src/client
 
 # External dependencies of client node.
 COPY [ "src/client/package.json", "./" ]
-RUN yarn install
+COPY [ "src/client/yarn.lock", "./" ]
+RUN yarn install --frozen-lockfile
 
 # Build client node source.
 COPY [ "src/client/tsconfig.json", "./" ]
 COPY [ "src/client/tslint.json", "./" ]
 COPY [ "src/client/src", "./src" ]
+
+COPY ["src/genkey.mjs", "./" ]
+COPY ["src/mint.ts", "./" ]
+COPY ["src/stakeTool.ts", "./" ]
+COPY ["src/transferTool.ts", "./" ]
+
 RUN yarn build
 
 CMD [ "yarn", "start" ]
