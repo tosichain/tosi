@@ -23,6 +23,9 @@ jobs:
             logfile: da
             composefile: docker-compose-tosi-coordinator-simul.yml
     runs-on: [self-hosted, linux, x64]
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Dump Contexts
         env:
