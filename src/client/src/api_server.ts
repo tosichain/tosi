@@ -23,6 +23,7 @@ export interface RequestHandler {
   getLatestBlockHash(): Promise<string>;
   getLatestLocalHash(): Promise<string>;
   getBlsPubKeyInHex(): Promise<string>;
+  getTosiChains(): Promise<ComputeChain[] | undefined>;
 }
 
 export interface ClientNodeAPIServerConfig {
@@ -54,6 +55,7 @@ export class ClientNodeAPIServer {
     this.http.get("/api/latestHash", this.getLatestBlockHash.bind(this));
     this.http.get("/api/latestLocalHash", this.getLatestLocalHash.bind(this));
     this.http.get("/api/blsPubKeyInHex", this.getBlsPubKeyInHex.bind(this));
+    this.http.get("/api/tosiChains", this.getTosiChains.bind(this));
   }
 
   public async start(): Promise<void> {
@@ -189,7 +191,7 @@ export class ClientNodeAPIServer {
     }
   }
 
-  private async getLatestLocalHash(req: Request, res:Response): Promise<Response | void> {
+  private async getLatestLocalHash(req: Request, res: Response): Promise<Response | void> {
     try {
       const latestLocalHash = await this.handler.getLatestLocalHash();
       res.status(200).send({ blockHash: latestLocalHash });
@@ -199,10 +201,23 @@ export class ClientNodeAPIServer {
     }
   }
 
-  private async getBlsPubKeyInHex(req: Request, res:Response): Promise<Response | void> {
+  private async getBlsPubKeyInHex(req: Request, res: Response): Promise<Response | void> {
     try {
       const blsPubKeyInHex = await this.handler.getBlsPubKeyInHex();
       res.status(200).send({ blsPubKeyInHex });
+    } catch (err: any) {
+      res.status(500).send({ error: err.message });
+    }
+  }
+
+  private async getTosiChains(req: Request, res: Response): Promise<Response | void> {
+    try {
+      const chain = await this.handler.getTosiChains();
+      if (!chain) {
+        res.status(404).send({ error: "data chain not found" });
+        return;
+      }
+      res.status(200).send(chain);
     } catch (err: any) {
       res.status(500).send({ error: err.message });
     }
