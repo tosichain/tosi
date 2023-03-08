@@ -23,7 +23,7 @@ export interface RequestHandler {
   getLatestBlockHash(): Promise<string>;
   getLatestLocalHash(): Promise<string>;
   getBlsPubKeyInHex(): Promise<string>;
-  getTosiChains(): Promise<ComputeChain[] | undefined>;
+  getDatachains(): Promise<ComputeChain[] | undefined>;
 }
 
 export interface ClientNodeAPIServerConfig {
@@ -55,7 +55,7 @@ export class ClientNodeAPIServer {
     this.http.get("/api/latestHash", this.getLatestBlockHash.bind(this));
     this.http.get("/api/latestLocalHash", this.getLatestLocalHash.bind(this));
     this.http.get("/api/blsPubKeyInHex", this.getBlsPubKeyInHex.bind(this));
-    this.http.get("/api/tosiChains", this.getTosiChains.bind(this));
+    this.http.get("/api/dataChains", this.getDatachains.bind(this));
   }
 
   public async start(): Promise<void> {
@@ -210,9 +210,9 @@ export class ClientNodeAPIServer {
     }
   }
 
-  private async getTosiChains(req: Request, res: Response): Promise<Response | void> {
+  private async getDatachains(req: Request, res: Response): Promise<Response | void> {
     try {
-      const chain = await this.handler.getTosiChains();
+      const chain = await this.handler.getDatachains();
       if (!chain) {
         res.status(404).send({ error: "data chain not found" });
         return;
