@@ -1,6 +1,6 @@
-import { Transaction } from "./blockchain/types";
-import { signTransaction } from "./blockchain/block";
-import { CoordinatorAPIClient } from "./coordinator/src/api_client";
+import { Transaction } from "../../blockchain/types";
+import { signTransaction } from "../../blockchain/block";
+import { CoordinatorAPIClient } from "../../coordinator/src/api_client";
 import winston from "winston";
 
 let log: winston.Logger;
