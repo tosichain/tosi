@@ -273,7 +273,7 @@ export class ClientNode {
     return blsPubKeyInHex;
   }
 
-  public async getTosiChains() {
-    return await this.storage.getTosiChains();
+  public async getDatachains() {
+    return await this.storage.getDatachains();
   }
 }
