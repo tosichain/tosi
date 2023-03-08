@@ -1,1 +1,1 @@
-See https://tosi-1.gitbook.io/tosi/
+See https://docs.tosichain.com
