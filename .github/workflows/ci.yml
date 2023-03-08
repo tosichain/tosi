@@ -14,14 +14,6 @@ jobs:
             citest: test:tosi.da.committee.test
             logfile: da
             composefile: docker-compose-tosi-chain.yml
-          - name: "client sync on simul"
-            citest: test:tosi.client.sync
-            logfile: client
-            composefile: docker-compose-tosi-coordinator-simul.yml
-          - name: "da committee on simul"
-            citest: test:tosi.da.committee.test
-            logfile: da
-            composefile: docker-compose-tosi-coordinator-simul.yml
     runs-on: [self-hosted, linux, x64]
     concurrency:
       group: '${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}'
