@@ -32,9 +32,6 @@ COPY [ "src/client/tslint.json", "./" ]
 COPY [ "src/client/src", "./src" ]
 
 COPY ["src/genkey.mjs", "./" ]
-COPY ["src/mint.ts", "./" ]
-COPY ["src/stakeTool.ts", "./" ]
-COPY ["src/transferTool.ts", "./" ]
 
 RUN yarn build
 
