@@ -263,8 +263,8 @@ export class CoordinatorNode {
         const rawBlock = serializeBlock(nextBlock);
         await this.claimContract?.submitBlock(rawBlock);
         this.log.info(`block ${blockHash} committed to smart contract`);
+
         await this.storage.commitNextBlock(state, nextBlock);
-        this.log.info(`block ${hashBlock(nextBlock)} committed to local storage`);
       } catch (err: any) {
         this.log.error(`failed to mint next block - ${err.message}`);
       }
