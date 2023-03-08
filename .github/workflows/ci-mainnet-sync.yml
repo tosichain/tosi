@@ -27,6 +27,7 @@ jobs:
       - name: Clean up docker envionment
         run: |
           docker volume prune -f
+          docker volume ls -qf dangling=true | xargs -L1 -r docker volume rm
       - name: Check docker-compose version
         run: |
           docker compose version
