@@ -188,8 +188,11 @@ export class BlockchainStorage {
     this.log.info(`transaction ${stringifySignedTransaction(txn)} submitted to the mempool`);
   }
 
-  public async removePendingTransaction(txnHash: string): Promise<void> {
+  public async removePendingTransaction(txn: SignedTransaction): Promise<void> {
+    const txnHash = hashSignedTransaction(txn);
     this.clearKey("mempool", txnHash);
+    await this.clearKey("mempool", txnHash);
+    this.log.info(`transaction ${txnHash} removed from the mempool`);
   }
 
   public async getNextBlockInput(): Promise<[WorldState, Block, SignedTransaction[]]> {

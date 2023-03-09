@@ -226,8 +226,7 @@ export class CoordinatorNode {
         );
         const daCheckResult = await this.offchainManager.checkTxnBundleDA(txnBundle, blockRandProof, daCommittee);
         for (const txn of daCheckResult.rejectedTxns) {
-          const txnHash = hashSignedTransaction(txn);
-          await this.storage.removePendingTransaction(txnHash);
+          await this.storage.removePendingTransaction(txn);
         }
         if (daCheckResult.acceptedTxns.length == 0) {
           this.log.error(`failed to mint next block - all transactions have failed DA verification`);
@@ -256,6 +255,7 @@ export class CoordinatorNode {
         }
         for (const [txn, err] of rejectedTxns) {
           this.log.info(`transaction ${stringifySignedTransaction(txn)} rejected - ${err.message}`);
+          await this.storage.removePendingTransaction(txn);
         }
 
         // Commit minted block;
