@@ -59,8 +59,7 @@ before(async () => {
 });
 
 async function waitForAccountNonce(accountNonce: Record<string, number>): Promise<void> {
-  //!!!
-  log.info(`waiting for ${JSON.stringify(accountNonce)}`);
+  log.debug(`waiting for account nonces -  ${JSON.stringify(accountNonce)}`);
 
   while (true) {
     // Sleep for 1 second.
@@ -71,64 +70,50 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     // Check if coordinator has accepted/rejected transactions from accounts.
     let coordinatorCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
-      //!!!
-      log.info("querying coordinator");
+      log.debug(`querying account ${accPubKey} at coordinator`);
       const account = await coordinator.getAccount(accPubKey);
 
       if (!account) {
-        //!!!
-        log.info("accounts does not exist at coordinator");
+        log.debug(`account ${accPubKey} does not exist at coordinator`);
         coordinatorCheck = false;
         break;
       }
 
-      //!!!
-      log.info(`account from coordinator ${stringifyAccount(account)}`);
+      log.debug(`account ${accPubKey} at coordinator - ${stringifyAccount(account)}`);
 
       if (account.nonce != accountNonce[accPubKey]) {
-        //!!!
-        log.info("accounts do not has desired nonce at coordinator");
+        log.debug(`account ${accPubKey} do not has desired nonce at coordinator`);
         coordinatorCheck = false;
         break;
       }
     }
     if (!coordinatorCheck) {
-      //!!!
-      log.info("retrying");
       continue;
     }
 
     // Check if client has accepted/rejected transactions from accounts.
     let clientCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
-      //!!!
-      log.info("querying client");
+      log.debug(`querying account ${accPubKey} at client`);
       const account = await client.getAccount(accPubKey);
 
       if (!account) {
-        //!!!
-        log.info("accounts does not exist at client");
+        log.debug(`account ${accPubKey} does not exist at client`);
         clientCheck = false;
         break;
       }
 
-      //!!!
-      log.info(`account from client ${stringifyAccount(account)}`);
+      log.debug(`account ${accOnePubKey} at client - ${stringifyAccount(account)}`);
 
       if (account.nonce != accountNonce[accPubKey]) {
-        //!!!
-        log.info("accounts do not has desired nonce at client");
+        log.debug(`account ${accPubKey} do not have desired nonce at client`);
         clientCheck = false;
         break;
       }
     }
     if (clientCheck) {
-      //!!!
-      log.info("finishing");
       break;
     }
-    //!!!
-    log.info("retrying");
   }
 }
 
