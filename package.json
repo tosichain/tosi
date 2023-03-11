@@ -7,7 +7,6 @@
     "deploy:contracts": "source .env && forge script scripts/DatachainV1.s.sol --rpc-url $RPC_URL  --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_KEY --broadcast -vvvv --skip-simulation",
     "test:contracts": "forge test",
     "test:integration": "npm run test:tosi.client.sync",
-    "test:tosi.blockchain.storage": "mocha --exit --timeout 500000 src/tosi_tests/blockchain.storage.test.ts",
     "test:tosi.client.sync": "mocha --exit --timeout 500000 src/tosi_tests/client.sync.test.ts",
     "test:tosi.da.committee.test": "mocha --exit --timeout 500000 src/tosi_tests/da.committee.test.ts",
     "lint": "eslint src/ --ext .ts"
