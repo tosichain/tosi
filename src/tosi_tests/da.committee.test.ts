@@ -7,8 +7,8 @@ import { CID } from "ipfs-http-client";
 
 chai.use(chaiAsPromised);
 
-import { currentUnixTime } from "../util";
 import { Transaction, ComputeClaim } from "../blockchain/types";
+import { stringifyAccount } from "../blockchain/util";
 import { signTransaction } from "../blockchain/block";
 import { CoordinatorAPIClient } from "../coordinator/src/api_client";
 import { ClientNodeAPIClient } from "../client/src/api_client";
@@ -16,7 +16,7 @@ import { IPFS } from "../node/ipfs";
 import { hashComputeClaim } from "../blockchain/util";
 
 const FAKE_CID = "bafybeibnikymft2ikuygct6phxedz7x623cqlvcwxztgdds5fzbb5mhdk4";
-const BLOCK_WITH_INVALID_TXN_WAIT_PERIOD = 15; // 15 seconds
+const INAVLID_TXN_WAIT_PERIOD = 25000; // 25 seconds
 
 const stakePoolPrivKey = Buffer.from("6b53ec86c32b1b044e3b8acd89a3961809679b263b61ad845085c18c49210fe9").toString();
 const stakePoolPubKey = Buffer.from(BLS.getPublicKey(stakePoolPrivKey)).toString("hex");
@@ -99,43 +99,69 @@ before(async () => {
   await setupDACommittee();
 });
 
-async function waitForNewBlock(timeout: number | undefined): Promise<void> {
-  const clients: ClientNodeAPIClient[] = [client, daVerifier1, daVerifier2, daVerifier3];
-
-  const startTime = currentUnixTime();
+async function waitForAccountNonce(accountNonce: Record<string, number>): Promise<void> {
+  log.debug(`waiting for account nonces -  ${JSON.stringify(accountNonce)}`);
 
   while (true) {
-    if (timeout) {
-      if (currentUnixTime() - startTime > timeout) {
-        return;
-      }
-    }
-
     // Sleep for 1 second.
     await new Promise((resolve) => {
       setTimeout(resolve, 1000);
     });
 
-    // Check if coordinator has new block.
-    const coordinatorHeadBlockHash: string = await coordinator.getHeadBblockHash();
-    if (coordinatorHeadBlockHash == lastHeadBlockHash) {
+    // Check if coordinator node has accepted/rejected transactions from accounts.
+    let coordinatorCheck = true;
+    for (const accPubKey of Object.keys(accountNonce)) {
+      log.debug(`querying account ${accPubKey} at coordinator node`);
+      const account = await coordinator.getAccount(accPubKey);
+
+      if (!account) {
+        log.debug(`account ${accPubKey} does not exist at coordinator node`);
+        coordinatorCheck = false;
+        break;
+      }
+
+      log.debug(`account ${accPubKey} at coordinator node - ${stringifyAccount(account)}`);
+
+      if (account.nonce != accountNonce[accPubKey]) {
+        log.debug(`account ${accPubKey} does not have desired nonce at coordinator node`);
+        coordinatorCheck = false;
+        break;
+      }
+    }
+    if (!coordinatorCheck) {
       continue;
     }
 
-    // Check if all clients have fetched new block.
-    const clientHeadBlockHashQuery = clients.map(async (node) => await node.getLatestLocalHash());
-    const clientHeadhBlockHash = await Promise.all(clientHeadBlockHashQuery);
-    if (clientHeadhBlockHash.every((h) => h == "0x" + coordinatorHeadBlockHash)) {
-      lastHeadBlockHash = coordinatorHeadBlockHash;
-      return;
-    } else {
-      continue;
+    // Check if all client nodes have accepted/rejected transactions from accounts.
+    const clients: ClientNodeAPIClient[] = [client, daVerifier1, daVerifier2, daVerifier3];
+    let clientCheck = true;
+    for (const accPubKey of Object.keys(accountNonce)) {
+      log.debug(`querying account ${accPubKey} at at all client nodes`);
+
+      const accountQuery = clients.map((c) => c.getAccount(accPubKey));
+      const accounts = await Promise.all(accountQuery);
+
+      if (!accounts.every((a) => a != undefined)) {
+        log.debug(`account ${accPubKey} does not exist at one or more client nodes`);
+        clientCheck = false;
+        break;
+      }
+
+      if (!accounts.every((a) => a?.nonce == accountNonce[accPubKey])) {
+        log.debug(`account ${accPubKey} does not have desired nonce at one or more client nodes`);
+        clientCheck = false;
+        break;
+      }
+    }
+    if (clientCheck) {
+      break;
     }
   }
 }
 
 async function setupDACommittee() {
-  // Minter allocates tokens.
+  log.info("minter allocates tokens");
+
   // TODO: submit these transactions via client node.
   const txn1: Transaction = {
     mint: {
@@ -170,9 +196,12 @@ async function setupDACommittee() {
   };
   await coordinator.submitTransaction(await signTransaction(txn4, minterPrivKey));
 
-  await waitForNewBlock(undefined);
+  let accountNonces: Record<string, number> = {};
+  accountNonces[minterPubKey] = 3;
+  await waitForAccountNonce(accountNonces);
 
-  // Each DA verifier stakes tokens.
+  log.info("DA verifiers put tokens at stake");
+
   await daVerifier1.submitTransaction({
     stake: {
       amount: 1000n,
@@ -192,7 +221,11 @@ async function setupDACommittee() {
     nonce: 0,
   });
 
-  await waitForNewBlock(undefined);
+  accountNonces = {};
+  accountNonces[daVerifier1PubKey] = 0;
+  accountNonces[daVerifier2PubKey] = 0;
+  accountNonces[daVerifier3PubKey] = 0;
+  await waitForAccountNonce(accountNonces);
 }
 
 interface DummyClaim {
@@ -255,7 +288,10 @@ describe("DA verification is performed correctly", function () {
 
     await client.submitTransaction(txn);
 
-    await waitForNewBlock(undefined);
+    const accountNonces: Record<string, number> = {};
+    accountNonces[clientPubKey] = 0;
+    await waitForAccountNonce(accountNonces);
+
     await verifyHeadClaim(rootClaimHash, txn.addChain.rootClaim);
   });
 
@@ -277,7 +313,10 @@ describe("DA verification is performed correctly", function () {
 
     await client.submitTransaction(txn);
 
-    await waitForNewBlock(undefined);
+    const accountNonces: Record<string, number> = {};
+    accountNonces[clientPubKey] = 1;
+    await waitForAccountNonce(accountNonces);
+
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 
@@ -312,7 +351,11 @@ describe("DA verification is performed correctly", function () {
 
     await client.submitTransaction(invalidTxn);
 
-    await waitForNewBlock(BLOCK_WITH_INVALID_TXN_WAIT_PERIOD);
+    // Wait to ensure invalid transaction is rejected.
+    await new Promise((resolve) => {
+      setTimeout(resolve, INAVLID_TXN_WAIT_PERIOD);
+    });
+
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 
@@ -346,7 +389,11 @@ describe("DA verification is performed correctly", function () {
 
     await client.submitTransaction(invalidTxn);
 
-    await waitForNewBlock(BLOCK_WITH_INVALID_TXN_WAIT_PERIOD);
+    // Wait to ensure invalid transaction is rejected.
+    await new Promise((resolve) => {
+      setTimeout(resolve, INAVLID_TXN_WAIT_PERIOD);
+    });
+
     await verifyHeadClaim(invalidRootClaimHash, undefined);
   });
 
@@ -380,7 +427,11 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
 
     await client.submitTransaction(txn);
 
-    await waitForNewBlock(BLOCK_WITH_INVALID_TXN_WAIT_PERIOD);
+    // Wait to ensure invalid transaction is rejected.
+    await new Promise((resolve) => {
+      setTimeout(resolve, INAVLID_TXN_WAIT_PERIOD);
+    });
+
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 
@@ -410,7 +461,11 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
 
     await client.submitTransaction(invalidTxn);
 
-    await waitForNewBlock(undefined);
+    // Wait to ensure invalid transaction is rejected.
+    await new Promise((resolve) => {
+      setTimeout(resolve, INAVLID_TXN_WAIT_PERIOD);
+    });
+
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 
@@ -440,7 +495,11 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
 
     await client.submitTransaction(invalidTxn);
 
-    await waitForNewBlock(undefined);
+    // Wait to ensure invalid transaction is rejected.
+    await new Promise((resolve) => {
+      setTimeout(resolve, INAVLID_TXN_WAIT_PERIOD);
+    });
+
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 });
