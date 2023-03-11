@@ -13,7 +13,7 @@ import { serializeBlock } from "../blockchain/serde";
 import { CoordinatorAPIClient } from "../coordinator/src/api_client";
 import { ClientNodeAPIClient } from "../client/src/api_client";
 
-const INAVLID_TXN_WAIT_PERIOD = 15000; // 15 seconds
+const INAVLID_TXN_WAIT_PERIOD = 20000; // 20 seconds
 
 const stakePoolPrivKey = Buffer.from("6b53ec86c32b1b044e3b8acd89a3961809679b263b61ad845085c18c49210fe9").toString();
 const stakePoolPubKey = Buffer.from(BLS.getPublicKey(stakePoolPrivKey)).toString("hex");
@@ -70,19 +70,19 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     // Check if coordinator has accepted/rejected transactions from accounts.
     let coordinatorCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
-      log.debug(`querying account ${accPubKey} at coordinator`);
+      log.debug(`querying account ${accPubKey} at coordinator node`);
       const account = await coordinator.getAccount(accPubKey);
 
       if (!account) {
-        log.debug(`account ${accPubKey} does not exist at coordinator`);
+        log.debug(`account ${accPubKey} does not exist at coordinator node`);
         coordinatorCheck = false;
         break;
       }
 
-      log.debug(`account ${accPubKey} at coordinator - ${stringifyAccount(account)}`);
+      log.debug(`account ${accPubKey} at coordinator node - ${stringifyAccount(account)}`);
 
       if (account.nonce != accountNonce[accPubKey]) {
-        log.debug(`account ${accPubKey} do not has desired nonce at coordinator`);
+        log.debug(`account ${accPubKey} does not have desired nonce at coordinator node`);
         coordinatorCheck = false;
         break;
       }
@@ -94,19 +94,19 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     // Check if client has accepted/rejected transactions from accounts.
     let clientCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
-      log.debug(`querying account ${accPubKey} at client`);
+      log.debug(`querying account ${accPubKey} at client node`);
       const account = await client.getAccount(accPubKey);
 
       if (!account) {
-        log.debug(`account ${accPubKey} does not exist at client`);
+        log.debug(`account ${accPubKey} does not exist at client node`);
         clientCheck = false;
         break;
       }
 
-      log.debug(`account ${accOnePubKey} at client - ${stringifyAccount(account)}`);
+      log.debug(`account ${accPubKey} at client node - ${stringifyAccount(account)}`);
 
       if (account.nonce != accountNonce[accPubKey]) {
-        log.debug(`account ${accPubKey} do not have desired nonce at client`);
+        log.debug(`account ${accPubKey} does not have desired nonce at client node`);
         clientCheck = false;
         break;
       }
