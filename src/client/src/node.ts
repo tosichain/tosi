@@ -276,4 +276,24 @@ export class ClientNode {
   public async getDatachains() {
     return await this.storage.getDatachains();
   }
+
+  public async getAllBlocks() {
+    return await this.blockchainSync.getAllBlocks();
+  }
+
+  public async getAccounHistory(pubkey: string) {
+    const blocks = await this.getAllBlocks();
+    const history: Transaction[] = [];
+
+    if (blocks) {
+      blocks.forEach((block) => {
+        block.transactions.forEach((transaction) => {
+          if (transaction.from == pubkey) {
+            history.push(transaction.txn);
+          }
+        });
+      });
+    }
+    return history;
+  }
 }

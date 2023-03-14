@@ -65,6 +65,30 @@ export class BlockchainClientSync {
     this.syncBlocks();
   }
 
+  public async getAllBlocks(): Promise<Block[] | undefined> {
+    let blockIndex = (await this.claimContract.blockNumber()).toNumber();
+    if (blockIndex == 0) {
+      this.log.info("no blocks were submitted to smart contract");
+      return;
+    }
+    const headBlockHash = await this.getContractHeadBlockHash();
+    this.log.info(`head block in smart contract ${headBlockHash}`);
+    const localHeadBlockHash = await this.storage.getHeadBlockHash();
+    this.log.info(`head block in local storage - ${localHeadBlockHash}`);
+
+    const blocks: Block[] = [];
+
+    while (blockIndex > 0) {
+      const block = await this.fetchBlock(blockIndex);
+      blocks.push(block);
+      blockIndex--;
+    }
+
+    blocks.reverse();
+
+    return blocks;
+  }
+
   private async syncBlocks(): Promise<void> {
     while (true) {
       try {
