@@ -24,6 +24,8 @@ export interface RequestHandler {
   getLatestLocalHash(): Promise<string>;
   getBlsPubKeyInHex(): Promise<string>;
   getDatachains(): Promise<ComputeChain[] | undefined>;
+  getAllBlocks(): Promise<Block[] | undefined>;
+  getAccounHistory(pubKey: string): Promise<Transaction[] | undefined>;
 }
 
 export interface ClientNodeAPIServerConfig {
@@ -55,7 +57,9 @@ export class ClientNodeAPIServer {
     this.http.get("/api/latestHash", this.getLatestBlockHash.bind(this));
     this.http.get("/api/latestLocalHash", this.getLatestLocalHash.bind(this));
     this.http.get("/api/blsPubKeyInHex", this.getBlsPubKeyInHex.bind(this));
-    this.http.get("/api/dataChains", this.getDatachains.bind(this));
+    this.http.get("/api/datachains", this.getDatachains.bind(this));
+    this.http.get("/api/blocks", this.getAllBlocks.bind(this));
+    this.http.get("/api/history/:pubKey", this.getAccounHistory.bind(this));
   }
 
   public async start(): Promise<void> {
@@ -218,6 +222,33 @@ export class ClientNodeAPIServer {
         return;
       }
       res.status(200).send(chain);
+    } catch (err: any) {
+      res.status(500).send({ error: err.message });
+    }
+  }
+
+  private async getAllBlocks(req: Request, res: Response): Promise<Response | void> {
+    try {
+      const blocks = await this.handler.getAllBlocks();
+      if (!blocks) {
+        res.status(404).send({ error: "blocks not found" });
+        return;
+      }
+      res.status(200).send(blocks);
+    } catch (err: any) {
+      res.status(500).send({ error: err.message });
+    }
+  }
+
+  private async getAccounHistory(req: Request, res: Response): Promise<Response | void> {
+    const pubkey = req.params.pubKey;
+    try {
+      const history = await this.handler.getAccounHistory(pubkey);
+      if (!history) {
+        res.status(404).send({ error: "history not found" });
+        return;
+      }
+      res.status(200).send(history);
     } catch (err: any) {
       res.status(500).send({ error: err.message });
     }
