@@ -9,9 +9,9 @@ import {
   Account,
   ComputeChain,
   WorldState,
+  StakeType,
 } from "./types";
 
-import { serializeComputeClaim } from "./serde";
 import { hashComputeClaim } from "./util";
 
 export function applyTransaction(state: WorldState, txFrom: string, tx: Transaction): void {
@@ -80,7 +80,7 @@ export function applyMintTokenTxn(state: WorldState, txFrom: string, tx: MintTok
   let receiver = state.accounts[tx.receiver];
   let receiverCreated = false;
   if (!receiver) {
-    state.accounts[tx.receiver] = createAccount(0n, 0n);
+    state.accounts[tx.receiver] = createAccount(tx.receiver, 0n, 0n, 0n);
     receiver = state.accounts[tx.receiver];
     receiverCreated = true;
   }
@@ -99,9 +99,6 @@ export function applyTransferTokenTxn(state: WorldState, txFrom: string, tx: Tra
 
   if (!receiver) {
     throw new Error("receiver account does not exist");
-  }
-  if (tx.receiver == state.stakePool) {
-    throw new Error("transfer to stake pool account is forbidden");
   }
   if (tx.receiver == state.minter) {
     throw new Error("transfer to minter account is forbidden");
@@ -125,14 +122,7 @@ export function applyTransferTokenTxn(state: WorldState, txFrom: string, tx: Tra
 
 export function applyStakeTokenTxn(state: WorldState, txFrom: string, tx: StakeToken): void {
   const staker = state.accounts[txFrom];
-  const pool = state.accounts[state.stakePool];
 
-  if (!pool) {
-    throw new Error("stake pool account does not exist");
-  }
-  if (txFrom == state.stakePool) {
-    throw new Error("stake pool account can not stake token");
-  }
   if (BigInt(tx.amount) <= 0n) {
     throw new Error("invalid amount of token to stake");
   }
@@ -140,51 +130,119 @@ export function applyStakeTokenTxn(state: WorldState, txFrom: string, tx: StakeT
     throw new Error("insufficient amount of tokens to stake");
   }
 
-  state.accounts[txFrom] = {
+  if (tx.stakeType == StakeType.DAVerifier) {
+    applyDAVerifierStakeTokenTxn(state, txFrom, staker, tx.amount);
+  } else if (tx.stakeType == StakeType.StateVerifier) {
+    applyStateVerifierStakeTokenTxn(state, txFrom, staker, tx.amount);
+  } else {
+    throw new Error("invalid stake type");
+  }
+}
+
+function applyDAVerifierStakeTokenTxn(state: WorldState, stakerAddr: string, staker: Account, amount: bigint): void {
+  state.accounts[stakerAddr] = {
     ...staker,
-    balance: BigInt(staker.balance) - BigInt(tx.amount),
-    stake: BigInt(staker.stake) + BigInt(tx.amount),
+    balance: BigInt(staker.balance) - BigInt(amount),
+    daVerifierStake: BigInt(staker.daVerifierStake) + BigInt(amount),
   };
-  state.accounts[state.stakePool] = {
-    ...pool,
-    balance: BigInt(pool.balance) + BigInt(tx.amount),
+  state = {
+    ...state,
+    stakePool: {
+      ...state.stakePool,
+      daVerifierPool: BigInt(state.stakePool.daVerifierPool) + BigInt(amount),
+    },
   };
 
-  if (!state.stakers.find((addr) => addr == txFrom)) {
-    state.stakers.push(txFrom);
+  if (!state.stakePool.daVerifiers.find((addr) => addr == stakerAddr)) {
+    state.stakePool.daVerifiers.push(stakerAddr);
+  }
+}
+
+function applyStateVerifierStakeTokenTxn(state: WorldState, stakerAddr: string, staker: Account, amount: bigint): void {
+  state.accounts[stakerAddr] = {
+    ...staker,
+    balance: BigInt(staker.balance) - BigInt(amount),
+    stateVerifierStake: BigInt(staker.stateVerifierStake) + BigInt(amount),
+  };
+  state = {
+    ...state,
+    stakePool: {
+      ...state.stakePool,
+      stateVerifierPool: BigInt(state.stakePool.stateVerifierPool) + BigInt(amount),
+    },
+  };
+
+  if (!state.stakePool.stateVerifiers.find((addr) => addr == stakerAddr)) {
+    state.stakePool.stateVerifiers.push(stakerAddr);
   }
 }
 
 export function applyUnstakeTokenTxn(state: WorldState, txFrom: string, tx: UnstakeToken): void {
   const staker = state.accounts[txFrom];
-  const pool = state.accounts[state.stakePool];
 
-  if (!pool) {
-    throw new Error("stake pool account does not exist");
-  }
-  if (txFrom == state.stakePool) {
-    throw new Error("stake pool account can not stake token");
-  }
   if (BigInt(tx.amount) <= 0n) {
     throw new Error("invalid amount of token to unstake");
   }
-  if (BigInt(tx.amount) > BigInt(staker.stake)) {
+
+  if (tx.stakeType == StakeType.DAVerifier) {
+    applyDAVerifierUnstakeTokenTxn(state, txFrom, staker, tx.amount);
+  } else if (tx.stakeType == StakeType.StateVerifier) {
+    applyStateVerifierUnstakeTokenTxn(state, txFrom, staker, tx.amount);
+  } else {
+    throw new Error("invalid stake type");
+  }
+}
+
+function applyDAVerifierUnstakeTokenTxn(state: WorldState, stakerAddr: string, staker: Account, amount: bigint): void {
+  if (BigInt(amount) > BigInt(staker.daVerifierStake)) {
     throw new Error("insufficient amount of token to unstake");
   }
 
-  state.accounts[txFrom] = {
+  state.accounts[stakerAddr] = {
     ...staker,
-    balance: BigInt(staker.balance) + BigInt(tx.amount),
-    stake: BigInt(staker.stake) - BigInt(tx.amount),
+    balance: BigInt(staker.balance) + BigInt(amount),
+    daVerifierStake: BigInt(staker.daVerifierStake) - BigInt(amount),
   };
-  state.accounts[state.stakePool] = {
-    ...pool,
-    balance: BigInt(pool.balance) - BigInt(tx.amount),
+  state = {
+    ...state,
+    stakePool: {
+      ...state.stakePool,
+      daVerifierPool: BigInt(state.stakePool.daVerifierPool) - BigInt(amount),
+    },
   };
 
-  if (state.accounts[txFrom].stake == 0n) {
-    const index = state.stakers.findIndex((addr) => addr == txFrom);
-    state.stakers.splice(index, 1);
+  if (state.accounts[stakerAddr].daVerifierStake == 0n) {
+    const index = state.stakePool.daVerifiers.findIndex((addr) => addr == stakerAddr);
+    state.stakePool.daVerifiers.splice(index, 1);
+  }
+}
+
+function applyStateVerifierUnstakeTokenTxn(
+  state: WorldState,
+  stakerAddr: string,
+  staker: Account,
+  amount: bigint,
+): void {
+  if (BigInt(amount) > BigInt(staker.stateVerifierStake)) {
+    throw new Error("insufficient amount of token to unstake");
+  }
+
+  state.accounts[stakerAddr] = {
+    ...staker,
+    balance: BigInt(staker.balance) + BigInt(amount),
+    stateVerifierStake: BigInt(staker.stateVerifierStake) - BigInt(amount),
+  };
+  state = {
+    ...state,
+    stakePool: {
+      ...state.stakePool,
+      stateVerifierPool: BigInt(state.stakePool.stateVerifierPool) - BigInt(amount),
+    },
+  };
+
+  if (state.accounts[stakerAddr].stateVerifierStake == 0n) {
+    const index = state.stakePool.stateVerifiers.findIndex((addr) => addr == stakerAddr);
+    state.stakePool.stateVerifiers.splice(index, 1);
   }
 }
 
@@ -233,11 +291,18 @@ export function applyAddComputeClaimTxn(state: WorldState, txFrom: string, txn: 
   chain.headClaimHash = claimHash;
 }
 
-export function createAccount(balance: bigint, stake: bigint): Account {
+export function createAccount(
+  address: string,
+  balance: bigint,
+  daVerifierStake: bigint,
+  stateVerifierStake: bigint,
+): Account {
   const acc: Account = {
+    address: address,
     nonce: -1,
     balance: balance,
-    stake: stake,
+    daVerifierStake: daVerifierStake,
+    stateVerifierStake: stateVerifierStake,
   };
   return acc;
 }

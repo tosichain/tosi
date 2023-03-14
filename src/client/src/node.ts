@@ -6,7 +6,7 @@ import * as BLS from "@noble/bls12-381";
 import { IPFS } from "../../node/ipfs";
 import { IPFSServiceOptions, IPFSService } from "../../node/ipfs-service";
 
-import { Transaction, Account, DAInfo, Block, ComputeChain } from "../../blockchain/types";
+import { Transaction, Account, DAInfo, Block, ComputeChain, StakeType } from "../../blockchain/types";
 import { CoordinatorAPIClientConfig, CoordinatorAPIClient } from "../../coordinator/src/api_client";
 import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/storage";
 import { signTransaction } from "../../blockchain/block";
@@ -237,17 +237,31 @@ export class ClientNode {
     return await this.storage.getAccount(pubKey);
   }
 
-  public async getStakerList(): Promise<Record<string, Account>> {
-    const stakers: Record<string, Account> = {};
-    const stakerPubKeys = await this.storage.getStakersList();
+  public async getStakerList(stakeType: StakeType): Promise<Account[]> {
+    const stakePool = await this.storage.getStakePool();
+
+    let stakerPubKeys: string[];
+    switch (stakeType) {
+      case StakeType.DAVerifier:
+        stakerPubKeys = stakePool.daVerifiers;
+        break;
+      case StakeType.StateVerifier:
+        stakerPubKeys = stakePool.stateVerifiers;
+        break;
+      default:
+        throw new Error("invalid stake type");
+    }
+
+    const stakers: Account[] = [];
     for (const pubKey of stakerPubKeys) {
       const staker = await this.storage.getAccount(pubKey);
       if (staker != undefined) {
-        stakers[pubKey] = staker;
+        stakers.push(staker);
       } else {
         // TODO: this means error in storage.
       }
     }
+
     return stakers;
   }
 

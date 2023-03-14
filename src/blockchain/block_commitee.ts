@@ -1,32 +1,25 @@
 import Sampler from "weighted-reservoir-sampler";
 import Gen from "random-seed";
 
-import { Staker } from "./types";
+import { Account, StakeType } from "./types";
 import { BlockchainStorage } from "./storage";
 
 import { STAKE_AMOUNT_TO_NUMBER_DENOMINATOR } from "./constant";
 
-export async function getDACommiteeSample(
+export async function getVerificationCommitteeSample(
   blockchain: BlockchainStorage,
+  committeeType: StakeType,
   sampleSize: number,
   randomness: string,
-  txnBundleProposer: string,
-): Promise<Staker[]> {
-  // TODO: getStakerList must return Staker[]
-  const stakerPubKeys = await blockchain.getStakersList();
-  const stakers: Staker[] = [];
-  for (const pubKey of stakerPubKeys) {
+): Promise<Account[]> {
+  const stakePool = await blockchain.getStakePool();
+  const stakers: Account[] = [];
+  for (const pubKey of stakePool.stateVerifiers) {
     const account = await blockchain.getAccount(pubKey);
     if (account == undefined) {
       throw new Error("failed to find staker account");
     }
-    const staker: Staker = {
-      pubKey: pubKey,
-      stake: account.stake,
-      isDAVerifier: true,
-      isStateVerifier: false,
-    };
-    stakers.push(staker);
+    stakers.push(account);
   }
 
   // TODO: probably, should throw an exception instead.
@@ -34,24 +27,26 @@ export async function getDACommiteeSample(
     return stakers;
   }
 
-  const commiteeSample = weightedRandomStakerSample(
-    stakers.filter((s) => s.pubKey != txnBundleProposer),
-    sampleSize,
-    randomness,
-  );
+  let totalStake = BigInt(0);
+  switch (committeeType) {
+    case StakeType.DAVerifier:
+      totalStake = stakers.reduce((acc, staker) => acc + BigInt(staker.daVerifierStake), BigInt(0));
+      break;
+    case StakeType.StateVerifier:
+      totalStake = stakers.reduce((acc, staker) => acc + BigInt(staker.stateVerifierStake), BigInt(0));
+      break;
+    default:
+      throw new Error("invalid stake type");
+  }
 
-  return commiteeSample;
-}
-
-function weightedRandomStakerSample(stakers: Staker[], sampleSize: number, randSeed: string): Staker[] {
-  const totalStake = stakers.reduce((acc, staker) => acc + BigInt(staker.stake), BigInt(0));
-  const randGen = Gen(randSeed);
+  const randGen = Gen(randomness);
   const sampler = new Sampler({
     sampleSize: sampleSize,
-    weightFunction: function (staker: Staker) {
+    weightFunction: function (staker: Account) {
       // XXX this is a compromise because WRS cannot handle stakes in bigint
       const scaleTotalStake = Number(totalStake / STAKE_AMOUNT_TO_NUMBER_DENOMINATOR);
-      const scaleStake = Number(BigInt(staker.stake) / STAKE_AMOUNT_TO_NUMBER_DENOMINATOR);
+      const stake = committeeType == StakeType.DAVerifier ? staker.daVerifierStake : staker.stateVerifierStake;
+      const scaleStake = Number(BigInt(stake) / STAKE_AMOUNT_TO_NUMBER_DENOMINATOR);
       return scaleStake / scaleTotalStake;
     },
     random: function () {
@@ -61,6 +56,7 @@ function weightedRandomStakerSample(stakers: Staker[], sampleSize: number, randS
   for (let i = 0; i < stakers.length; i++) {
     sampler.push(stakers[i]);
   }
-  const sample: Staker[] = sampler.end();
+
+  const sample: Account[] = sampler.end();
   return sample;
 }

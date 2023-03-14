@@ -3,11 +3,11 @@ import * as BLS from "@noble/bls12-381";
 
 import { encodeCBOR } from "../util";
 
-import { Block, DACheckResult, ClaimDACheckResult } from "./types";
+import { Block, DACheckResult, ClaimDACheckResult, StakeType } from "./types";
 import { serializeClaimDACheckResult } from "./serde";
 import { BlockchainStorage } from "./storage";
 import { fetchDrandBeaconInfo, getSeedFromBlockRandomnessProof, verifyBlockRandomnessProof } from "./block_randomness";
-import { getDACommiteeSample } from "./block_commitee";
+import { getVerificationCommitteeSample } from "./block_commitee";
 
 export async function verifyBlockProof(
   block: Block,
@@ -43,9 +43,14 @@ export async function verifyBlockProof(
 
   // Check that proof carries responses from all verifiers of DA committee sample.
   const randSeed = getSeedFromBlockRandomnessProof(proof.randomnessProof);
-  const daCommittee = await getDACommiteeSample(blockchain, daCommitteeSampleSzie, randSeed, proof.txnBundleProposer);
+  const daCommittee = await getVerificationCommitteeSample(
+    blockchain,
+    StakeType.DAVerifier,
+    daCommitteeSampleSzie,
+    randSeed,
+  );
   for (const staker of daCommittee) {
-    if (!proof.DACheckResults.find((daResult) => daResult.signer == staker.pubKey)) {
+    if (!proof.DACheckResults.find((daResult) => daResult.signer == staker.address)) {
       return false;
     }
   }

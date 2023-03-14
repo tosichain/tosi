@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 
 import { SignedTransaction, Account, Block, BlockMetadata } from "../../blockchain/types";
 import { deserializeBlock } from "../../blockchain/serde";
-import { stringifySignedTransaction } from "../../blockchain/util";
+import { stringifySignedTransaction, parseAccount } from "../../blockchain/util";
 
 export interface CoordinatorAPIClientConfig {
   apiURL: string;
@@ -45,17 +45,12 @@ export class CoordinatorAPIClient {
     } else if (!response.ok) {
       throw new Error(`failed to get account - status: ${response.status}`);
     }
-    const result = await response.json();
-    const account: Account = {
-      nonce: result.nonce,
-      balance: BigInt(result.balance),
-      stake: BigInt(result.stake),
-    };
+    const account = parseAccount(await response.text());
     return account;
   }
 
-  public async getStakerList(): Promise<Record<string, Account>> {
-    const url = `${this.config.apiURL}/stakers`;
+  public async getDAVerifiers(): Promise<Account[]> {
+    const url = `${this.config.apiURL}/daVerifiers`;
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -63,9 +58,25 @@ export class CoordinatorAPIClient {
       },
     });
     if (!response.ok) {
-      throw new Error(`failed to get staker list - status: ${response.status}`);
+      throw new Error(`failed to get DA verifiers - status: ${response.status}`);
     }
-    return (await response.json()) as Record<string, Account>;
+    const stakers = (await response.json()) as Account[];
+    return stakers;
+  }
+
+  public async getStateVerifiers(): Promise<Account[]> {
+    const url = `${this.config.apiURL}/stateVerifiers`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`failed to get state verifiers - status: ${response.status}`);
+    }
+    const stakers = (await response.json()) as Account[];
+    return stakers;
   }
 
   public async getHeadBblockHash(): Promise<string> {

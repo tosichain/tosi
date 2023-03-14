@@ -6,7 +6,6 @@ import { SignedTransaction, Transaction, WorldState, Block, BlockProof } from ".
 import { applyTransaction } from "./transaction";
 import { serializeAccount } from "./serde";
 import { hashBlock, hashTransaction } from "./util";
-import { BlockchainStorage } from "./storage";
 
 export async function mintNextBlock(
   state: WorldState,
@@ -63,7 +62,7 @@ export function accountToMerkleLeaf(state: WorldState, accountKey: string): Uint
   if (!account) {
     throw new Error("account does not exist");
   }
-  const serialized = serializeAccount(accountKey, state.accounts[accountKey]);
+  const serialized = serializeAccount(state.accounts[accountKey]);
   return keccak256(Buffer.from(serialized));
 }
 

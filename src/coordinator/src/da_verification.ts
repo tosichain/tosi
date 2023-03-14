@@ -3,7 +3,7 @@ import winston from "winston";
 import { IPFS } from "../../node/ipfs";
 import { encodeCBOR, decodeCBOR } from "../../util";
 
-import { Staker, ComputeClaim, DACheckResult, SignedTransaction, TransactionBundle } from "../../blockchain/types";
+import { Account, ComputeClaim, DACheckResult, SignedTransaction, TransactionBundle } from "../../blockchain/types";
 import { verifyDACheckResultsAggergatedSignature, verifyDACheckResultSignature } from "../../blockchain/block_proof";
 import { hashComputeClaim, stringifySignedTransaction, hashTransactionBundle } from "../../blockchain/util";
 import {
@@ -28,7 +28,7 @@ export interface TransactionBundleDACheckResult {
 
 interface DACheckState {
   request: DAVerificationRequestMessage;
-  commitee: Staker[];
+  commitee: Account[];
   responses: Record<string, DAVerificationResponseMessage>;
   resolve: any; // Promise resolve function.
   reject: any; // Promise reject function.
@@ -74,7 +74,7 @@ export class DAVerificationManager {
   public async checkTxnBundleDA(
     txnBundle: TransactionBundle,
     blockRandProof: Uint8Array,
-    committee: Staker[],
+    committee: Account[],
   ): Promise<TransactionBundleDACheckResult> {
     // Collect all computational claims, appearing in transaction bundle.
     const requestClaims: ComputeClaim[] = [];
@@ -198,7 +198,7 @@ export class DAVerificationManager {
   private async execDARequest(
     txnBunde: TransactionBundle,
     blockRandProof: Uint8Array,
-    committee: Staker[],
+    committee: Account[],
     claims: ComputeClaim[],
   ): Promise<void> {
     // Setup request.
@@ -330,7 +330,7 @@ export class DAVerificationManager {
     }
 
     // Check if sender is part of committee.
-    const inCommittee = this.checkState.commitee.find((s) => s.pubKey == msg.result.signer);
+    const inCommittee = this.checkState.commitee.find((s) => s.address == msg.result.signer);
     if (!inCommittee) {
       this.log.error("DA verification response signer does not belong to current DA committee sample");
       return;

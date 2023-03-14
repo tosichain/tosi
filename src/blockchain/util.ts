@@ -2,7 +2,7 @@ import process from "process";
 import keccak256 from "keccak256";
 import JSONbigint from "json-bigint";
 
-import { WorldState, SignedTransaction, Transaction, ComputeClaim, Staker, Block, TransactionBundle, Account } from "./types";
+import { WorldState, SignedTransaction, Transaction, ComputeClaim, Block, TransactionBundle, Account, StakePool, StakeType } from "./types";
 import { createAccount } from "./transaction";
 import {
   serializeBlock,
@@ -14,17 +14,19 @@ import {
 
 export function createInitialStateFromEnv(): WorldState {
   const minterPubKey = process.env.TOSI_MINTER_PUBKEY as string;
-  const stakePoolPubKey = process.env.TOSI_STAKE_POOL_PUBKEY as string;
 
   const state: WorldState = {
     accounts: {},
-    stakePool: stakePoolPubKey,
-    stakers: [],
+    stakePool: {
+      daVerifierPool: 0n,
+      daVerifiers: [],
+      stateVerifierPool: 0n,
+      stateVerifiers: [],
+    },
     minter: minterPubKey,
     computeChains: {},
   };
-  state.accounts[minterPubKey] = createAccount(0n, 0n);
-  state.accounts[stakePoolPubKey] = createAccount(0n, 0n);
+  state.accounts[minterPubKey] = createAccount(minterPubKey, 0n, 0n, 0n);
 
   return state;
 }
@@ -71,8 +73,18 @@ export function stringifyAccount(account: Account): string {
   return JSONbigint.stringify(account);
 }
 
-export function stringifyStaker(staker: Staker): string {
-  return JSONbigint.stringify(staker);
+export function parseAccount(accountStr: string): Account {
+  const account = JSONbigint.parse(accountStr) as Account;
+  return {
+    ...account,
+    balance: BigInt(account.balance),
+    daVerifierStake: BigInt(account.daVerifierStake),
+    stateVerifierStake: BigInt(account.stateVerifierStake),
+  };
+}
+
+export function stringifyStakePool(pool: StakePool): string {
+  return JSONbigint.stringify(pool);
 }
 
 export function stringifyComputeClaim(claim: ComputeClaim): string {

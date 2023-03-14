@@ -30,11 +30,18 @@ export interface TransferToken {
   readonly amount: bigint;
 }
 
+export enum StakeType {
+  DAVerifier = 0,
+  StateVerifier,
+}
+
 export interface StakeToken {
+  readonly stakeType: StakeType;
   readonly amount: bigint;
 }
 
 export interface UnstakeToken {
+  readonly stakeType: StakeType;
   readonly amount: bigint;
 }
 
@@ -48,17 +55,11 @@ export interface AddComputeClaim {
 }
 
 export interface Account {
+  readonly address: string; // hex, BLS public key
   readonly nonce: number;
   readonly balance: bigint;
-  readonly stake: bigint;
-}
-
-// TODO: must be stored in staker list directly.
-export interface Staker {
-  readonly pubKey: string; // hex
-  readonly stake: bigint;
-  readonly isDAVerifier: boolean;
-  readonly isStateVerifier: boolean;
+  readonly daVerifierStake: bigint;
+  readonly stateVerifierStake: bigint;
 }
 
 export interface DAInfo {
@@ -96,10 +97,16 @@ export interface ComputeChain {
   headClaimHash: string; // hex
 }
 
+export interface StakePool {
+  readonly daVerifierPool: bigint;
+  readonly daVerifiers: string[]; // hex
+  readonly stateVerifierPool: bigint;
+  readonly stateVerifiers: string[]; // hex
+}
+
 export interface WorldState {
   readonly accounts: Record<string /*hex*/, Account>;
-  readonly stakePool: string; // hex
-  readonly stakers: string[]; // hex
+  readonly stakePool: StakePool;
   readonly minter: string; // hex
   readonly computeChains: Record<string, ComputeChain>;
 }
