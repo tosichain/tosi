@@ -13,6 +13,7 @@ import {
   BlockMetadata,
   BlockProof,
   TransactionBundle,
+  StakeType,
 } from "../../blockchain/types";
 import { serializeBlock, deserializeBlockMetadata, serializeBlockMetadata } from "../../blockchain/serde";
 import { mintNextBlock } from "../../blockchain/block";
@@ -21,7 +22,7 @@ import {
   createBlockRandomnessProof,
   getSeedFromBlockRandomnessProof,
 } from "../../blockchain/block_randomness";
-import { getDACommiteeSample } from "../../blockchain/block_commitee";
+import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import {
   hashSignedTransaction,
   stringifySignedTransaction,
@@ -219,11 +220,11 @@ export class CoordinatorNode {
         const blockRandSeed = getSeedFromBlockRandomnessProof(blockRandProof);
 
         // Check transaction data availability.
-        const daCommittee = await getDACommiteeSample(
+        const daCommittee = await getVerificationCommitteeSample(
           this.storage,
+          StakeType.DAVerifier,
           this.config.DACommitteeSampleSize,
           blockRandSeed,
-          this.blsPubKey,
         );
         const daCheckResult = await this.offchainManager.checkTxnBundleDA(txnBundle, blockRandProof, daCommittee);
         for (const txn of daCheckResult.rejectedTxns) {
@@ -272,7 +273,7 @@ export class CoordinatorNode {
     }
   }
 
-  private async uploadBlockchainToIPFS(force: boolean = false): Promise<void> {
+  private async uploadBlockchainToIPFS(force = false): Promise<void> {
     while (true) {
       try {
         await new Promise((resolve, _) => {
@@ -308,7 +309,7 @@ export class CoordinatorNode {
     }
   }
 
-  private async uploadBlockToIPFS(blockHash: string, force: boolean = false): Promise<Block | undefined> {
+  private async uploadBlockToIPFS(blockHash: string, force = false): Promise<Block | undefined> {
     // Check if block is already uploaded.
     const blockMetaExists = await this.storage.getBlockMetadata(blockHash);
     if (blockMetaExists != undefined && !force) {
@@ -344,17 +345,31 @@ export class CoordinatorNode {
     return this.storage.getAccount(pubKey);
   }
 
-  public async getStakerList(): Promise<Record<string, Account>> {
-    const stakers: Record<string, Account> = {};
-    const stakerPubKeys = await this.storage.getStakersList();
+  public async getStakerList(stakeType: StakeType): Promise<Account[]> {
+    const stakePool = await this.storage.getStakePool();
+
+    let stakerPubKeys: string[];
+    switch (stakeType) {
+      case StakeType.DAVerifier:
+        stakerPubKeys = stakePool.daVerifiers;
+        break;
+      case StakeType.StateVerifier:
+        stakerPubKeys = stakePool.stateVerifiers;
+        break;
+      default:
+        throw new Error("invalid stake type");
+    }
+
+    const stakers: Account[] = [];
     for (const pubKey of stakerPubKeys) {
       const staker = await this.storage.getAccount(pubKey);
       if (staker != undefined) {
-        stakers[pubKey] = staker;
+        stakers.push(staker);
       } else {
         // TODO: this means error in storage.
       }
     }
+
     return stakers;
   }
 

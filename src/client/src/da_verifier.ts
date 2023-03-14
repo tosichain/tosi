@@ -6,14 +6,14 @@ import { IPFS } from "../../node/ipfs";
 import { encodeCBOR, decodeCBOR, currentUnixTime } from "../../util";
 import { IPFSService } from "../../node/ipfs-service";
 
-import { DAInfo, ComputeClaim, ClaimDACheckResult, DACheckResult } from "../../blockchain/types";
+import { DAInfo, ComputeClaim, ClaimDACheckResult, DACheckResult, StakeType } from "../../blockchain/types";
 import { signDACheckResult } from "../../blockchain/block_proof";
 import {
   fetchDrandBeaconInfo,
   getSeedFromBlockRandomnessProof,
   verifyBlockRandomnessProof,
 } from "../../blockchain/block_randomness";
-import { getDACommiteeSample } from "../../blockchain/block_commitee";
+import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { BlockchainStorage } from "../../blockchain/storage";
 import { hashComputeClaim, stringifyComputeClaim } from "../../blockchain/util";
 import {
@@ -158,13 +158,13 @@ export class DAVerifier {
 
     // Check if no is in current DA commitee sample and is expected to process request.
     const randSeed = getSeedFromBlockRandomnessProof(daReq.randomnessProof);
-    const committee = await getDACommiteeSample(
+    const committee = await getVerificationCommitteeSample(
       this.blockchain,
+      StakeType.DAVerifier,
       this.daCommitteeSampleSize,
       randSeed,
-      this.coordinatorPubKey,
     );
-    const inCommittee = committee.find((s) => s.pubKey == this.blsPubKey) != undefined;
+    const inCommittee = committee.find((s) => s.address == this.blsPubKey) != undefined;
     if (!inCommittee) {
       this.log.info("can not process DA verification request - not in current DA committee sample");
       return false;

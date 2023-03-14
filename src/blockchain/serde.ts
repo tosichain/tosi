@@ -24,6 +24,7 @@ import {
   DACheckResult,
   ClaimDACheckResult,
   TransactionBundle,
+  StakePool,
 } from "./types";
 import { hashComputeClaim } from "./util";
 
@@ -158,37 +159,41 @@ export function deserializeTransferToken(rawTxn: Uint8Array): TransferToken {
 }
 
 /*
-1. Token amount.
+1. Stake type.
+2. Token amount.
 */
-export type SerializedStakeToken = [bigint];
+export type SerializedStakeToken = [number, bigint];
 
 export function serializeStakeToken(txn: StakeToken): Uint8Array {
-  const s: SerializedStakeToken = [txn.amount];
+  const s: SerializedStakeToken = [txn.stakeType, txn.amount];
   return encodeCBOR(s);
 }
 
 export function deserializeStakeToken(rawTxn: Uint8Array): StakeToken {
   const s = decodeCBOR(rawTxn) as SerializedStakeToken;
   const txn: StakeToken = {
-    amount: s[0],
+    stakeType: s[0],
+    amount: s[1],
   };
   return txn;
 }
 
 /*
-1. Token amount.
+1. Stake type.
+2. Token amount.
 */
-export type SerializedUnstakeToken = [bigint];
+export type SerializedUnstakeToken = [number, bigint];
 
 export function serializeUnstakeToken(txn: UnstakeToken): Uint8Array {
-  const s: SerializedUnstakeToken = [txn.amount];
+  const s: SerializedUnstakeToken = [txn.stakeType, txn.amount];
   return encodeCBOR(s);
 }
 
 export function deserializeUnstakeToken(rawTxn: Uint8Array): UnstakeToken {
   const s = decodeCBOR(rawTxn) as SerializedUnstakeToken;
   const txn: UnstakeToken = {
-    amount: s[0],
+    stakeType: s[0],
+    amount: s[1],
   };
   return txn;
 }
@@ -237,23 +242,26 @@ export function deserializeAddComputeClaim(rawTxn: Uint8Array): AddComputeClaim 
 1. Key/address
 2. Nonce.
 3. Token balance.
-4. Amount of staked token.
+4. DA verifier stake.
+5. State verifier stake.
 */
-export type SerializedAccount = [string, number, bigint, bigint];
+export type SerializedAccount = [string, number, bigint, bigint, bigint];
 
-export function serializeAccount(key: string, acc: Account): Uint8Array {
-  const s: SerializedAccount = [key, acc.nonce, acc.balance, acc.stake];
+export function serializeAccount(acc: Account): Uint8Array {
+  const s: SerializedAccount = [acc.address, acc.nonce, acc.balance, acc.daVerifierStake, acc.stateVerifierStake];
   return encodeCBOR(s);
 }
 
-export function deserializeAccount(rawAcc: Uint8Array): [string, Account] {
+export function deserializeAccount(rawAcc: Uint8Array): Account {
   const s = decodeCBOR(rawAcc) as SerializedAccount;
   const acc: Account = {
+    address: s[0],
     nonce: s[1],
     balance: s[2],
-    stake: s[3],
+    daVerifierStake: s[3],
+    stateVerifierStake: s[4],
   };
-  return [s[0], acc];
+  return acc;
 }
 
 /*
@@ -359,22 +367,51 @@ export function deserializeComputeChain(rawChain: Uint8Array): ComputeChain {
 }
 
 /*
-1. List of accounts.
-2. Stake pool account key/address.
-3. List of stakers.
-4. Token minter.
-5. List of compute chains
+1. Stake pool for DA verifiers.
+2. List of stakers, running DA verifiers.
+3. Stake pool for state verifiers.
+4. List of stakers, running state verifiers.
 */
-export type SerializedWorldState = [Uint8Array[], string, string[], string, Uint8Array[]];
+export type SerializedStakePool = [bigint, string[], bigint, string[]];
+
+export function serializeStakePool(pool: StakePool): Uint8Array {
+  const s: SerializedStakePool = [
+    pool.daVerifierPool,
+    pool.daVerifiers,
+    pool.stateVerifierPool,
+    pool.daVerifiers,
+  ];
+  return encodeCBOR(s);
+}
+
+export function deserializeStakePool(rawPool: Uint8Array): StakePool {
+  const s: SerializedStakePool = decodeCBOR(rawPool);
+  const pool: StakePool = {
+    daVerifierPool: s[0],
+    daVerifiers: s[1],
+    stateVerifierPool: s[2],
+    stateVerifiers: s[3],
+  };
+  return pool;
+}
+
+/*
+1. List of accounts.
+2. Stake pool.
+3. Token minter.
+4. List of compute chains
+*/
+export type SerializedWorldState = [Uint8Array[], Uint8Array, string, Uint8Array[]];
 
 export function serializeWorldState(state: WorldState): Uint8Array {
-  const accs = Object.keys(state.accounts).map((key) => {
-    return serializeAccount(key, state.accounts[key]);
+  const accs = Object.values(state.accounts).map((account) => {
+    return serializeAccount(account);
   });
+  const stakePool = serializeStakePool(state.stakePool);
   const chains = Object.keys(state.computeChains).map((key) => {
     return serializeComputeChain(state.computeChains[key]);
   });
-  const s: SerializedWorldState = [accs, state.stakePool, state.stakers, state.minter, chains];
+  const s: SerializedWorldState = [accs, stakePool, state.minter, chains];
   return encodeCBOR(s);
 }
 
@@ -382,16 +419,15 @@ export function deserializeWorldState(rawState: Uint8Array): WorldState {
   const s = decodeCBOR(rawState) as SerializedWorldState;
   const state: WorldState = {
     accounts: {},
-    stakePool: s[1],
-    stakers: s[2],
-    minter: s[3],
+    stakePool: deserializeStakePool(s[1]),
+    minter: s[2],
     computeChains: {},
   };
   s[0].forEach((rawAcc) => {
-    const [key, acc] = deserializeAccount(rawAcc);
-    state.accounts[key] = acc;
+    const acc = deserializeAccount(rawAcc);
+    state.accounts[acc.address] = acc;
   });
-  s[4].forEach((rawChain) => {
+  s[3].forEach((rawChain) => {
     const chain = deserializeComputeChain(rawChain);
     state.computeChains[chain.rootClaimHash] = chain;
   });

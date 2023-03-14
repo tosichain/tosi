@@ -7,7 +7,7 @@ import { CID } from "ipfs-http-client";
 
 chai.use(chaiAsPromised);
 
-import { Transaction, ComputeClaim } from "../blockchain/types";
+import { Transaction, ComputeClaim, StakeType } from "../blockchain/types";
 import { stringifyAccount } from "../blockchain/util";
 import { signTransaction } from "../blockchain/block";
 import { CoordinatorAPIClient } from "../coordinator/src/api_client";
@@ -17,9 +17,6 @@ import { hashComputeClaim } from "../blockchain/util";
 
 const FAKE_CID = "bafybeibnikymft2ikuygct6phxedz7x623cqlvcwxztgdds5fzbb5mhdk4";
 const INAVLID_TXN_WAIT_PERIOD = 25000; // 25 seconds
-
-const stakePoolPrivKey = Buffer.from("6b53ec86c32b1b044e3b8acd89a3961809679b263b61ad845085c18c49210fe9").toString();
-const stakePoolPubKey = Buffer.from(BLS.getPublicKey(stakePoolPrivKey)).toString("hex");
 
 const minterPrivKey = Buffer.from("2d1c0d704322c0386cc7bead93298a48ee22325e967567ebe4dbcd4a2f4482f1").toString();
 const minterPubKey = Buffer.from(BLS.getPublicKey(minterPrivKey)).toString("hex");
@@ -204,18 +201,21 @@ async function setupDACommittee() {
 
   await daVerifier1.submitTransaction({
     stake: {
+      stakeType: StakeType.DAVerifier,
       amount: 1000n,
     },
     nonce: 0,
   });
   await daVerifier2.submitTransaction({
     stake: {
+      stakeType: StakeType.DAVerifier,
       amount: 1000n,
     },
     nonce: 0,
   });
   await daVerifier3.submitTransaction({
     stake: {
+      stakeType: StakeType.DAVerifier,
       amount: 1000n,
     },
     nonce: 0,

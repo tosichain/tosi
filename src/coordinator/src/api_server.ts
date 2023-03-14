@@ -2,13 +2,13 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import winston from "winston";
 
-import { SignedTransaction, Account, Block, BlockMetadata } from "../../blockchain/types";
+import { SignedTransaction, Account, Block, BlockMetadata, StakeType } from "../../blockchain/types";
 import { serializeBlock } from "../../blockchain/serde";
 
 export interface RequestHandler {
   submitTransaction(txn: SignedTransaction): Promise<void>;
   getAccount(pubKey: string): Promise<Account | undefined>;
-  getStakerList(): Promise<Record<string, Account>>;
+  getStakerList(stakeType: StakeType): Promise<Account[]>;
   getHeadBblockHash(): Promise<string>;
   getBlockMetadata(blockHash: string): Promise<BlockMetadata | undefined>;
   getBlock(blockHash: string): Promise<Block | undefined>;
@@ -34,7 +34,8 @@ export class APIServer {
     this.http.use(express.json({ type: ["application/json"] }));
     this.http.post("/api/transaction", this.submitTransaction.bind(this));
     this.http.get("/api/account/:pubKey", this.getAccount.bind(this));
-    this.http.get("/api/stakers", this.getStakerList.bind(this));
+    this.http.get("/api/daVerifiers", this.getDAVerifiers.bind(this));
+    this.http.get("/api/stateVerifiers", this.getStateVerifiers.bind(this));
     this.http.get("/api/headBlockHash", this.getHeadBlockHash.bind(this));
     this.http.get("/api/blockMetadata/:blockHash", this.getBlockMetadata.bind(this));
     this.http.get("/api/block/:blockHash", this.getBlock.bind(this));
@@ -82,9 +83,18 @@ export class APIServer {
     }
   }
 
-  private async getStakerList(req: Request, res: Response): Promise<Response | void> {
+  private async getDAVerifiers(req: Request, res: Response): Promise<Response | void> {
     try {
-      const stakers = await this.handler.getStakerList();
+      const stakers = await this.handler.getStakerList(StakeType.DAVerifier);
+      res.status(200).send(stakers);
+    } catch (err: any) {
+      res.status(500).send({ error: err.message });
+    }
+  }
+
+  private async getStateVerifiers(req: Request, res: Response): Promise<Response | void> {
+    try {
+      const stakers = await this.handler.getStakerList(StakeType.StateVerifier);
       res.status(200).send(stakers);
     } catch (err: any) {
       res.status(500).send({ error: err.message });

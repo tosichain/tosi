@@ -2,7 +2,7 @@ import winston from "winston";
 import fetch from "node-fetch";
 
 import { Transaction, Account, Block, ComputeChain } from "../../blockchain/types";
-import { stringifyTransaction } from "../../blockchain/util";
+import { stringifyTransaction, parseAccount } from "../../blockchain/util";
 import { deserializeBlock } from "../../blockchain/serde";
 import { CreateDatachainParameters, UpdateDatachainParameters } from "./node";
 import { GENERATE_TXN_CREATE_DATACHAIN, GENERATE_TXN_UPDATE_DATACHAIN } from "./api_server";
@@ -109,17 +109,12 @@ export class ClientNodeAPIClient {
     } else if (!response.ok) {
       throw new Error(`failed to get account - status: ${response.status}`);
     }
-    const result = await response.json();
-    const account: Account = {
-      nonce: result.nonce,
-      balance: BigInt(result.balance),
-      stake: BigInt(result.stake),
-    };
+    const account = parseAccount(await response.text());
     return account;
   }
 
-  public async getStakerList(): Promise<Record<string, Account>> {
-    const url = `${this.config.apiURL}/stakers`;
+  public async getDAVerifiers(): Promise<Account[]> {
+    const url = `${this.config.apiURL}/daVerifiers`;
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -127,9 +122,25 @@ export class ClientNodeAPIClient {
       },
     });
     if (!response.ok) {
-      throw new Error(`failed to get staker list - status: ${response.status}`);
+      throw new Error(`failed to get DA verifiers - status: ${response.status}`);
     }
-    return (await response.json()) as Record<string, Account>;
+    const stakers = (await response.json()) as Account[];
+    return stakers;
+  }
+
+  public async getStateVerifiers(): Promise<Account[]> {
+    const url = `${this.config.apiURL}/stateVerifiers`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`failed to get state verifiers - status: ${response.status}`);
+    }
+    const stakers = (await response.json()) as Account[];
+    return stakers;
   }
 
   public async getDataChain(rootClaimHash: string): Promise<ComputeChain | undefined> {

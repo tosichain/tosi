@@ -1,4 +1,4 @@
-import { Transaction } from "../../blockchain/types";
+import { StakeType, Transaction } from "../../blockchain/types";
 import { signTransaction } from "../../blockchain/block";
 import { CoordinatorAPIClient } from "../../coordinator/src/api_client";
 import winston from "winston";
@@ -48,6 +48,7 @@ async function init() {
   // Create a transaction object with the provided values.
   const txn: Transaction = {
     stake: {
+      stakeType: StakeType.DAVerifier,
       amount: amount,
     },
     nonce: nonce,
