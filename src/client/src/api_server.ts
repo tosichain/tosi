@@ -24,7 +24,6 @@ export interface RequestHandler {
   getLatestLocalHash(): Promise<string>;
   getBlsPubKeyInHex(): Promise<string>;
   getDatachains(): Promise<ComputeChain[] | undefined>;
-  getAllBlocks(): Promise<Block[] | undefined>;
   getAccountHistory(pubKey: string): Promise<Transaction[] | undefined>;
 }
 
@@ -58,7 +57,6 @@ export class ClientNodeAPIServer {
     this.http.get("/api/latestLocalHash", this.getLatestLocalHash.bind(this));
     this.http.get("/api/blsPubKeyInHex", this.getBlsPubKeyInHex.bind(this));
     this.http.get("/api/datachains", this.getDatachains.bind(this));
-    this.http.get("/api/blocks", this.getAllBlocks.bind(this));
     this.http.get("/api/history/:pubKey", this.getAccountHistory.bind(this));
   }
 
@@ -222,19 +220,6 @@ export class ClientNodeAPIServer {
         return;
       }
       res.status(200).send(chain);
-    } catch (err: any) {
-      res.status(500).send({ error: err.message });
-    }
-  }
-
-  private async getAllBlocks(req: Request, res: Response): Promise<Response | void> {
-    try {
-      const blocks = await this.handler.getAllBlocks();
-      if (!blocks) {
-        res.status(404).send({ error: "blocks not found" });
-        return;
-      }
-      res.status(200).send(blocks);
     } catch (err: any) {
       res.status(500).send({ error: err.message });
     }

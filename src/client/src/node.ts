@@ -277,17 +277,22 @@ export class ClientNode {
     return await this.storage.getDatachains();
   }
 
-  public async getAllBlocks() {
+  public async getAccountHistory(pubkey: string) {
     let headBlockHash = await this.storage.getHeadBlockHash();
-    const blocks = [];
+    const history: Transaction[] = [];
 
     while (true) {
       const block = await this.storage.getBlock(headBlockHash);
+
       if (block == undefined) {
         break;
       }
 
-      blocks.push(block);
+      block.transactions.forEach((transaction) => {
+        if (transaction.from == pubkey) {
+          history.push(transaction.txn);
+        }
+      });
 
       headBlockHash = block.prevBlockHash;
       if (headBlockHash == "") {
@@ -295,22 +300,6 @@ export class ClientNode {
       }
     }
 
-    return blocks;
-  }
-
-  public async getAccountHistory(pubkey: string) {
-    const blocks = await this.getAllBlocks();
-    const history: Transaction[] = [];
-
-    if (blocks) {
-      blocks.forEach((block) => {
-        block.transactions.forEach((transaction) => {
-          if (transaction.from == pubkey) {
-            history.push(transaction.txn);
-          }
-        });
-      });
-    }
     return history;
   }
 }
