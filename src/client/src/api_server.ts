@@ -25,7 +25,7 @@ export interface RequestHandler {
   getBlsPubKeyInHex(): Promise<string>;
   getDatachains(): Promise<ComputeChain[] | undefined>;
   getAllBlocks(): Promise<Block[] | undefined>;
-  getAccounHistory(pubKey: string): Promise<Transaction[] | undefined>;
+  getAccountHistory(pubKey: string): Promise<Transaction[] | undefined>;
 }
 
 export interface ClientNodeAPIServerConfig {
@@ -59,7 +59,7 @@ export class ClientNodeAPIServer {
     this.http.get("/api/blsPubKeyInHex", this.getBlsPubKeyInHex.bind(this));
     this.http.get("/api/datachains", this.getDatachains.bind(this));
     this.http.get("/api/blocks", this.getAllBlocks.bind(this));
-    this.http.get("/api/history/:pubKey", this.getAccounHistory.bind(this));
+    this.http.get("/api/history/:pubKey", this.getAccountHistory.bind(this));
   }
 
   public async start(): Promise<void> {
@@ -240,10 +240,10 @@ export class ClientNodeAPIServer {
     }
   }
 
-  private async getAccounHistory(req: Request, res: Response): Promise<Response | void> {
+  private async getAccountHistory(req: Request, res: Response): Promise<Response | void> {
     const pubkey = req.params.pubKey;
     try {
-      const history = await this.handler.getAccounHistory(pubkey);
+      const history = await this.handler.getAccountHistory(pubkey);
       if (!history) {
         res.status(404).send({ error: "history not found" });
         return;
