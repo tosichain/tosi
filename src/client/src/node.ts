@@ -281,7 +281,7 @@ export class ClientNode {
     return await this.blockchainSync.getAllBlocks();
   }
 
-  public async getAccounHistory(pubkey: string) {
+  public async getAccountHistory(pubkey: string) {
     const blocks = await this.getAllBlocks();
     const history: Transaction[] = [];
 
