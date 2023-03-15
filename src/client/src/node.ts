@@ -278,7 +278,24 @@ export class ClientNode {
   }
 
   public async getAllBlocks() {
-    return await this.blockchainSync.getAllBlocks();
+    let headBlockHash = await this.storage.getHeadBlockHash();
+    const blocks = [];
+
+    while (true) {
+      const block = await this.storage.getBlock(headBlockHash);
+      if (block == undefined) {
+        break;
+      }
+
+      blocks.push(block);
+
+      headBlockHash = block.prevBlockHash;
+      if (headBlockHash == "") {
+        break;
+      }
+    }
+
+    return blocks;
   }
 
   public async getAccountHistory(pubkey: string) {
