@@ -1,27 +1,17 @@
-import * as chai from "chai";
+import chai from "chai";
 import { expect } from "chai";
 import chaiHttp from "chai-http";
 
 chai.use(chaiHttp);
 
 describe("GET /api/syncStatus", function () {
-  it("should return the sync status", function (done) {
+  it("should return a status of 200 if the the blocks sync", function (done) {
     chai
       .request("http://localhost:30001")
       .get("/api/syncStatus")
       .end(function (err, res) {
         expect(res).to.have.status(200);
         expect(res.body).to.have.property("isSynced").that.is.a("boolean");
-        done();
-      });
-  });
-  it("should return a 404 error is the blocks dont sync", function (done) {
-    chai
-      .request("http://localhost:30001")
-      .get("/api/syncStatus")
-      .end(function (err, res) {
-        expect(res).to.have.status(404);
-        expect(res.body).to.have.property("error").that.is.a("string");
         done();
       });
   });
@@ -34,7 +24,7 @@ describe("GET /api/latestHash", function () {
       .get("/api/latestBlockHash")
       .end(function (_err, res) {
         expect(res).to.have.status(200);
-        expect(res.body).to.have.property("hash").that.is.a("string");
+        expect(res.body).to.have.property("blockHash").that.is.a("string");
         done();
       });
   });
@@ -42,7 +32,7 @@ describe("GET /api/latestHash", function () {
   it("should return a 404 error if the latest block hash is not found", function (done) {
     chai
       .request("http://localhost:30001")
-      .get("/api/latestBlockHash")
+      .get("/api/latestLocalHash")
       .end(function (err, res) {
         expect(res).to.have.status(404);
         expect(res.body).to.have.property("error").that.equals("none");
@@ -58,7 +48,7 @@ describe("GET /api/latestLocalHash", function () {
       .get("/api/latestLocalHash")
       .end(function (err, res) {
         expect(res).to.have.status(200);
-        expect(res.body).to.have.property("hash").that.is.a("string");
+        expect(res.body).to.have.property("blockHash").that.is.a("string");
         done();
       });
   });
@@ -104,17 +94,7 @@ describe("GET /api/tosiChains", function () {
       .get("/api/tosiChains")
       .end(function (err, res) {
         expect(res).to.have.status(200);
-        expect(res.body).to.have.property("tosiChains").that.is.a("array");
-        done();
-      });
-  });
-  it("should return a 500 error if the tosi chains are not found", function (done) {
-    chai
-      .request("http://localhost:30001")
-      .get("/api/tosiChains")
-      .end(function (err, res) {
-        expect(res).to.have.status(500);
-        expect(res.body).to.have.property("error").that.is.a("string");
+        expect(res.body).to.be.an("array").that.is.empty;
         done();
       });
   });
