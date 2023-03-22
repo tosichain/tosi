@@ -57,9 +57,14 @@ jobs:
         env: 
           SYNC_API_URL: ${{ matrix.sync-api-url[0] }}
         run: |
+          COUNTER=0
           until [[ "$(curl -s $SYNC_API_URL | jq -r '.isSynced')" = "true" ]]; do
             echo "Waiting for sync to complete..."
             sleep 5
+            COUNTER=$(($COUNTER + 1))
+            if [ x$COUNTER == x100 ]; then
+               exit 1
+            fi
           done
           echo "Sync completed successfully."
       - name: Save log
