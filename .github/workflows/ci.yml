@@ -41,6 +41,7 @@ jobs:
           docker ps -q | awk '{print $1}' | grep -v CONTAINER | xargs -L1 -r docker rm
       - name: Clean up docker envionment
         run: |
+          docker builder prune --keep-storage 25GB
           docker volume prune -f
           docker volume ls -qf dangling=true | xargs -L1 -r docker volume rm
       - name: Check docker-compose version
