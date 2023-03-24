@@ -52,7 +52,9 @@ jobs:
         uses: jpribyl/action-docker-layer-caching@v0.1.1
         # Ignore the failure of a step and avoid terminating the job.
         continue-on-error: true
-
+      - name: Generate unique swarm key
+        run: |
+          docker run --rm mattjtodd/ipfs-swarm-key-gen > swarm.key
       - name: Build the containers
         run: |
           docker compose --profile build -p tosi-chain -f ${{ matrix.composefile }} build
@@ -67,16 +69,23 @@ jobs:
           docker compose -p tosi-chain -f ${{ matrix.composefile }} up --remove-orphans --detach --wait
       - name: Build the test containers
         run: |
-          sudo docker build -f src/tosi_tests/Dockerfile -t test:1.0 .
+          sudo docker buildx build -f src/tosi_tests/Dockerfile -t test:1.0 .
       - name: Test contracts
         run: docker run --network=host test:1.0 npx hardhat test
+      - name: Check IPFS peers before running tests
+        run: |
+          echo "ipfs-1" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-1 ipfs swarm peers
+          echo "ipfs-2" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-2 ipfs swarm peers
+          echo "ipfs-3" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-3 ipfs swarm peers
+          echo "ipfs-4" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-4 ipfs swarm peers
+          echo "ipfs-5" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-5 ipfs swarm peers
       - name: Run integration tests - tosi client
         run: |
           docker run --network=host test:1.0 yarn ${{ matrix.citest }}
       - name: Grab logs
         if: ${{ always() }}
         run: |
-          docker compose -p tosi-chain -f ${{ matrix.composefile }} logs &> logs.${{ matrix.composefile }}.${{ matrix.logfile }}.txt
+          docker compose -p tosi-chain -f ${{ matrix.composefile }} logs --timestamps &> logs.${{ matrix.composefile }}.${{ matrix.logfile }}.txt
           gzip -9 logs.${{ matrix.composefile }}.${{ matrix.logfile }}.txt
       - name: Upload integration logs
         uses: actions/upload-artifact@v2
