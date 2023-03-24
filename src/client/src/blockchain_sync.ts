@@ -2,11 +2,14 @@ import winston from "winston";
 import * as ethers from "ethers";
 import { CID } from "ipfs-http-client";
 
+import JSONbigint from "json-bigint";
+
 import { IPFS } from "../../node/ipfs";
 
 import { DatachainV1__factory } from "../../contracts/factories/DatachainV1__factory";
 import { DatachainV1 } from "../../contracts/DatachainV1";
 import { Block } from "../../blockchain/types";
+import { NULL_HASH } from "../../blockchain/constant";
 import { mintNextBlock } from "../../blockchain/block";
 import { deserializeBlock } from "../../blockchain/serde";
 import { hashBlock, stringifySignedTransaction } from "../../blockchain/util";
@@ -77,15 +80,12 @@ export class BlockchainClientSync {
         // Starting from head block fetch, all blocks, until
         // block, already committed to local stroage, is found.
 
-        // Check if any blocks have been submitted to smart contract.
-        let blockIndex = (await this.claimContract.blockNumber()).toNumber();
-        if (blockIndex == 0) {
-          this.log.info("no blocks were submitted to smart contract");
+        // Check if local copy of blockchain is up-to-date.
+        const headBlockHash = await this.getContractBlockHash();
+        if (headBlockHash == NULL_HASH) {
+          // Coordinator hasn't submitted any blocks yet.
           continue;
         }
-
-        // Check if local copy of blockchain is up-to-date.
-        const headBlockHash = await this.getContractHeadBlockHash();
         this.log.info(`head block in smart contract ${headBlockHash}`);
         const localHeadBlockHash = await this.storage.getHeadBlockHash();
         this.log.info(`head block in local storage - ${localHeadBlockHash}`);
@@ -94,10 +94,11 @@ export class BlockchainClientSync {
           continue;
         }
 
+        let blockToFetch = headBlockHash;
         const blocksToCommit: Block[] = [];
         // Fetch blocks until first minted block is reached or previous block is in local storage.
-        while (blockIndex > 0) {
-          const block = await this.fetchBlock(blockIndex);
+        while (true) {
+          const block = await this.fetchBlock(blockToFetch);
           blocksToCommit.push(block);
           // Previous block is in local storage.
           if (block.prevBlockHash == localHeadBlockHash) {
@@ -105,8 +106,8 @@ export class BlockchainClientSync {
             break;
           } else {
             this.log.info("local head block hash not in local storage, continuing");
+            blockToFetch = block.prevBlockHash;
           }
-          blockIndex--;
         }
         this.log.info("done fetching blocks");
         // Commit block to local storage in correct order.
@@ -121,12 +122,8 @@ export class BlockchainClientSync {
     }
   }
 
-  private async fetchBlock(blockIndex: number): Promise<Block> {
-    this.log.info(`fetching block ${blockIndex}`);
-
-    // Trim '0x' from block hash, computed by smart contract.
-    const blockHash = await this.getContractBlockHash(blockIndex);
-    this.log.info(`fetched block hash from smart contract - ${blockHash}`);
+  private async fetchBlock(blockHash: string): Promise<Block> {
+    this.log.info(`fetching block ${blockHash}`);
 
     const blockMeta = await this.coordinator.getBlockMetadata(blockHash);
     if (blockMeta == undefined) {
@@ -141,22 +138,15 @@ export class BlockchainClientSync {
     const realBlockHash = hashBlock(lastBlock);
     if (realBlockHash != blockHash) {
       throw new Error(
-        `hash block, fetched from coordinator smart contract, does not match hash of block, fetched from IPFS`,
+        `hash block, fetched from coordinator smart contract - ${blockHash}, does not match hash of block, fetched from IPFS - ${realBlockHash}`,
       );
     }
 
     return lastBlock;
   }
 
-  private async getContractHeadBlockHash(): Promise<string> {
+  private async getContractBlockHash(): Promise<string> {
     const contractBlockHash = await this.claimContract.latestBlockHash();
-    // Trim '0x' from block hash, computed by smart contract.
-    const blockHash = contractBlockHash.substring(2);
-    return blockHash;
-  }
-
-  private async getContractBlockHash(blockIndex: number): Promise<string> {
-    const contractBlockHash = await this.claimContract.blockHash(blockIndex);
     // Trim '0x' from block hash, computed by smart contract.
     const blockHash = contractBlockHash.substring(2);
     return blockHash;
@@ -206,7 +196,7 @@ export class BlockchainClientSync {
   }
 
   public async isSynced(): Promise<boolean> {
-    const headBlockHash = await this.getContractHeadBlockHash();
+    const headBlockHash = await this.getContractBlockHash();
     const localHeadBlockHash = await this.storage.getHeadBlockHash();
     return headBlockHash === localHeadBlockHash;
   }
