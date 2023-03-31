@@ -1,5 +1,6 @@
 export const BLOCK_VERSION_SIZE = 4;
-export const GENESIS_BLOCK_VERSION = 0;
+export const BLOCK_HASH_SIZE = 32;
+export const GENESIS_BLOCK_VERSION = 1;
 
 export const DRAND_BEACON_LIFE_TIME = 600; // 10 minutes;
 

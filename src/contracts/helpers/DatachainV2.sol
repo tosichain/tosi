@@ -20,6 +20,8 @@ contract DatachainV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, Cart
   mapping(uint256 => bytes32) private merkleHashes;
   mapping(uint256 => uint256) private blockTimestamps;
 
+  uint256 public previousVersion;
+
   event BlockSubmitted();
 
   /// @custom:oz-upgrades-unsafe-allow constructor

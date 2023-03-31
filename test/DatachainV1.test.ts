@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 import { expect } from "chai";
+import { Buffer } from 'node:buffer';
 import { ethers, upgrades } from "hardhat";
+import crypto from "crypto";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("Token contract", function () {
@@ -21,68 +23,107 @@ describe("Token contract", function () {
 
   it("Submit block can't be called by non-owner", async function () {
     const { proxy, implementation } = await loadFixture(proxyDeployFixture);
-    const block = ethers.utils.randomBytes(1024);
+    const block = Buffer.alloc(32+4);
+    block.writeUInt32BE(0x08011220);
     await expect(proxy.submitBlock(block)).to.be.revertedWith("Only the coordinator node can submit blocks");
   });
 
-  it("1kb block", async function () {
+  it("normal block", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const block = ethers.utils.randomBytes(1 * 1024);
+    await expect(await proxy.connect(coordinator).latestBlockHash()).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
+    const block = Buffer.alloc(32+4);
+    block.writeUInt32BE(0x08011220);
+    const randomData = crypto.randomBytes(block.length - 36);
+    randomData.copy(block, 36);
+
     await expect(proxy.connect(coordinator).submitBlock(block)).to.not.be.reverted;
   });
 
   it("1kb block", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const block = ethers.utils.randomBytes(2 * 1024);
+    const block = Buffer.alloc(32+4+(1024-32-4));
+    block.writeUInt32BE(0x08011220);
+    const randomData = crypto.randomBytes(block.length - 36);
+    randomData.copy(block, 36);
+
     await expect(proxy.connect(coordinator).submitBlock(block)).to.not.be.reverted;
   });
 
   it("4kb block", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const block = ethers.utils.randomBytes(4 * 1024);
+    const block = Buffer.alloc(32+4+(4096-32-4));
+    block.writeUInt32BE(0x08011220);
+    const randomData = crypto.randomBytes(block.length - 36);
+    randomData.copy(block, 36);
     await expect(proxy.connect(coordinator).submitBlock(block)).to.not.be.reverted;
   });
 
   it("8kb block", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const block = ethers.utils.randomBytes(8 * 1024);
+    const block = Buffer.alloc(32+4+(8192-32-4));
+    block.writeUInt32BE(0x08011220);
+    const randomData = crypto.randomBytes(block.length - 36);
+    randomData.copy(block, 36);
     await expect(proxy.connect(coordinator).submitBlock(block)).to.not.be.reverted;
   });
 
   it("16kb block", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const block = ethers.utils.randomBytes(16 * 1024);
+    const block = Buffer.alloc(32+4+(16384-32-4));
+    block.writeUInt32BE(0x08011220);
+    const randomData = crypto.randomBytes(block.length - 36);
+    randomData.copy(block, 36);
     await expect(proxy.connect(coordinator).submitBlock(block)).to.not.be.reverted;
   });
 
   it("32kb block", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const block = ethers.utils.randomBytes(32 * 1024);
+    const block = Buffer.alloc(32+4+(32768-32-4));
+    block.writeUInt32BE(0x08011220);
+    const randomData = crypto.randomBytes(block.length - 36);
+    randomData.copy(block, 36);
+
     await expect(proxy.connect(coordinator).submitBlock(block)).to.not.be.reverted;
   });
 
   it("64kb block", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const block = ethers.utils.randomBytes(64 * 1024);
+    const block = Buffer.alloc(32+4+(65536-32-4));
+    block.writeUInt32BE(0x08011220);
+    const randomData = crypto.randomBytes(block.length - 36);
+    randomData.copy(block, 36);
+
     await expect(proxy.connect(coordinator).submitBlock(block)).to.not.be.reverted;
   });
-
   it("128kb block", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const block = ethers.utils.randomBytes(128 * 1024);
+    const block = Buffer.alloc(32+4+(131072-32-4));
+    block.writeUInt32BE(0x08011220);
+    const randomData = crypto.randomBytes(block.length - 36);
+    randomData.copy(block, 36);
+
     await expect(proxy.connect(coordinator).submitBlock(block)).to.not.be.reverted;
   });
 
   it("256kb block", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const block = ethers.utils.randomBytes(256 * 1024);
+    const block = Buffer.alloc(32+4+((256*1024)-32-4));
+    block.writeUInt32BE(0x08011220);
+    const randomData = crypto.randomBytes(block.length - 36);
+    randomData.copy(block, 36);
     await expect(proxy.connect(coordinator).submitBlock(block)).to.not.be.reverted;
   });
 
   it("512kb block", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const block = ethers.utils.randomBytes(512 * 1024);
-    await expect(proxy.connect(coordinator).submitBlock(block)).to.not.be.reverted;
+    const block = Buffer.alloc(32+4+((512*1024)-32-4));
+    block.writeUInt32BE(0x08011220);
+    const randomData = crypto.randomBytes(block.length - 36);
+    randomData.copy(block, 36);
+
+    await expect(proxy.connect(coordinator).submitBlock(block)).to.be.revertedWith(
+      "Block cannot be beyond 256kb",
+    );
   });
 
   it("Can set a new owner as owner", async function () {
@@ -137,6 +178,6 @@ const fundWithEth = async (receiver) => {
   const [ethWallet] = await ethers.getSigners();
   await ethWallet.sendTransaction({
     to: receiver,
-    value: ethers.utils.parseEther("1.0"),
+    value: ethers.utils.parseEther("500.0"),
   });
 };

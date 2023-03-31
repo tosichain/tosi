@@ -1,6 +1,6 @@
 name: Mainnet Sync CI
 
-on: [push]
+on: [workflow_dispatch]
 
 jobs:
   mainnet-sync:

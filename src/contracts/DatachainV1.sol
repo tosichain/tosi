@@ -17,8 +17,10 @@ contract DatachainV1 is Initializable, OwnableUpgradeable, UUPSUpgradeable, Cart
   bytes32 public latestBlockHash;
 
   mapping(uint256 => bytes32) private blockHashes;
-  mapping(uint256 => bytes32) private merkleHashes;
+  mapping(uint256 => bytes32) private merkleHashes; // obsolete
   mapping(uint256 => uint256) private blockTimestamps;
+
+  uint256 public previousVersion;
 
   event BlockSubmitted();
 
@@ -37,18 +39,49 @@ contract DatachainV1 is Initializable, OwnableUpgradeable, UUPSUpgradeable, Cart
   }
 
   /// @notice Submits block and stores relevant data.
-  /// @dev Stores blockHash, merkleHash and timestamp which can be retrieved using getters.
+  /// @dev Stores blockHash and timestamp which can be retrieved using getters.
   ///      Also emits an event.
   /// @param _block Block to submit.
   function submitBlock(bytes calldata _block) external {
     require(msg.sender == coordinatorNode, "Only the coordinator node can submit blocks");
+    uint256 callDataLength = _block.length;
+
+    require(callDataLength >= 4, "Data must be at least 4 bytes");
+    require(callDataLength < (256*1024 + 1), "Block cannot be beyond 256kb");
+
+    bytes4 version;
+    assembly {
+      version := calldataload(_block.offset)
+    }
+ 
+    // this is a hacky protobuf decoder
+    if (previousVersion == 0x08011220) {
+      if (uint32(version) != 0x08011220) {
+        revert("unsupported version upgrade");
+      }
+      require(callDataLength >= 36, "Data must be at least 36 bytes");
+      bytes32 prevBlockHash;
+      assembly {
+        prevBlockHash := calldataload(add(_block.offset, 4))
+      }
+      require(prevBlockHash == latestBlockHash, "Previous block hash must be equal to latest");
+    } else if (previousVersion == 0) {
+      if (uint32(version) == 0x08011220) {
+        previousVersion = uint32(version);
+      } else {
+        revert("unsupported version upgrade");
+      }
+    } else {
+      revert("unsupported version");
+    }
+
     blockNumber++;
 
+
+
     latestBlockHash = keccak256(_block);
-    bytes32 merkleHash = getMerkleRootFromBytes(_block, CARTESI_MERKLE_LOG2_SIZE);
 
     blockHashes[blockNumber] = latestBlockHash;
-    merkleHashes[blockNumber] = merkleHash;
     blockTimestamps[blockNumber] = block.timestamp;
 
     emit BlockSubmitted();
@@ -67,7 +100,7 @@ contract DatachainV1 is Initializable, OwnableUpgradeable, UUPSUpgradeable, Cart
   /// @param blockIndex The index of the block to get the Merkle hash for.
   /// @return The Merkle hash of the specified block.
   function getMerkleHash(uint256 blockIndex) external view returns (bytes32) {
-    return merkleHashes[blockIndex];
+    revert();
   }
 
   /// @notice Get the timestamp of a specified block.

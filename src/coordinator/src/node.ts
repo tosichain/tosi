@@ -37,6 +37,7 @@ import { APIServerConfig, APIServer } from "./api_server";
 import { DAVerificationManagerConfig, DAVerificationManager } from "./da_verification";
 import { COORDINATOR_BLOCK_VERSION, SWARM_PING_INTERVAL } from "./constant";
 import { keepConnectedToSwarm } from "../../p2p/util";
+import { NULL_HASH } from "../../blockchain/constant";
 
 export type IPFSOptions = IpfsHttpClient.Options;
 
@@ -105,6 +106,8 @@ export class CoordinatorNode {
   public async start(): Promise<void> {
     if (this.config.eth.impersonateAddress) {
       await this.ethProvider.send("hardhat_impersonateAccount", [this.config.eth.impersonateAddress]);
+      await this.ethProvider.send("hardhat_setBalance", [this.config.eth.impersonateAddress, "0x50000000000000000"]);
+
       this.ethWallet = this.ethProvider.getSigner(this.config.eth.impersonateAddress);
     } else {
       this.ethWallet = new ethers.Wallet(this.config.eth.walletSecret, this.ethProvider);
@@ -113,10 +116,6 @@ export class CoordinatorNode {
 
     await this.storage.init();
     await this.ipfs.up(this.log);
-
-    if (this.api != undefined) {
-      await this.api.start();
-    }
 
     // Need to retry in case eth rpc endpoint is temporarily unavailable.
     let retryCount = 0;
@@ -135,7 +134,7 @@ export class CoordinatorNode {
         break;
       } catch (err: any) {
         if (err.code == "SERVER_ERROR") {
-          this.log.error(`failed to connect to eth rpc endpoint, waiting for retry`);
+          this.log.error(`failed to connect to eth rpc endpoint, waiting for retry: ` + err);
           await new Promise((resolve, _) => {
             setTimeout(resolve, this.config.eth.rpcRetryPeriod);
           });
@@ -144,6 +143,9 @@ export class CoordinatorNode {
           throw err;
         }
       }
+    }
+    if (this.api != undefined) {
+      await this.api.start();
     }
     const genesisBlockHash = await this.storage.getGenesisBlockHash();
     await keepConnectedToSwarm("tosi-" + genesisBlockHash, this.ipfs, this.log, SWARM_PING_INTERVAL);
@@ -163,7 +165,11 @@ export class CoordinatorNode {
     }
     this.claimContract = DatachainV1__factory.connect(this.config.chain.coordinatorSmartContract, this.ethWallet);
     if (this.config.eth.impersonateAddress) {
+      const contractFactory = new DatachainV1__factory(this.ethWallet);
+      const deployedContract = await contractFactory.deploy();
       await this.claimContract.setCoordinatorNode(await this.ethWallet.getAddress());
+      await this.claimContract.upgradeTo(deployedContract.address);
+      this.log.info("Upgraded smart contract and set coordinator node to " + (await this.ethWallet.getAddress()));
     }
   }
 
@@ -289,6 +295,9 @@ export class CoordinatorNode {
           throw new Error("can not fetch hash of head block from storage");
         }
         while (true) {
+          if (blockHash == NULL_HASH) {
+            throw new Error("Should never try to upload null hash");
+          }
           const uploadedBlock: Block | undefined = await this.uploadBlockToIPFS(blockHash, force);
           // Сurrent block and all previous blocks are already uploaded.
           if (uploadedBlock == undefined) {
@@ -296,7 +305,7 @@ export class CoordinatorNode {
             break;
           }
           // Genesis block does not have previous block.
-          if (uploadedBlock.prevBlockHash == "") {
+          if (uploadedBlock.prevBlockHash == NULL_HASH) {
             this.log.info(`genesis block ${blockHash} is uploaded to ipfs`);
             break;
           }
@@ -324,8 +333,13 @@ export class CoordinatorNode {
     if (block == undefined) {
       throw Error("block metadata exists in db while block itself is missing");
     }
-    const rawBlock = await serializeBlock(block);
-    const blockCID = await this.ipfs.getIPFS().dag.put(rawBlock, { pin: true });
+    const rawBlock = serializeBlock(block);
+    if (rawBlock.length > 256 * 1024) {
+      throw new Error("Serialized block too big");
+    }
+    const blockCID = await this.ipfs
+      .getIPFS()
+      .block.put(rawBlock, { pin: true, mhtype: "keccak-256", format: "raw", version: 1 });
 
     // Mark block as uploaded in storage.
     const blockMeta: BlockMetadata = {
@@ -333,6 +347,7 @@ export class CoordinatorNode {
     };
     const rawBlockMeta = serializeBlockMetadata(blockMeta);
     await this.storage.setBlockMetadata(blockHash, rawBlockMeta);
+    this.log.info(`uploaded block ${blockHash} to ipfs: force ` + force);
 
     return block;
   }

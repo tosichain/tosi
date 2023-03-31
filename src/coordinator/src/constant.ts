@@ -1,2 +1,2 @@
-export const COORDINATOR_BLOCK_VERSION = 0;
+export const COORDINATOR_BLOCK_VERSION = 1;
 export const SWARM_PING_INTERVAL = 10000;

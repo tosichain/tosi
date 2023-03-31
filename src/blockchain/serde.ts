@@ -1,7 +1,7 @@
 import keccak256 from "keccak256";
 import MerkleTree from "merkletreejs";
 
-import { BLOCK_VERSION_SIZE } from "./constant";
+import { BLOCK_HASH_SIZE, BLOCK_VERSION_SIZE } from "./constant";
 import { encodeCBOR, decodeCBOR } from "../util";
 
 import {
@@ -435,46 +435,53 @@ export function deserializeWorldState(rawState: Uint8Array): WorldState {
 }
 
 /*
-1. Hash of previous block.
-2. Leaves of accounts merkle tree.
-3. List of serialized transactions.
-4. Serialized block proof.
-5. Block generation time.
+1. Leaves of accounts merkle tree.
+2. List of serialized transactions.
+3. Serialized block proof.
+4. Block generation time.
 */
-export type SerializedBlock = [string, Uint8Array[], Uint8Array[], Uint8Array, number];
+export type SerializedBlock = [Uint8Array[], Uint8Array[], Uint8Array, number];
 
 export function serializeBlock(block: Block): Uint8Array {
   const merkleLeaves = block.accountsMerkle.getLeaves().map((b: Iterable<number>) => new Uint8Array(b));
   const txns = block.transactions.map(serializeSignedTransaction);
   const proof = serializeBlockProof(block.proof);
-  const serializedBlock: SerializedBlock = [block.prevBlockHash, merkleLeaves, txns, proof, block.time];
+  const serializedBlock: SerializedBlock = [merkleLeaves, txns, proof, block.time];
   const cborBlock = encodeCBOR(serializedBlock);
 
-  const serializedVersion = Buffer.alloc(BLOCK_VERSION_SIZE);
-  serializedVersion.writeUint32LE(block.version);
-  const blockWithVersion = Buffer.concat([serializedVersion, cborBlock]);
+  const prevBlockHash = Buffer.from(block.prevBlockHash, "hex");
+  const serializedVersionAndPrevBlockHash = Buffer.alloc(BLOCK_VERSION_SIZE + BLOCK_HASH_SIZE);
+
+  // XXX hacky protobuf
+  serializedVersionAndPrevBlockHash.writeUint32BE(0x08011220);
+  prevBlockHash.copy(serializedVersionAndPrevBlockHash, BLOCK_VERSION_SIZE);
+  const blockWithVersion = Buffer.concat([serializedVersionAndPrevBlockHash, cborBlock]);
 
   return blockWithVersion;
 }
 
 export function deserializeBlock(rawBlock: Uint8Array): Block {
-  const [blockVersion, cborBlock] = splitVersionFromBlockContent(rawBlock);
+  const [blockVersion, prevBlockHash, cborBlock] = splitVersionFromBlockContent(rawBlock);
   const s = decodeCBOR(cborBlock) as SerializedBlock;
   const block: Block = {
-    version: blockVersion,
-    prevBlockHash: s[0],
-    accountsMerkle: new MerkleTree(s[1], keccak256, { sort: true }),
-    transactions: s[2].map(deserializeSignedTransaction),
-    proof: deserializeBlockProof(s[3]),
-    time: s[4],
+    // XXX hacky protobuf
+    version: blockVersion == 0x08011220 ? 1 : 0,
+    prevBlockHash: prevBlockHash,
+    accountsMerkle: new MerkleTree(s[0], keccak256, { sort: true }),
+    transactions: s[1].map(deserializeSignedTransaction),
+    proof: deserializeBlockProof(s[2]),
+    time: s[3],
   };
   return block;
 }
 
-export function splitVersionFromBlockContent(rawBlock: Uint8Array): [number, Uint8Array] {
+export function splitVersionFromBlockContent(rawBlock: Uint8Array): [number, string, Uint8Array] {
   const serializedVersion = Buffer.from(rawBlock.slice(0, BLOCK_VERSION_SIZE));
-  const cborBlock = rawBlock.slice(BLOCK_VERSION_SIZE);
-  return [serializedVersion.readInt32LE(), cborBlock];
+  const prevBlockHash = Buffer.from(rawBlock.slice(BLOCK_VERSION_SIZE, BLOCK_VERSION_SIZE + BLOCK_HASH_SIZE)).toString(
+    "hex",
+  );
+  const cborBlock = rawBlock.slice(BLOCK_VERSION_SIZE + BLOCK_HASH_SIZE);
+  return [serializedVersion.readInt32BE(), prevBlockHash, cborBlock];
 }
 
 /*
