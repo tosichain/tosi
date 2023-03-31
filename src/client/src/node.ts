@@ -4,8 +4,6 @@ import { CID } from "ipfs-http-client";
 import * as BLS from "@noble/bls12-381";
 
 import { IPFS } from "../../node/ipfs";
-import { IPFSServiceOptions, IPFSService } from "../../node/ipfs-service";
-
 import { Transaction, Account, DAInfo, Block, DataChain, StakeType } from "../../blockchain/types";
 import { CoordinatorRPCConfig, CoordinatorRPC } from "../../coordinator/src/rpc";
 import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/storage";
@@ -14,35 +12,35 @@ import { BlockchainClientSyncConfig, BlockchainClientSync } from "./blockchain_s
 import { ClientNodeAPIServerConfig, ClientNodeAPIServer } from "./api_server";
 import { DAVerifierConfig, DAVerifier } from "./da_verifier";
 import { createDAInfo } from "./util";
-import { DEFAULT_PROGRAM_RETURN_CODE, DEFAULT_CARTESI_VM_MAX_CYCLES, SWARM_PING_INTERVAL } from "./constant";
+import { DEFAULT_CARTESI_VM_MAX_CYCLES, SWARM_PING_INTERVAL } from "./constant";
 import { keepConnectedToSwarm } from "../../p2p/util";
+import { StateVerifier, StateVerifierConfig } from "./state_verifer";
 
 export interface ClientNodeConfig {
   coordinator: CoordinatorRPCConfig;
   ipfs: IpfsHttpClient.Options;
-  ipfsService: IPFSServiceOptions;
   storage: BlockchainStorageConfig;
   blokchainSync: BlockchainClientSyncConfig;
   api: ClientNodeAPIServerConfig;
   blsSecKey: string;
   coordinatorPubKey: string;
   DACommitteeSampleSize: number; // TODO: must be sealed in blockchain.
+  stateCommitteeSampleSize: number; // TODO: must be sealed in blockchain.
   roles: {
     daVerifier: DAVerifierConfig | undefined;
+    stateVerifier: StateVerifierConfig | undefined;
   };
 }
 
 export interface CreateDatachainParameters {
-  courtCID: CID;
-  appCID: CID;
+  dataContractCID: CID;
   inputCID: CID;
   outputCID: CID;
 }
 
 export interface UpdateDatachainParameters {
   // New claim info.
-  courtCID: CID;
-  appCID: CID;
+  dataContractCID: CID;
   inputCID: CID;
   outputCID: CID;
   // Existing chain info.
@@ -58,13 +56,12 @@ export class ClientNode {
   private readonly coordinator: CoordinatorRPC;
 
   private readonly ipfs: IPFS;
-  private readonly ipfsService: IPFSService;
 
   private readonly storage: BlockchainStorage;
   private readonly blockchainSync: BlockchainClientSync;
 
   private readonly daVerifier: DAVerifier | undefined;
-
+  private readonly stateVerifier: StateVerifier | undefined;
   private readonly apiServer: ClientNodeAPIServer;
 
   constructor(config: ClientNodeConfig, log: winston.Logger) {
@@ -76,7 +73,6 @@ export class ClientNode {
     this.coordinator = new CoordinatorRPC(this.config.coordinator);
 
     this.ipfs = new IPFS(this.config.ipfs, this.log);
-    this.ipfsService = new IPFSService(this.config.ipfsService, this.log);
 
     this.storage = new BlockchainStorage(this.config.storage, this.log);
     this.blockchainSync = new BlockchainClientSync(
@@ -96,7 +92,18 @@ export class ClientNode {
         this.config.roles.daVerifier,
         this.log,
         this.ipfs,
-        this.ipfsService,
+        this.storage,
+      );
+    }
+
+    if (this.config.roles.stateVerifier) {
+      this.stateVerifier = new StateVerifier(
+        this.config.blsSecKey,
+        this.config.coordinatorPubKey,
+        this.config.stateCommitteeSampleSize,
+        this.config.roles.stateVerifier,
+        this.log,
+        this.ipfs,
         this.storage,
       );
     }
@@ -130,6 +137,7 @@ export class ClientNode {
     await this.storage.init();
     await this.blockchainSync.start();
     await this.daVerifier?.start();
+    await this.stateVerifier?.start();
     await this.apiServer.start();
 
     const genesisBlockHash = await this.storage.getGenesisBlockHash();
@@ -139,45 +147,27 @@ export class ClientNode {
   // API methods.
 
   public async generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction> {
-    const availability: [string, CID, DAInfo | undefined, string][] = await Promise.all(
-      (
-        [
-          ["court.img", params.courtCID, "/prev/gov/court.img"],
-          ["app.img", params.appCID, "/prev/gov/app.img"],
-          ["input", params.inputCID, "/input"],
-        ] as [string, CID, string][]
-      ).map(async ([path, cid, loc]): Promise<[string, CID, DAInfo | undefined, string]> => {
-        const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), false, 120);
-        this.log.info(`created DA info for ${path} ${cid.toString()} ${loc} - ${JSON.stringify(daInfo)}`);
-        return [path, cid, daInfo, loc];
-      }),
-    );
-    if (availability.find(([path, cid, info, loc]) => !info)) {
-      throw Error("transaction data is not available");
-    }
+    const functionDataPromise = this.fetchDAInfoNoCache(params.dataContractCID, false);
+    const inputDataPromise = this.fetchDAInfoNoCache(params.inputCID, true);
+    const outputDataPromise = this.fetchDAInfoNoCache(params.outputCID, true);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const daInfo: DAInfo[] = (availability as [string, CID, DAInfo, string][]).map(([path, _cid, info, loc]) => {
-      return {
-        name: loc,
-        size: info.size,
-        log2: info.log2,
-        keccak256: info.keccak256,
-        cartesiMerkleRoot: info.cartesiMerkleRoot,
-      } as DAInfo;
-    });
+    // wait for them to settle
+    const functionInfo = await functionDataPromise;
+    const inputInfo = await inputDataPromise;
+    const outputInfo = await outputDataPromise;
+
+    if (!functionInfo || !inputInfo || !outputInfo) {
+      throw new Error("Missing DA: " + JSON.stringify({ functionInfo, inputInfo, outputInfo }));
+    }
 
     const txn: Transaction = {
       createChain: {
         rootClaim: {
           claimer: this.blsPubKey,
           prevClaimHash: "",
-          courtCID: params.courtCID.toString(),
-          appCID: params.appCID.toString(),
-          inputCID: params.inputCID.toString(),
-          outputCID: params.outputCID.toString(),
-          daInfo: daInfo,
-          returnCode: DEFAULT_PROGRAM_RETURN_CODE,
+          dataContract: { cid: params.dataContractCID.toString(), ...functionInfo },
+          input: { cid: params.inputCID.toString(), ...inputInfo },
+          output: { cid: params.outputCID.toString(), ...outputInfo },
           maxCartesiCycles: DEFAULT_CARTESI_VM_MAX_CYCLES,
         },
       },
@@ -187,39 +177,29 @@ export class ClientNode {
     return txn;
   }
 
+  private async fetchDAInfoNoCache(cid: CID, car: boolean): Promise<DAInfo | undefined> {
+    const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), 600, car);
+    return daInfo;
+  }
+
   public async generateUpdateDatachainTxn(params: UpdateDatachainParameters): Promise<Transaction> {
     const chain = await this.storage.getComputeChain(params.rootClaimHash);
     if (chain == undefined) {
       throw new Error(`can not find datachain with root claim ${params.rootClaimHash}`);
     }
 
-    const availability: [string, CID, DAInfo | undefined, string][] = await Promise.all(
-      (
-        [
-          ["court.img", params.courtCID, "/prev/gov/court.img"],
-          ["app.img", params.appCID, "/prev/gov/app.img"],
-          ["input", params.inputCID, "/input"],
-        ] as [string, CID, string][]
-      ).map(async ([path, cid, loc]): Promise<[string, CID, DAInfo | undefined, string]> => {
-        const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), false, 120);
-        this.log.info(`created DA info for ${path} ${cid.toString()} ${loc} - ${JSON.stringify(daInfo)}`);
-        return [path, cid, daInfo, loc];
-      }),
-    );
-    if (availability.find(([path, cid, info, loc]) => !info)) {
-      throw Error("transaction data is not available");
-    }
+    const functionDataPromise = this.fetchDAInfoNoCache(params.dataContractCID, false);
+    const inputDataPromise = this.fetchDAInfoNoCache(params.inputCID, true);
+    const outputDataPromise = this.fetchDAInfoNoCache(params.outputCID, true);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const daInfo: DAInfo[] = (availability as [string, CID, DAInfo, string][]).map(([path, _cid, info, loc]) => {
-      return {
-        name: loc,
-        size: info.size,
-        log2: info.log2,
-        keccak256: info.keccak256,
-        cartesiMerkleRoot: info.cartesiMerkleRoot,
-      } as DAInfo;
-    });
+    // wait for them to settle
+    const functionInfo = await functionDataPromise;
+    const inputInfo = await inputDataPromise;
+    const outputInfo = await outputDataPromise;
+
+    if (!functionInfo || !inputInfo || !outputInfo) {
+      throw new Error("Missing DA");
+    }
 
     const txn: Transaction = {
       updateChain: {
@@ -227,12 +207,9 @@ export class ClientNode {
         claim: {
           claimer: this.blsPubKey,
           prevClaimHash: chain.headClaimHash,
-          courtCID: params.courtCID.toString(),
-          appCID: params.appCID.toString(),
-          inputCID: params.inputCID.toString(),
-          outputCID: params.outputCID.toString(),
-          daInfo: daInfo,
-          returnCode: DEFAULT_PROGRAM_RETURN_CODE,
+          dataContract: { cid: params.dataContractCID.toString(), ...functionInfo },
+          input: { cid: params.inputCID.toString(), ...inputInfo },
+          output: { cid: params.outputCID.toString(), ...outputInfo },
           maxCartesiCycles: DEFAULT_CARTESI_VM_MAX_CYCLES,
         },
       },

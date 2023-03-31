@@ -3,8 +3,8 @@ import * as BLS from "@noble/bls12-381";
 
 import { encodeCBOR } from "../util";
 
-import { Block, DACheckResult, ClaimDACheckResult, StakeType } from "./types";
-import { serializeClaimDACheckResult } from "./serde";
+import { Block, DACheckResult, ClaimDACheckResult, StakeType, ClaimStateCheckResult, StateCheckResult } from "./types";
+import { serializeClaimDACheckResult, serializeClaimStateCheckResult } from "./serde";
 import { BlockchainStorage } from "./storage";
 import { fetchDrandBeaconInfo, getSeedFromBlockRandomnessProof, verifyBlockRandomnessProof } from "./block_randomness";
 import { getVerificationCommitteeSample } from "./block_commitee";
@@ -103,6 +103,56 @@ export async function verifyDACheckResultsAggergatedSignature(
   const aggPub = Buffer.from(BLS.aggregatePublicKeys(signers)).toString("hex");
   const aggSig = BLS.aggregateSignatures(results.map((result) => result.signature));
   const aggSigValid = await verifyDACheckResultSignature(txnBundleHash, randomnessProof, claimResults, aggSig, aggPub);
+  return [aggSigValid, aggSig];
+}
+
+function createStateCheckResultHashForSigning(
+  txnBundleHash: string,
+  randomnessProof: Uint8Array,
+  claimResults: ClaimStateCheckResult[],
+): string {
+  const rawClaimResults = claimResults.map(serializeClaimStateCheckResult);
+  const sigMaterial = encodeCBOR([txnBundleHash, randomnessProof, rawClaimResults]);
+  const hash = crypto.createHash("sha256").update(sigMaterial).digest();
+  return hash.toString("hex");
+}
+
+export async function signStateCheckResult(result: StateCheckResult, signerSecKey: string): Promise<StateCheckResult> {
+  const hash = createStateCheckResultHashForSigning(result.txnBundleHash, result.randomnessProof, result.claims);
+  const signedResult: StateCheckResult = {
+    ...result,
+    signature: await BLS.sign(hash, signerSecKey),
+  };
+  return signedResult;
+}
+
+export async function verifyStateCheckResultSignature(
+  txnBundleHash: string,
+  randomnessProof: Uint8Array,
+  claimResults: ClaimStateCheckResult[],
+  signature: Uint8Array,
+  signer: string,
+): Promise<boolean> {
+  const hash = createStateCheckResultHashForSigning(txnBundleHash, randomnessProof, claimResults);
+  return await BLS.verify(signature, hash, signer);
+}
+
+export async function verifyStateCheckResultsAggergatedSignature(
+  txnBundleHash: string,
+  randomnessProof: Uint8Array,
+  claimResults: ClaimStateCheckResult[],
+  results: StateCheckResult[],
+  signers: string[],
+): Promise<[boolean, Uint8Array]> {
+  const aggPub = Buffer.from(BLS.aggregatePublicKeys(signers)).toString("hex");
+  const aggSig = BLS.aggregateSignatures(results.map((result) => result.signature));
+  const aggSigValid = await verifyStateCheckResultSignature(
+    txnBundleHash,
+    randomnessProof,
+    claimResults,
+    aggSig,
+    aggPub,
+  );
   return [aggSigValid, aggSig];
 }
 

@@ -40,6 +40,7 @@ import { DAVerificationManagerConfig, DAVerificationManager } from "./da_verific
 import { COORDINATOR_BLOCK_VERSION, SWARM_PING_INTERVAL } from "./constant";
 import { keepConnectedToSwarm } from "../../p2p/util";
 import { NULL_HASH } from "../../blockchain/constant";
+import { StateVerificationManager, StateVerificationManagerConfig } from "./state_verification";
 
 export type IPFSOptions = IpfsHttpClient.Options;
 
@@ -67,6 +68,7 @@ export interface CoordinatorNodeConfig {
   blsSecKey: string;
   DACommitteeSampleSize: number; // TODO: must be sealed in blockchain.
   DAVerification: DAVerificationManagerConfig;
+  stateVerification: StateVerificationManagerConfig;
 }
 
 export class CoordinatorNode {
@@ -85,7 +87,8 @@ export class CoordinatorNode {
 
   private claimContract: DatachainV1 | null = null;
 
-  private offchainManager: DAVerificationManager;
+  private daManager: DAVerificationManager;
+  private stateManager: StateVerificationManager;
 
   constructor(config: CoordinatorNodeConfig, logger: winston.Logger) {
     this.config = config;
@@ -102,7 +105,8 @@ export class CoordinatorNode {
     }
     this.ethProvider = new ethers.providers.JsonRpcProvider(this.config.eth.rpc);
 
-    this.offchainManager = new DAVerificationManager(this.config.DAVerification, this.log, this.ipfs);
+    this.daManager = new DAVerificationManager(this.config.DAVerification, this.log, this.ipfs);
+    this.stateManager = new StateVerificationManager(this.config.stateVerification, this.log, this.ipfs);
   }
 
   public async start(): Promise<void> {
@@ -169,7 +173,8 @@ export class CoordinatorNode {
     }
     const genesisBlockHash = await this.storage.getGenesisBlockHash();
     await keepConnectedToSwarm("tosi-" + genesisBlockHash, this.ipfs, this.log, SWARM_PING_INTERVAL);
-    await this.offchainManager.start();
+    await this.daManager.start();
+    await this.stateManager.start();
 
     this.createNextBlock();
     await this.uploadBlockchainToIPFS(true);
@@ -247,7 +252,7 @@ export class CoordinatorNode {
           this.config.DACommitteeSampleSize,
           blockRandSeed,
         );
-        const daCheckResult = await this.offchainManager.checkTxnBundleDA(txnBundle, blockRandProof, daCommittee);
+        const daCheckResult = await this.daManager.checkTxnBundleDA(txnBundle, blockRandProof, daCommittee);
         for (const txn of daCheckResult.rejectedTxns) {
           await this.storage.removePendingTransaction(txn);
         }
@@ -256,6 +261,21 @@ export class CoordinatorNode {
           continue;
         }
 
+        // Check transaction data availability.
+        const stateCommittee = await getVerificationCommitteeSample(
+          this.storage,
+          StakeType.StateVerifier,
+          this.config.DACommitteeSampleSize,
+          blockRandSeed,
+        );
+        const stateCheckResult = await this.stateManager.checkTxnBundleState(txnBundle, blockRandProof, stateCommittee);
+        for (const txn of stateCheckResult.rejectedTxns) {
+          await this.storage.removePendingTransaction(txn);
+        }
+        if (stateCheckResult.acceptedTxns.length == 0) {
+          this.log.error(`failed to mint next block - all transactions have failed State verification`);
+          continue;
+        }
         // Mint block.
         this.log.info(`minting next block from ${daCheckResult.acceptedTxns.length} new transactions`);
         const nextBlockProof: BlockProof = {
@@ -264,6 +284,8 @@ export class CoordinatorNode {
           DACheckResults: daCheckResult.responses,
           randomnessProof: blockRandProof,
           aggDACheckResultSignature: daCheckResult.aggSignature,
+          stateCheckResults: stateCheckResult.responses,
+          aggStateCheckResultSignature: stateCheckResult.aggSignature,
         };
         const [nextBlock, acceptedTxns, rejectedTxns] = await mintNextBlock(
           state,

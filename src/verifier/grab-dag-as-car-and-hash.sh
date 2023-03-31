@@ -1,13 +1,13 @@
 #! /bin/sh
 tmpfile=$(mktemp /tmp/grab-and-hash.XXXXXX)
-ipfs --timeout=$TIMEOUT --api $IPFS_API get -o $tmpfile $1 &> /dev/null
+ipfs --timeout=$TIMEOUT --api $IPFS_API dag export $1 > $tmpfile 2>/dev/null
 if [ $? -ne 0 ]; then 
     printf '{"error":"failed"}'
     exit 0
 fi
-SIZE=$(stat -c %s $tmpfile)
 
 LOG2=31
+SIZE=$(stat -c %s $tmpfile)
  
 CARTESI_MERKLE_ROOT=$(/app/merkle-tree-hash \
   --log2-word-size=3 \

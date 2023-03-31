@@ -39,6 +39,10 @@ import { createInitialStateFromEnv } from "../../blockchain/util";
       RequestBroadcastPeriod: Number(process.env.OFFCHAIN_DAS_REQUEST_BROADCAST_PERIOD),
       RequestTimeout: Number(process.env.OFFCHAIN_DAS_REQUEST_TIEMOUT),
     },
+    stateVerification: {
+      RequestBroadcastPeriod: Number(process.env.OFFCHAIN_STATE_REQUEST_BROADCAST_PERIOD),
+      RequestTimeout: Number(process.env.OFFCHAIN_STATE_REQUEST_TIEMOUT),
+    },
   };
 
   const logger = winston.createLogger({

@@ -12,9 +12,6 @@ import { createInitialStateFromEnv } from "../../blockchain/util";
     ipfs: {
       host: process.env.IPFS_HTTP_API_HOST,
     },
-    ipfsService: {
-      address: String(process.env.IPFS_SERVICE_HOST_PORT),
-    },
     storage: {
       dbHost: String(process.env.DB_HOST),
       dbUser: String(process.env.DB_USER),
@@ -33,6 +30,9 @@ import { createInitialStateFromEnv } from "../../blockchain/util";
       daVerifier: {
         DACheckTimeout: Number(process.env.ROLE_DA_VERIFIER_DA_CHECK_TIMEOUT),
       },
+      stateVerifier: {
+        stateCheckTimeout: Number(process.env.ROLE_STATE_VERIFIER_CHECK_TIMEOUT),
+      },
     },
     api: {
       port: Number(process.env.API_PORT),
@@ -40,11 +40,17 @@ import { createInitialStateFromEnv } from "../../blockchain/util";
     blsSecKey: String(process.env.BLS_SEC_KEY),
     coordinatorPubKey: String(process.env.COORDINATOR_PUB_KEY),
     DACommitteeSampleSize: Number(process.env.OFFCHAIN_DA_COMMITEE_SAMPLE_SIZE),
+    stateCommitteeSampleSize: Number(process.env.OFFCHAIN_STATE_COMMITEE_SAMPLE_SIZE),
   };
 
   const isDAVerifier = JSON.parse(String(process.env.ROLE_IS_DA_VERIFIER));
   if (!isDAVerifier) {
     config.roles.daVerifier = undefined;
+  }
+
+  const isStateVerifier = JSON.parse(String(process.env.ROLE_IS_STATE_VERIFIER));
+  if (!isStateVerifier) {
+    config.roles.stateVerifier = undefined;
   }
 
   const log = winston.createLogger({

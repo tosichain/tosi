@@ -366,20 +366,21 @@ export class ComputeClaim extends jspb.Message {
     setClaimer(value: string): ComputeClaim;
     getPrevClaimHash(): string;
     setPrevClaimHash(value: string): ComputeClaim;
-    getCourtCid(): string;
-    setCourtCid(value: string): ComputeClaim;
-    getAppCid(): string;
-    setAppCid(value: string): ComputeClaim;
-    getInputCid(): string;
-    setInputCid(value: string): ComputeClaim;
-    getOutputCid(): string;
-    setOutputCid(value: string): ComputeClaim;
-    clearDaInfoList(): void;
-    getDaInfoList(): Array<DAInfo>;
-    setDaInfoList(value: Array<DAInfo>): ComputeClaim;
-    addDaInfo(value?: DAInfo, index?: number): DAInfo;
-    getReturnCode(): number;
-    setReturnCode(value: number): ComputeClaim;
+
+    hasDataContract(): boolean;
+    clearDataContract(): void;
+    getDataContract(): ClaimDataRef | undefined;
+    setDataContract(value?: ClaimDataRef): ComputeClaim;
+
+    hasInput(): boolean;
+    clearInput(): void;
+    getInput(): ClaimDataRef | undefined;
+    setInput(value?: ClaimDataRef): ComputeClaim;
+
+    hasOutput(): boolean;
+    clearOutput(): void;
+    getOutput(): ClaimDataRef | undefined;
+    setOutput(value?: ClaimDataRef): ComputeClaim;
     getMaxCartesiCycles(): string;
     setMaxCartesiCycles(value: string): ComputeClaim;
 
@@ -397,13 +398,36 @@ export namespace ComputeClaim {
     export type AsObject = {
         claimer: string,
         prevClaimHash: string,
-        courtCid: string,
-        appCid: string,
-        inputCid: string,
-        outputCid: string,
-        daInfoList: Array<DAInfo.AsObject>,
-        returnCode: number,
+        dataContract?: ClaimDataRef.AsObject,
+        input?: ClaimDataRef.AsObject,
+        output?: ClaimDataRef.AsObject,
         maxCartesiCycles: string,
+    }
+}
+
+export class ClaimDataRef extends jspb.Message { 
+    getCid(): string;
+    setCid(value: string): ClaimDataRef;
+    getSize(): number;
+    setSize(value: number): ClaimDataRef;
+    getCartesimerkleroot(): string;
+    setCartesimerkleroot(value: string): ClaimDataRef;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): ClaimDataRef.AsObject;
+    static toObject(includeInstance: boolean, msg: ClaimDataRef): ClaimDataRef.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: ClaimDataRef, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): ClaimDataRef;
+    static deserializeBinaryFromReader(message: ClaimDataRef, reader: jspb.BinaryReader): ClaimDataRef;
+}
+
+export namespace ClaimDataRef {
+    export type AsObject = {
+        cid: string,
+        size: number,
+        cartesimerkleroot: string,
     }
 }
 
@@ -502,6 +526,14 @@ export class BlockProof extends jspb.Message {
     getAggDaCheckResultSignature_asU8(): Uint8Array;
     getAggDaCheckResultSignature_asB64(): string;
     setAggDaCheckResultSignature(value: Uint8Array | string): BlockProof;
+    clearStateCheckResultsList(): void;
+    getStateCheckResultsList(): Array<StateCheckResult>;
+    setStateCheckResultsList(value: Array<StateCheckResult>): BlockProof;
+    addStateCheckResults(value?: StateCheckResult, index?: number): StateCheckResult;
+    getAggStateCheckResultSignature(): Uint8Array | string;
+    getAggStateCheckResultSignature_asU8(): Uint8Array;
+    getAggStateCheckResultSignature_asB64(): string;
+    setAggStateCheckResultSignature(value: Uint8Array | string): BlockProof;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): BlockProof.AsObject;
@@ -520,6 +552,8 @@ export namespace BlockProof {
         randomnessProof: Uint8Array | string,
         daCheckResultsList: Array<DACheckResult.AsObject>,
         aggDaCheckResultSignature: Uint8Array | string,
+        stateCheckResultsList: Array<StateCheckResult.AsObject>,
+        aggStateCheckResultSignature: Uint8Array | string,
     }
 }
 
@@ -561,6 +595,44 @@ export namespace DACheckResult {
     }
 }
 
+export class StateCheckResult extends jspb.Message { 
+    getTxnBundleHash(): string;
+    setTxnBundleHash(value: string): StateCheckResult;
+    getRandomnessProof(): Uint8Array | string;
+    getRandomnessProof_asU8(): Uint8Array;
+    getRandomnessProof_asB64(): string;
+    setRandomnessProof(value: Uint8Array | string): StateCheckResult;
+    getSignature(): Uint8Array | string;
+    getSignature_asU8(): Uint8Array;
+    getSignature_asB64(): string;
+    setSignature(value: Uint8Array | string): StateCheckResult;
+    getSigner(): string;
+    setSigner(value: string): StateCheckResult;
+    clearClaimsList(): void;
+    getClaimsList(): Array<ClaimStateCheckResult>;
+    setClaimsList(value: Array<ClaimStateCheckResult>): StateCheckResult;
+    addClaims(value?: ClaimStateCheckResult, index?: number): ClaimStateCheckResult;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): StateCheckResult.AsObject;
+    static toObject(includeInstance: boolean, msg: StateCheckResult): StateCheckResult.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: StateCheckResult, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): StateCheckResult;
+    static deserializeBinaryFromReader(message: StateCheckResult, reader: jspb.BinaryReader): StateCheckResult;
+}
+
+export namespace StateCheckResult {
+    export type AsObject = {
+        txnBundleHash: string,
+        randomnessProof: Uint8Array | string,
+        signature: Uint8Array | string,
+        signer: string,
+        claimsList: Array<ClaimStateCheckResult.AsObject>,
+    }
+}
+
 export class ClaimDACheckResult extends jspb.Message { 
     getClaimHash(): string;
     setClaimHash(value: string): ClaimDACheckResult;
@@ -581,6 +653,29 @@ export namespace ClaimDACheckResult {
     export type AsObject = {
         claimHash: string,
         dataAvailable: boolean,
+    }
+}
+
+export class ClaimStateCheckResult extends jspb.Message { 
+    getClaimHash(): string;
+    setClaimHash(value: string): ClaimStateCheckResult;
+    getStateCorrect(): boolean;
+    setStateCorrect(value: boolean): ClaimStateCheckResult;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): ClaimStateCheckResult.AsObject;
+    static toObject(includeInstance: boolean, msg: ClaimStateCheckResult): ClaimStateCheckResult.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: ClaimStateCheckResult, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): ClaimStateCheckResult;
+    static deserializeBinaryFromReader(message: ClaimStateCheckResult, reader: jspb.BinaryReader): ClaimStateCheckResult;
+}
+
+export namespace ClaimStateCheckResult {
+    export type AsObject = {
+        claimHash: string,
+        stateCorrect: boolean,
     }
 }
 

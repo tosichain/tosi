@@ -168,8 +168,10 @@ export class BlockchainStorage {
         txnBundleHash: "",
         txnBundleProposer: "",
         DACheckResults: [],
+        stateCheckResults: [],
         randomnessProof: new Uint8Array(),
         aggDACheckResultSignature: new Uint8Array(),
+        aggStateCheckResultSignature: new Uint8Array(),
       },
       time: 0,
     };

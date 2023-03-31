@@ -1,11 +1,11 @@
-FROM golang:1.17.1 as go-ipfs-build
+FROM golang:1.18 as go-ipfs-build
 
 WORKDIR /app
 
-RUN git clone "https://github.com/ipfs/go-ipfs.git" -b v0.12.1
-RUN cd go-ipfs
+RUN git clone "https://github.com/ipfs/kubo.git" -b v0.18.1
+RUN cd kubo
 
-WORKDIR /app/go-ipfs
+WORKDIR /app/kubo
 
 RUN go mod download
 
@@ -54,59 +54,29 @@ RUN make ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- olddefconfig
 RUN make -j $(nproc) ARCH=x86_64 CROSS_COMPILE=x86_64-linux-gnu- bzImage
 
 
-# =====
-FROM alpine:3.15.0 as cartesi-build
+FROM rust:alpine3.16 AS merkle-tree-build
 
-ARG CARTESI_EMULATOR_REPO="https://github.com/cartesi/machine-emulator.git"
+WORKDIR /src
 
-RUN apk --no-cache add alpine-sdk
+RUN apk --no-cache add git musl-dev
 
-RUN apk --no-cache add grpc-cli
-RUN apk --no-cache add grpc-dev
-RUN apk --no-cache add patchelf
-RUN apk --no-cache add perl-utils
-RUN apk --no-cache add wget
+RUN git clone https://github.com/tosichain/multithread-merkle-tree -b v1.0
+ 
+WORKDIR /src/multithread-merkle-tree
 
-RUN apk --no-cache add boost-dev
-RUN apk --no-cache add protobuf-dev
-RUN apk --no-cache add readline-dev
+RUN cargo fetch --locked
 
-RUN apk --no-cache add coreutils bash
+RUN cargo build --release
 
-# -----------------------------------------------------------------------------
-WORKDIR "/build"
-
-RUN git clone "${CARTESI_EMULATOR_REPO}"
-
-WORKDIR "/build/machine-emulator"
-
-RUN git checkout v0.7.0
-
-RUN make -j $(nproc) submodules
-RUN make -j $(nproc) dep
-RUN make install-dep
-RUN sed -i "s/echo/printf/g" Makefile
-RUN cat Makefile
-
-WORKDIR /build/machine-emulator/src
-RUN sed -i "s/-lgrpc++ -lgrpc -lprotobuf/-lgpr -labsl_synchronization -lgrpc++ -lgrpc -lprotobuf/g" Makefile
-RUN make merkle-tree-hash luacartesi grpc
-RUN patchelf --set-rpath /opt/cartesi/lib merkle-tree-hash
-
-RUN mkdir -p /opt/cartesi/bin
-RUN cp /build/machine-emulator/src/merkle-tree-hash /opt/cartesi/bin
-
-WORKDIR /build/machine-emulator
-RUN SHELL=/bin/bash make install-emulator install-dep
-RUN patchelf --set-rpath /opt/cartesi/lib /opt/cartesi/bin/luapp5.3
+RUN cargo install --path . --root /opt/tosi
 
 # =============================================================================
-FROM alpine:3.15.0 as image
+FROM alpine:3.16.0 as image
 
 ARG KERNEL_VERSION="5.5.19"
 
-RUN apk --no-cache add qemu-system-x86_64 qemu-accel-tcg-x86_64 python3 openssh-server e2tools xxd libgomp boost1.77-serialization py3-pip gcc musl-dev
-COPY --from=go-ipfs-build "/app/go-ipfs/cmd/ipfs/ipfs" "/usr/bin/ipfs"
+RUN apk --no-cache add qemu-system-x86_64 qemu-accel-tcg-x86_64 python3 openssh-server e2tools xxd libgomp boost1.77-serialization py3-pip gcc musl-dev wget
+COPY --from=go-ipfs-build "/app/kubo/cmd/ipfs/ipfs" "/usr/bin/ipfs"
 RUN sed -i '/^#Port 22/s/^#//' /etc/ssh/sshd_config \
     && sed -i '/^#PasswordAuthentication/s/^#//' /etc/ssh/sshd_config \
     && sed -i '/^#PermitEmptyPasswords no/s/^#PermitEmptyPasswords no/PermitEmptyPasswords yes/' /etc/ssh/sshd_config \
@@ -115,22 +85,26 @@ RUN sed -i '/^#Port 22/s/^#//' /etc/ssh/sshd_config \
 
 WORKDIR /app
 
+RUN --mount=type=cache,target=/fetchcache8 wget -c -P /fetchcache8 https://web3.link/loader.squashfs && mkdir -p /data/prepopulate && cp /fetchcache8/* /data/prepopulate
+
 COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" /app
 COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/.config" /app
 COPY --from=kernel-nokvm "/build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" /app/bzImage-nokvm-q35
 COPY --from=kernel-nokvm "/build/kernel/linux-${KERNEL_VERSION}/.config" /app/.config-nokvm
-COPY --from=cartesi-build "/opt/cartesi" "/opt/cartesi"
+COPY --from=merkle-tree-build "/opt/tosi/bin/merkle-tree-hash" "/app//merkle-tree-hash"
 
 RUN mkdir -p /opt/verifier
-RUN pip install pycryptodome
+RUN pip3 install pycryptodome
 
-COPY ./src/court/keccak256.py /app/keccak256.py
-COPY ./src/court/log2.py /app/log2.py
+COPY ./src/verifier/keccak256.py /app/keccak256.py
+COPY ./src/verifier/log2.py /app/log2.py
 COPY ./src/verifier/qemu-run-task.sh /app/qemu-run-task.sh
-COPY ./src/verifier/qemu-test.sh /app/qemu-test.sh
 COPY ./src/verifier/qemu-test-task.sh /app/qemu-test-task.sh
 COPY ./src/verifier/ssh.sh /app/ssh.sh
 COPY ./src/verifier/grab-and-hash.sh /app/grab-and-hash.sh
-RUN chmod +x /app/ssh.sh /app/grab-and-hash.sh /app/qemu-run-task.sh
+COPY ./src/verifier/grab-dag-as-car-and-hash.sh /app/grab-dag-as-car-and-hash.sh
+COPY ./src/verifier/prepopulate.sh /app/prepopulate.sh
+
+RUN chmod +x /app/ssh.sh /app/grab-and-hash.sh /app/qemu-run-task.sh /app/grab-dag-as-car-and-hash.sh /app/prepopulate.sh
 
 CMD [ "/app/ssh.sh" ]

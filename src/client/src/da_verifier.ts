@@ -4,15 +4,17 @@ import { CID } from "ipfs-http-client";
 
 import { IPFS } from "../../node/ipfs";
 import { encodeCBOR, decodeCBOR, currentUnixTime } from "../../util";
-import { IPFSService } from "../../node/ipfs-service";
 
-import { DAInfo, ComputeClaim, ClaimDACheckResult, DACheckResult, StakeType } from "../../blockchain/types";
-import { signDACheckResult } from "../../blockchain/block_proof";
 import {
-  fetchDrandBeaconInfo,
-  getSeedFromBlockRandomnessProof,
-  verifyBlockRandomnessProof,
-} from "../../blockchain/block_randomness";
+  DAInfo,
+  ComputeClaim,
+  ClaimDACheckResult,
+  DACheckResult,
+  StakeType,
+  ClaimDataRef,
+} from "../../blockchain/types";
+import { signDACheckResult } from "../../blockchain/block_proof";
+import { getSeedFromBlockRandomnessProof } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { BlockchainStorage } from "../../blockchain/storage";
 import { hashComputeClaim, stringifyAccounts, stringifyComputeClaim } from "../../blockchain/util";
@@ -27,7 +29,7 @@ import {
   stringifyDAVerificationRequest,
   stringifyDAVerificationResponse,
 } from "../../p2p/util";
-import { createDAInfo } from "./util";
+import { createDAInfo, execTask, prepopulate } from "./util";
 
 export interface DAVerifierConfig {
   DACheckTimeout: number;
@@ -45,7 +47,6 @@ export class DAVerifier {
   private readonly log: winston.Logger;
 
   private readonly ipfs: IPFS;
-  private readonly ipfsService: IPFSService;
 
   // TODO: Is allowed only to read from blockahin storage (seprate interface?);
   private readonly blockchain: BlockchainStorage;
@@ -59,7 +60,6 @@ export class DAVerifier {
     config: DAVerifierConfig,
     log: winston.Logger,
     ipfs: IPFS,
-    ipfsService: IPFSService,
     blockchain: BlockchainStorage,
   ) {
     this.blsSecKey = blsSecKey;
@@ -74,7 +74,6 @@ export class DAVerifier {
     this.log = log;
 
     this.ipfs = ipfs;
-    this.ipfsService = ipfsService;
 
     this.blockchain = blockchain;
   }
@@ -83,6 +82,7 @@ export class DAVerifier {
     await this.ipfs.getIPFS().pubsub.subscribe(IPFS_PUB_SUB_DA_VERIFICATION, (msg: IPFSPubSubMessage) => {
       this.handlePubSubMessage(msg);
     });
+    await prepopulate(this.ipfs, this.log);
   }
 
   private async handlePubSubMessage(msg: IPFSPubSubMessage) {
@@ -143,19 +143,6 @@ export class DAVerifier {
 
   private async acceptDAVerificationRequest(daReq: DAVerificationRequestMessage): Promise<boolean> {
     // Validate randomness proof (includes verifying coordinator's signature).
-    const beaconInfo = await fetchDrandBeaconInfo();
-    const validRandProof = await verifyBlockRandomnessProof(
-      Buffer.from(daReq.txnBundleHash, "hex"),
-      Buffer.from(this.coordinatorPubKey, "hex"),
-      daReq.randomnessProof,
-      beaconInfo,
-      currentUnixTime(),
-    );
-    if (!validRandProof) {
-      this.log.error("invalid DA verification request randomness proof");
-      return false;
-    }
-
     // Check if no is in current DA commitee sample and is expected to process request.
     const randSeed = getSeedFromBlockRandomnessProof(daReq.randomnessProof);
     const committee = await getVerificationCommitteeSample(
@@ -180,114 +167,80 @@ export class DAVerifier {
 
     // TODO: this check is actually redundant, but we, probably, need to query previous claim in future.
     // For non-root claim previous claim must exist in local storage.
-    if (claim.prevClaimHash != "") {
-      const prevClaim = await this.blockchain.getComputeClaim(claim.prevClaimHash);
-      if (prevClaim == undefined) {
-        throw new Error(`previous claim ${claim.prevClaimHash} does not exist`);
-      }
+
+    const prevClaim = claim.prevClaimHash != "" ? await this.blockchain.getComputeClaim(claim.prevClaimHash) : null;
+
+    if (!prevClaim && claim.prevClaimHash != "") {
+      throw new Error(`previous claim ${claim.prevClaimHash} does not exist`);
     }
 
-    const availability: [string, CID, DAInfo | undefined, string][] = await Promise.all(
-      (
-        [
-          ["court.img", CID.parse(claim.courtCID), "/prev/gov/court.img"],
-          ["app.img", CID.parse(claim.appCID), "/prev/gov/app.img"],
-          ["input", CID.parse(claim.inputCID), "/input"],
-        ] as [string, CID, string][]
-      ).map(async ([path, cid, loc]): Promise<[string, CID, DAInfo | undefined, string]> => {
-        const daInfo = await this.fetchDAInfo(cid);
-        return [path, cid, daInfo, loc];
-      }),
-    );
-    if (availability.find(([path, cid, info, loc]) => !info)) {
-      return {
-        claimHash: claimHash,
-        dataAvailable: false,
-      };
+    const EMPTY_OUTPUT_DATA_REF = {
+      cid: "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354",
+      size: 100,
+      cartesiMerkleRoot: "de611e620dee2c51aec860dbcab29b08a7fe80686bf02c5a1f19ac0c2ff3fe0a", // tree log size 31 / 2gb
+    } as ClaimDataRef;
+
+    // start checks in parallel
+    const prevClaimDataRef = prevClaim ? prevClaim.output : EMPTY_OUTPUT_DATA_REF;
+    const prevClaimOutputCID = !prevClaim ? EMPTY_OUTPUT_DATA_REF.cid : prevClaim.output.cid;
+    const functionDataPromise = this.fetchDAInfo(CID.parse(claim.dataContract.cid), false);
+    const prevOutputDataPromise = this.fetchDAInfo(CID.parse(prevClaimOutputCID), true); // strictly speaking we don't really need to re-merkle this but double checking doesn't hurt
+    const inputDataPromise = this.fetchDAInfo(CID.parse(claim.input.cid), true);
+    const outputDataPromise = this.fetchDAInfo(CID.parse(claim.output.cid), true);
+
+    // wait for them all to settle
+    const functionInfo = await functionDataPromise;
+    const prevOutputInfo = await prevOutputDataPromise;
+    const inputInfo = await inputDataPromise;
+    const outputInfo = await outputDataPromise;
+
+    function compareDAInfo(d: DAInfo, c: ClaimDataRef) {
+      return d.cartesiMerkleRoot == c.cartesiMerkleRoot && d.size == c.size;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const daInfo: DAInfo[] = (availability as [string, CID, DAInfo, string][]).map(([path, cid, info, loc]) => {
-      return {
-        ...info,
-        name: loc,
-      };
-    });
-
-    // Validate the metadata actually matches.
-    const [courtInfo, appInfo, inputInfo] = daInfo;
-
-    const courtInfoInClaim = claim.daInfo.find((info) => {
-      return info.name == "/prev/gov/court.img";
-    });
-    const appInfoInClaim = claim.daInfo.find((info) => {
-      return info.name == "/prev/gov/app.img";
-    });
-    const inputInfoInClaim = claim.daInfo.find((info) => {
-      return info.name == "/input";
-    });
-
-    if (!courtInfoInClaim || !compareDAInfo(courtInfo, courtInfoInClaim, false, false)) {
-      this.log.error(`court data for claim ${claimHash} doesn't match`);
-      return { claimHash: claimHash, dataAvailable: false };
-    }
-    if (!appInfoInClaim || !compareDAInfo(appInfo, appInfoInClaim, false, false)) {
-      this.log.error("app data for claim ${claimHash} doesn't match");
-      return { claimHash: claimHash, dataAvailable: false };
-    }
-    if (!inputInfoInClaim || !compareDAInfo(inputInfo, inputInfoInClaim, false, false)) {
-      this.log.error("input data for claim ${claimHash} doesn't match");
+    if (!functionInfo || !compareDAInfo(functionInfo, claim.dataContract)) {
+      this.log.error(
+        `function data for claim ${claimHash} doesn't match - ${JSON.stringify(functionInfo)} ${JSON.stringify(
+          claim.dataContract,
+        )}`,
+      );
       return { claimHash: claimHash, dataAvailable: false };
     }
 
+    if (!prevOutputInfo || !compareDAInfo(prevOutputInfo, prevClaimDataRef)) {
+      this.log.error(`prev output info data for claim ${claimHash} doesn't match`);
+      return { claimHash: claimHash, dataAvailable: false };
+    }
+
+    if (!inputInfo || !compareDAInfo(inputInfo, claim.input)) {
+      this.log.error(`input info data for claim ${claimHash} doesn't match`);
+      return { claimHash: claimHash, dataAvailable: false };
+    }
+
+    if (!outputInfo || !compareDAInfo(outputInfo, claim.output)) {
+      this.log.error(`output info data for claim ${claimHash} doesn't match`);
+      return { claimHash: claimHash, dataAvailable: false };
+    }
     return { claimHash: claimHash, dataAvailable: true };
   }
 
-  private async fetchDAInfo(cid: CID): Promise<DAInfo | undefined> {
-    const cachedDAInfo = this.daInfoCache[cid.toString()];
+  private async fetchDAInfo(cid: CID, car: boolean): Promise<DAInfo | undefined> {
+    this.log.info("FETCH DA INFO: " + cid.toString());
+    const cachedDAInfo = this.daInfoCache[cid.toString() + ":" + car];
     if (cachedDAInfo != undefined) {
-      this.log.info(`found DA info for CID ${cid.toString()} in cache`);
+      this.log.info(`found DA info for CID ${cid.toString() + ":" + car} in cache`);
       return cachedDAInfo;
     }
 
-    const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), false, this.config.DACheckTimeout);
+    const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), this.config.DACheckTimeout, car);
     if (!daInfo) {
-      this.log.error(`failed to fetch DA info for CID ${cid.toString()}`);
+      this.log.info(`error getting DA info for CID ${cid.toString()}`);
       return undefined;
     }
-
     this.log.info(`fetched DA info for CID ${cid.toString()} - ${JSON.stringify(daInfo)}`);
-
-    this.daInfoCache[cid.toString()] = daInfo;
+    this.daInfoCache[cid.toString() + ":" + car] = daInfo;
     this.log.info("local DA info cache updated");
-
-    await this.updateDescartesMekrleRootCache(cid.toString(), cid.toString(), daInfo.log2, daInfo.cartesiMerkleRoot);
 
     return daInfo;
   }
-
-  private async updateDescartesMekrleRootCache(
-    directPath: string,
-    claimPath: string,
-    log2Size: number,
-    hash: string,
-  ): Promise<void> {
-    if (directPath != undefined) {
-      await this.ipfsService.cacheMerkeRootHash(directPath, log2Size, hash);
-    }
-    if (claimPath != undefined) {
-      await this.ipfsService.cacheMerkeRootHash(claimPath, log2Size, hash);
-    }
-    this.log.info("descartes merkle root cache updated");
-  }
-}
-
-function compareDAInfo(a: DAInfo, b: DAInfo, ignoreSizes: boolean, ignoreKeccak: boolean): boolean {
-  return (
-    a.name === b.name &&
-    (ignoreSizes || a.size === b.size) &&
-    (ignoreSizes || b.log2 === b.log2) &&
-    (ignoreKeccak || a.keccak256 == b.keccak256) &&
-    a.cartesiMerkleRoot == b.cartesiMerkleRoot
-  );
 }

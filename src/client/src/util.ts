@@ -10,22 +10,27 @@ export async function createDAInfo(
   ipfs: IPFS,
   log: winston.Logger,
   path: string,
-  noHash: boolean,
   timeout: number,
+  car: boolean,
 ): Promise<DAInfo | undefined> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
-  const command = `IPFS_API=/dns4/${host}/tcp/${port} TIMEOUT=${timeout}s NO_HASH=${noHash} /app/grab-and-hash.sh ${path}`;
+  const script = car ? "/app/grab-dag-as-car-and-hash.sh" : "/app/grab-and-hash.sh";
+  const command = `IPFS_API=/dns4/${host}/tcp/${port} TIMEOUT=${timeout}s ${script} ${path}`;
   const result = JSON.parse((await execCommand(log, command)).stdout);
   if (result.error) {
     return undefined;
   }
   return {
-    name: "",
     size: Number(result.size),
-    log2: Number(result.log2),
-    keccak256: result.keccak256,
     cartesiMerkleRoot: result.cartesi_merkle_root,
   } as DAInfo;
+}
+
+export async function prepopulate(ipfs: IPFS, log: winston.Logger): Promise<void> {
+  const { host, port } = ipfs.getIPFS().getEndpointConfig();
+  const script = "/app/prepopulate.sh";
+  const command = `IPFS_API=/dns4/${host}/tcp/${port} ${script}`;
+  await execCommand(log, command);
 }
 
 export interface ExecuteTaskOptions {
@@ -45,18 +50,14 @@ interface TaskResult {
 export async function execTask(
   ipfs: IPFS,
   log: winston.Logger,
-  preCID: CID,
+  functionCID: CID,
+  prevOutputCID: CID,
   inputCID: CID,
-  govCID: CID,
-  options: ExecuteTaskOptions,
 ): Promise<TaskResult> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
   // eslint-disable-next-line prettier/prettier
-  let command = `IPFS_API=/dns4/${host}/tcp/${port} /app/qemu-run-task.sh ${preCID.toString()} ${
-    options.nonce
-  } ${inputCID.toString()} ${govCID.toString()} ${options.buildUpon}`;
-  if (options.fakeIt) command = `FAKE_IT=${options.fakeIt} ${command}`;
-  if (options.verify) command = `VERIFY_KECCAK=true ${command}`;
+  const command = `IPFS_API=/dns4/${host}/tcp/${port} /app/qemu-run-task.sh ${prevOutputCID.toString()} ${inputCID.toString()} ${functionCID.toString()}`;
+
   const result = await execCommand(log, command);
   return { output: JSON.parse(result.stdout), stderr: result.stderr };
 }

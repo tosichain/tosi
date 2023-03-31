@@ -131,10 +131,28 @@ export class BlockchainClientSync {
 
   private async getBlockByHash(blockHash: string) {
     const constructedCID = CID.createV1(0x55, Digest.create(0x1b, Buffer.from(blockHash, "hex")));
-    const rawLastBlock = await this.getRawBlock(constructedCID);
-    const lastBlock = deserializeBlock(rawLastBlock);
-    this.log.info(`fetched last block from IPFS: ${blockHash} ${constructedCID.toString()}`);
 
+    let lastBlock;
+    try {
+      const rawLastBlock = await this.getRawBlock(constructedCID);
+      lastBlock = deserializeBlock(rawLastBlock);
+      this.log.info(`fetched last block from IPFS: ${blockHash} ${constructedCID.toString()}`);
+    } catch (err) {
+      this.log.info(
+        `failed to fetch ${blockHash} from IPFS, ${constructedCID.toString()}: ${err}, peers: ${
+          (await this.ipfs.getIPFS().swarm.peers()).length
+        }`,
+      );
+      lastBlock = await this.coordinator.getBlock(blockHash);
+      if (!lastBlock) {
+        this.log.info(`block ${blockHash} was not found at the coordinator either`);
+      } else {
+        this.log.info(`fetched last block from Coordinator instead: ${blockHash}`);
+      }
+    }
+    if (!lastBlock) {
+      throw new Error(`No block?`);
+    }
     const realBlockHash = hashBlock(lastBlock);
     if (realBlockHash != blockHash) {
       // this should never happen

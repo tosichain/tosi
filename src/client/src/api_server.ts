@@ -77,8 +77,7 @@ export class ClientNodeAPIServer {
     try {
       if (txnType == GENERATE_TXN_CREATE_DATACHAIN) {
         const params: CreateDatachainParameters = {
-          appCID: CID.parse(req.body.appCID),
-          courtCID: CID.parse(req.body.courtCID),
+          dataContractCID: CID.parse(req.body.dataContractCID),
           inputCID: CID.parse(req.body.inputCID),
           outputCID: CID.parse(req.body.outputCID),
         };
@@ -86,8 +85,7 @@ export class ClientNodeAPIServer {
         res.status(200).send(stringifyTransaction(txn));
       } else if (txnType == GENERATE_TXN_UPDATE_DATACHAIN) {
         const params: UpdateDatachainParameters = {
-          appCID: CID.parse(req.body.appCID),
-          courtCID: CID.parse(req.body.courtCID),
+          dataContractCID: CID.parse(req.body.dataContractCID),
           inputCID: CID.parse(req.body.inputCID),
           outputCID: CID.parse(req.body.outputCID),
           rootClaimHash: req.body.rootClaimHash as string,

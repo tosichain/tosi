@@ -83,13 +83,16 @@ message DataChain {
 message ComputeClaim {
     string claimer = 1;
     string prev_claim_hash = 2;
-    string court_cid = 3;
-    string app_cid = 4;
-    string input_cid = 5;
-    string output_cid = 6;
-    repeated DAInfo da_info = 7;
-    uint32 return_code = 8;
-    uint64 max_cartesi_cycles = 9 [jstype = JS_STRING];
+    ClaimDataRef data_contract = 3;
+    ClaimDataRef input = 4;
+    ClaimDataRef output = 5;
+    uint64 max_cartesi_cycles = 6 [jstype = JS_STRING];
+}
+
+message ClaimDataRef {
+    string cid = 1;
+    uint64 size = 2;
+    string cartesiMerkleRoot = 3;
 }
 
 message DAInfo {
@@ -115,6 +118,8 @@ message BlockProof {
     bytes randomness_proof = 3;
     repeated DACheckResult da_check_results = 4;
     bytes agg_da_check_result_signature = 5;
+    repeated StateCheckResult state_check_results = 6;
+    bytes agg_state_check_result_signature = 7;
 }
 
 message DACheckResult {
@@ -125,9 +130,22 @@ message DACheckResult {
     repeated ClaimDACheckResult claims = 5;
 }
 
+message StateCheckResult {
+    string txn_bundle_hash = 1;
+    bytes randomness_proof = 2;
+    bytes signature = 3;
+    string signer = 4;
+    repeated ClaimStateCheckResult claims = 5;
+}
+
 message ClaimDACheckResult {
     string claim_hash = 1;
     bool data_available = 2;
+}
+
+message ClaimStateCheckResult {
+    string claim_hash = 1;
+    bool state_correct = 2;
 }
 
 message TransactionBundle {

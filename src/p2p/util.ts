@@ -2,7 +2,13 @@ import JSONbigint from "json-bigint";
 import winston from "winston";
 import { IPFS } from "../node/ipfs";
 
-import { IPFSPubSubMessage, DAVerificationRequestMessage, DAVerificationResponseMessage } from "./types";
+import {
+  IPFSPubSubMessage,
+  DAVerificationRequestMessage,
+  DAVerificationResponseMessage,
+  StateVerificationResponseMessage,
+  StateVerificationRequestMessage,
+} from "./types";
 
 const JSONBigIntNative = JSONbigint({ useNativeBigInt: true });
 
@@ -45,6 +51,28 @@ export function stringifyDAVerificationRequest(msg: DAVerificationRequestMessage
 }
 
 export function stringifyDAVerificationResponse(msg: DAVerificationResponseMessage): string {
+  const obj = {
+    ...msg,
+    result: {
+      txnBundleHash: msg.result.txnBundleHash,
+      randomnessProof: Buffer.from(msg.result.randomnessProof).toString("hex"),
+      signature: Buffer.from(msg.result.signature).toString("hex"),
+      signer: msg.result.signer,
+      claims: msg.result.claims,
+    },
+  };
+  return JSON.stringify(obj);
+}
+
+export function stringifyStateVerificationRequest(msg: StateVerificationRequestMessage): string {
+  const obj = {
+    ...msg,
+    randomnessProof: Buffer.from(msg.randomnessProof).toString("hex"),
+  };
+  return JSONbigint.stringify(obj);
+}
+
+export function stringifyStateVerificationResponse(msg: StateVerificationResponseMessage): string {
   const obj = {
     ...msg,
     result: {

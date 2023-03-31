@@ -4453,7 +4453,7 @@ growl@1.10.5:
   resolved "https://registry.yarnpkg.com/growl/-/growl-1.10.5.tgz#f2735dc2283674fa67478b10181059355c369e5e"
   integrity sha512-qBr4OuELkhPenW6goKVXiv47US3clb3/IbuWF9KNKEijAy9oeHxU9IgzjvJhHkUzhaj7rOUD7+YGWqUjLp5oSA==
 
-grpc-tools@^1.11.3:
+grpc-tools@^1.12.4:
   version "1.12.4"
   resolved "https://registry.yarnpkg.com/grpc-tools/-/grpc-tools-1.12.4.tgz#a044c9e8157941033ea7a5f144c2dc9dc4501de4"
   integrity sha512-5+mLAJJma3BjnW/KQp6JBjUMgvu7Mu3dBvBPd1dcbNIb+qiR0817zDpgPjS7gRb+l/8EVNIa3cB02xI9JLToKg==
