@@ -14,7 +14,7 @@ import {
   serializeSignedTransaction,
   serializeWorldState,
 } from "./serde";
-import { GENESIS_BLOCK_VERSION } from "./constant";
+import { GENESIS_BLOCK_VERSION, NULL_HASH } from "./constant";
 
 const DB_KEY_HEAD_BLOCK = "headBlock";
 const DB_KEY_STATE_VALUE = "value";
@@ -161,7 +161,7 @@ export class BlockchainStorage {
 
     const genesisBlock: Block = {
       version: GENESIS_BLOCK_VERSION,
-      prevBlockHash: "",
+      prevBlockHash: NULL_HASH,
       accountsMerkle: accountsMerkleTree(state),
       transactions: [],
       proof: {
@@ -245,7 +245,7 @@ export class BlockchainStorage {
     await this.putValue("main", DB_KEY_HEAD_BLOCK, encodeStringValue(nextBlockHash));
     await this.putValue("state", DB_KEY_STATE_VALUE, serializeWorldState(state));
     await this.putValue("block", nextBlockHash, rawBlock);
-    this.log.info(`block ${nextBlockHash} committed to smart contract`);
+    this.log.info(`block ${nextBlockHash} committed to storage`);
 
     // Remove block transactions from mempool.
     for (const txn of block.transactions) {

@@ -40,6 +40,7 @@ export interface DatachainV1Interface extends utils.Interface {
     "initialize(address)": FunctionFragment;
     "latestBlockHash()": FunctionFragment;
     "owner()": FunctionFragment;
+    "previousVersion()": FunctionFragment;
     "proxiableUUID()": FunctionFragment;
     "renounceOwnership()": FunctionFragment;
     "setCoordinatorNode(address)": FunctionFragment;
@@ -61,6 +62,7 @@ export interface DatachainV1Interface extends utils.Interface {
       | "initialize"
       | "latestBlockHash"
       | "owner"
+      | "previousVersion"
       | "proxiableUUID"
       | "renounceOwnership"
       | "setCoordinatorNode"
@@ -107,6 +109,10 @@ export interface DatachainV1Interface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "previousVersion",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "proxiableUUID",
     values?: undefined
@@ -167,6 +173,10 @@ export interface DatachainV1Interface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "previousVersion",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "proxiableUUID",
     data: BytesLike
@@ -324,6 +334,8 @@ export interface DatachainV1 extends BaseContract {
 
     owner(overrides?: CallOverrides): Promise<[string]>;
 
+    previousVersion(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     proxiableUUID(overrides?: CallOverrides): Promise<[string]>;
 
     renounceOwnership(
@@ -392,6 +404,8 @@ export interface DatachainV1 extends BaseContract {
 
   owner(overrides?: CallOverrides): Promise<string>;
 
+  previousVersion(overrides?: CallOverrides): Promise<BigNumber>;
+
   proxiableUUID(overrides?: CallOverrides): Promise<string>;
 
   renounceOwnership(
@@ -459,6 +473,8 @@ export interface DatachainV1 extends BaseContract {
     latestBlockHash(overrides?: CallOverrides): Promise<string>;
 
     owner(overrides?: CallOverrides): Promise<string>;
+
+    previousVersion(overrides?: CallOverrides): Promise<BigNumber>;
 
     proxiableUUID(overrides?: CallOverrides): Promise<string>;
 
@@ -567,6 +583,8 @@ export interface DatachainV1 extends BaseContract {
 
     owner(overrides?: CallOverrides): Promise<BigNumber>;
 
+    previousVersion(overrides?: CallOverrides): Promise<BigNumber>;
+
     proxiableUUID(overrides?: CallOverrides): Promise<BigNumber>;
 
     renounceOwnership(
@@ -635,6 +653,8 @@ export interface DatachainV1 extends BaseContract {
     latestBlockHash(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     owner(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    previousVersion(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     proxiableUUID(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

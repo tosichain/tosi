@@ -3,9 +3,8 @@ import * as ethers from "ethers";
 import { CID } from "ipfs-http-client";
 
 import JSONbigint from "json-bigint";
-
+import * as Digest from "multiformats/hashes/digest";
 import { IPFS } from "../../node/ipfs";
-
 import { DatachainV1__factory } from "../../contracts/factories/DatachainV1__factory";
 import { DatachainV1 } from "../../contracts/DatachainV1";
 import { Block } from "../../blockchain/types";
@@ -16,7 +15,7 @@ import { hashBlock, stringifySignedTransaction } from "../../blockchain/util";
 import { verifyBlockProof } from "../../blockchain/block_proof";
 import { BlockchainStorage } from "../../blockchain/storage";
 import { CoordinatorAPIClient } from "../../coordinator/src/api_client";
-import { CLIENT_MAX_SUPPORTED_BLOCK_VERSION } from "./constant";
+import { CLIENT_MAX_SUPPORTED_BLOCK_VERSION, CLIENT_MIN_SUPPORTED_BLOCK_VERSION } from "./constant";
 
 export interface BlockchainClientSyncConfig {
   eth: {
@@ -125,23 +124,24 @@ export class BlockchainClientSync {
   private async fetchBlock(blockHash: string): Promise<Block> {
     this.log.info(`fetching block ${blockHash}`);
 
-    const blockMeta = await this.coordinator.getBlockMetadata(blockHash);
-    if (blockMeta == undefined) {
-      throw new Error("failed to fetch CID of last block from coordinator node");
-    }
-    this.log.info(`fetched CID of last block from coordinator node - ${blockMeta?.CID.toString()}`);
+    const lastBlock = await this.getBlockByHash(blockHash);
 
-    const rawLastBlock = await this.getRawBlock(CID.parse(blockMeta.CID));
+    return lastBlock;
+  }
+
+  private async getBlockByHash(blockHash: string) {
+    const constructedCID = CID.createV1(0x55, Digest.create(0x1b, Buffer.from(blockHash, "hex")));
+    const rawLastBlock = await this.getRawBlock(constructedCID);
     const lastBlock = deserializeBlock(rawLastBlock);
-    this.log.info(`fetched last block from IPFS`);
+    this.log.info(`fetched last block from IPFS: ${blockHash} ${constructedCID.toString()}`);
 
     const realBlockHash = hashBlock(lastBlock);
     if (realBlockHash != blockHash) {
+      // this should never happen
       throw new Error(
-        `hash block, fetched from coordinator smart contract - ${blockHash}, does not match hash of block, fetched from IPFS - ${realBlockHash}`,
+        `this should never happen: hash block, fetched from coordinator smart contract - ${blockHash}, does not match hash of block, fetched from IPFS - ${realBlockHash}`,
       );
     }
-
     return lastBlock;
   }
 
@@ -153,13 +153,11 @@ export class BlockchainClientSync {
   }
 
   private async getRawBlock(blockCID: CID): Promise<Uint8Array> {
-    return await (
-      await this.ipfs.getIPFS().dag.get(blockCID, { timeout: 15000 })
-    ).value;
+    return await this.ipfs.getIPFS().block.get(blockCID, { timeout: 15000 });
   }
 
   private async applyBlockTxns(block: Block): Promise<void> {
-    if (block.version > CLIENT_MAX_SUPPORTED_BLOCK_VERSION) {
+    if (block.version < CLIENT_MIN_SUPPORTED_BLOCK_VERSION && block.version > CLIENT_MAX_SUPPORTED_BLOCK_VERSION) {
       throw new Error(`block version ${block.version} is not supported`);
     }
 
@@ -168,7 +166,7 @@ export class BlockchainClientSync {
     const headBlockHash = hashBlock(headBlock);
     if (block.prevBlockHash != headBlockHash) {
       throw new Error(
-        `prevHash of new block ${block.prevBlockHash} does not match hash of current head block ${headBlockHash}`,
+        `prevHash of new block ${block.time} ${block.prevBlockHash} does not match hash of current head block ${headBlock.time} ${headBlockHash}`,
       );
     }
 
