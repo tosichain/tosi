@@ -23,8 +23,7 @@ export class ClientNodeAPIClient {
   public async generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction> {
     const url = `${this.config.apiURL}/generateTxn/${GENERATE_TXN_CREATE_DATACHAIN}`;
     const body = {
-      appCID: params.appCID.toString(),
-      courtCID: params.courtCID.toString(),
+      dataContractCID: params.dataContractCID.toString(),
       inputCID: params.inputCID.toString(),
       outputCID: params.outputCID.toString(),
     };
@@ -36,7 +35,9 @@ export class ClientNodeAPIClient {
       body: JSON.stringify(body),
     });
     if (!response.ok) {
-      throw new Error(`failed to generate CreateDatachain transaction - status: ${response.status}`);
+      throw new Error(
+        `failed to generate CreateDatachain transaction - status: ${response.status} - ${await response.text()}`,
+      );
     }
     return (await response.json()) as Transaction;
   }
@@ -44,8 +45,7 @@ export class ClientNodeAPIClient {
   public async generateUpdateDatachainTxn(params: UpdateDatachainParameters): Promise<Transaction> {
     const url = `${this.config.apiURL}/generateTxn/${GENERATE_TXN_UPDATE_DATACHAIN}`;
     const body = {
-      appCID: params.appCID.toString(),
-      courtCID: params.courtCID.toString(),
+      dataContractCID: params.dataContractCID.toString(),
       inputCID: params.inputCID.toString(),
       outputCID: params.outputCID.toString(),
       rootClaimHash: params.rootClaimHash,
@@ -58,7 +58,9 @@ export class ClientNodeAPIClient {
       body: JSON.stringify(body),
     });
     if (!response.ok) {
-      throw new Error(`failed to generate UpdateDatachain transaction - status: ${response.status}`);
+      throw new Error(
+        `failed to generate UpdateDatachain transaction - status: ${response.status} - ${await response.text()}`,
+      );
     }
     return (await response.json()) as Transaction;
   }
@@ -74,7 +76,7 @@ export class ClientNodeAPIClient {
       body: stringifyTransaction(txn),
     });
     if (!response.ok) {
-      throw new Error(`failed to submit transaction - status: ${response.status}`);
+      throw new Error(`failed to submit transaction - status: ${response.status} -  ${await response.text()}`);
     }
   }
 
@@ -89,7 +91,7 @@ export class ClientNodeAPIClient {
     if (response.status == 404) {
       return undefined;
     } else if (!response.ok) {
-      throw new Error(`failed to get block - status: ${response.status}`);
+      throw new Error(`failed to get block - status: ${response.status} -  ${await response.text()}`);
     }
     const result = (await response.json()) as any;
     const rawBlock = new Uint8Array(Buffer.from(result.block, "base64"));
@@ -107,7 +109,7 @@ export class ClientNodeAPIClient {
     if (response.status == 404) {
       return undefined;
     } else if (!response.ok) {
-      throw new Error(`failed to get account - status: ${response.status}`);
+      throw new Error(`failed to get account - status: ${response.status}  ${await response.text()}`);
     }
     const account = parseAccount(await response.text());
     return account;
@@ -154,7 +156,7 @@ export class ClientNodeAPIClient {
     if (response.status == 404) {
       return undefined;
     } else if (!response.ok) {
-      throw new Error(`failed to get data chain - status: ${response.status}`);
+      throw new Error(`failed to get data chain - status: ${response.status} -  ${await response.text()}`);
     }
     const result = await response.json();
     return result as DataChain;
@@ -183,7 +185,7 @@ export class ClientNodeAPIClient {
       },
     });
     if (!response.ok) {
-      throw new Error(`failed to get head block hash - status: ${response.status}`);
+      throw new Error(`failed to get head block hash - status: ${response.status} -  ${await response.text()}`);
     }
     const result = (await response.json()) as any;
     return result.blockHash;

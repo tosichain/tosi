@@ -17,10 +17,13 @@ import {
   DataChain as PBDataChain,
   ComputeClaim as PBComputeClaim,
   DAInfo as PBDAInfo,
+  ClaimDataRef as PBClaimDataRef,
   Block as PBBlock,
   BlockProof as PBBlockProof,
   DACheckResult as PBDACheckResult,
+  StateCheckResult as PBStateCheckResult,
   ClaimDACheckResult as PBClaimDACheckResult,
+  ClaimStateCheckResult as PBClaimStateCheckResult,
   TransactionBundle as PBTransactionBundle,
   BlockMetadata as PBBlockMetadata,
 } from "../proto/grpcjs/blockchain_pb";
@@ -37,7 +40,6 @@ import {
   UpdateDataChain,
   WorldState,
   Account,
-  StakePool,
   DataChain,
   ComputeClaim,
   DAInfo,
@@ -47,6 +49,10 @@ import {
   ClaimDACheckResult,
   TransactionBundle,
   BlockMetadata,
+  StakePool,
+  ClaimDataRef,
+  ClaimStateCheckResult,
+  StateCheckResult,
 } from "./types";
 import { hashComputeClaim } from "./util";
 
@@ -355,30 +361,35 @@ export function dataChainFromPB(pb: PBDataChain): DataChain {
 // ComputeClaim
 
 export function computeClaimToPB(claim: ComputeClaim): PBComputeClaim {
-  const daInfo = claim.daInfo.map((info) => daInfoToPB(info));
+  const dataContract = claimDataRefToPB(claim.dataContract);
+  const input = claimDataRefToPB(claim.input);
+  const output = claimDataRefToPB(claim.output);
+
   return new PBComputeClaim()
     .setClaimer(claim.claimer)
     .setPrevClaimHash(claim.prevClaimHash)
-    .setCourtCid(claim.courtCID)
-    .setAppCid(claim.appCID)
-    .setInputCid(claim.inputCID)
-    .setOutputCid(claim.outputCID)
-    .setDaInfoList(daInfo)
-    .setReturnCode(claim.returnCode)
+    .setDataContract(dataContract)
+    .setInput(input)
+    .setOutput(output)
     .setMaxCartesiCycles(String(claim.maxCartesiCycles));
 }
 
 export function computeClaimFromPB(pb: PBComputeClaim): ComputeClaim {
-  const daInfo = pb.getDaInfoList().map((info) => daInfoFromPB(info));
+  const dataContractPB = pb.getDataContract();
+  const inputPB = pb.getInput();
+  const outputPB = pb.getOutput();
+  if (!dataContractPB || !inputPB || !outputPB) {
+    throw new Error("Missing pb");
+  }
+  const dataContract = claimDataRefFromPB(dataContractPB);
+  const input = claimDataRefFromPB(inputPB);
+  const output = claimDataRefFromPB(outputPB);
   return {
     claimer: pb.getClaimer(),
     prevClaimHash: pb.getPrevClaimHash(),
-    courtCID: pb.getCourtCid(),
-    appCID: pb.getAppCid(),
-    inputCID: pb.getInputCid(),
-    outputCID: pb.getOutputCid(),
-    daInfo: daInfo,
-    returnCode: pb.getReturnCode(),
+    dataContract: dataContract,
+    input: input,
+    output: output,
     maxCartesiCycles: BigInt(pb.getMaxCartesiCycles()),
   };
 }
@@ -401,6 +412,18 @@ export function daInfoToPB(info: DAInfo): PBDAInfo {
     .setLog2(info.log2)
     .setKeccak256(info.keccak256)
     .setCartesiMerkleRoot(info.cartesiMerkleRoot);
+}
+
+export function claimDataRefToPB(info: ClaimDataRef): PBClaimDataRef {
+  return new PBClaimDataRef().setSize(info.size).setCid(info.cid).setCartesimerkleroot(info.cartesiMerkleRoot);
+}
+
+export function claimDataRefFromPB(pb: PBClaimDataRef): ClaimDataRef {
+  return {
+    cid: pb.getCid(),
+    size: pb.getSize(),
+    cartesiMerkleRoot: pb.getCartesimerkleroot(),
+  };
 }
 
 export function daInfoFromPB(pb: PBDAInfo): DAInfo {
@@ -467,12 +490,16 @@ export function blockProofToPB(proof: BlockProof): PBBlockProof {
 
 export function blockProofFromPB(pb: PBBlockProof): BlockProof {
   const daCheckResults = pb.getDaCheckResultsList().map((result) => daCheckResultFromPB(result));
+  const stateCheckResults = pb.getStateCheckResultsList().map((result) => stateCheckResultFromPB(result));
+
   return {
     txnBundleHash: pb.getTxnBundleHash(),
     txnBundleProposer: pb.getTxnBundleProposer(),
     randomnessProof: pb.getRandomnessProof() as Uint8Array,
     DACheckResults: daCheckResults,
     aggDACheckResultSignature: pb.getAggDaCheckResultSignature() as Uint8Array,
+    stateCheckResults: stateCheckResults,
+    aggStateCheckResultSignature: pb.getAggStateCheckResultSignature() as Uint8Array,
   };
 }
 
@@ -517,6 +544,51 @@ export function serializeClaimDACheckResult(result: ClaimDACheckResult): Uint8Ar
 }
 
 export function deserializeClaimDACheckResult(rawResult: Uint8Array): ClaimDACheckResult {
+  const pb = PBClaimDACheckResult.deserializeBinary(rawResult);
+  return claimDACheckResultFromPB(pb);
+}
+
+// StateCheckResult
+
+export function stateCheckResultToPB(result: StateCheckResult): PBStateCheckResult {
+  const claimResults = result.claims.map((result) => claimStateCheckResultToPB(result));
+  return new PBStateCheckResult()
+    .setTxnBundleHash(result.txnBundleHash)
+    .setRandomnessProof(result.randomnessProof)
+    .setSignature(result.signature)
+    .setSigner(result.signer)
+    .setClaimsList(claimResults);
+}
+
+export function stateCheckResultFromPB(pb: PBStateCheckResult): StateCheckResult {
+  const claimResults = pb.getClaimsList().map((result) => claimStateCheckResultFromPB(result));
+  return {
+    txnBundleHash: pb.getTxnBundleHash(),
+    randomnessProof: pb.getRandomnessProof() as Uint8Array,
+    signature: pb.getSignature() as Uint8Array,
+    signer: pb.getSigner(),
+    claims: claimResults,
+  };
+}
+
+// ClaimStateCheckResult
+
+export function claimStateCheckResultToPB(result: ClaimStateCheckResult): PBClaimStateCheckResult {
+  return new PBClaimStateCheckResult().setClaimHash(result.claimHash).setStateCorrect(result.stateCorrect);
+}
+
+export function claimStateCheckResultFromPB(pb: PBClaimStateCheckResult): ClaimStateCheckResult {
+  return {
+    claimHash: pb.getClaimHash(),
+    stateCorrect: pb.getStateCorrect(),
+  };
+}
+
+export function serializeClaimStateCheckResult(result: ClaimStateCheckResult): Uint8Array {
+  return claimStateCheckResultToPB(result).serializeBinary();
+}
+
+export function deserializeClaimStateCheckResult(rawResult: Uint8Array): ClaimDACheckResult {
   const pb = PBClaimDACheckResult.deserializeBinary(rawResult);
   return claimDACheckResultFromPB(pb);
 }

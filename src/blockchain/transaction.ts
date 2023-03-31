@@ -286,6 +286,14 @@ export function applyAddComputeClaimTxn(state: WorldState, txFrom: string, txn: 
     throw new Error("prevCID of new claim does not match CID of last claim of chain");
   }
 
+  if (
+    chain.claims[txn.rootClaimHash].dataContract.cid !== txn.claim.dataContract.cid ||
+    chain.claims[txn.rootClaimHash].dataContract.cartesiMerkleRoot !== txn.claim.dataContract.cartesiMerkleRoot ||
+    chain.claims[txn.rootClaimHash].dataContract.size !== txn.claim.dataContract.size
+  ) {
+    throw new Error("Cannot change data contract details after root claim");
+  }
+
   const claimHash = hashComputeClaim(txn.claim);
   chain.claims[claimHash] = txn.claim;
   chain.headClaimHash = claimHash;

@@ -15,8 +15,11 @@ import { ClientNodeAPIClient } from "../client/src/api_client";
 import { IPFS } from "../node/ipfs";
 import { hashComputeClaim } from "../blockchain/util";
 
-const FAKE_CID = "bafybeibnikymft2ikuygct6phxedz7x623cqlvcwxztgdds5fzbb5mhdk4";
-const INAVLID_TXN_WAIT_PERIOD = 25000; // 25 seconds
+const FAKE_CID = "bafybeibnikymft2ikuygct6phxedz7x623cqlvcwxztedds5fzbb5mhdk4";
+const FUNCTION_CID = "bafybeihordq4yjtlp43mzrk7sn5h5vd25hdtvn6xjzvtt4jeejcvuqqbe4";
+const EMPTY_DIR_CID = "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354";
+
+const INVALID_TXN_WAIT_PERIOD = 25000; // 25 seconds
 
 const minterPrivKey = Buffer.from("2d1c0d704322c0386cc7bead93298a48ee22325e967567ebe4dbcd4a2f4482f1").toString();
 const minterPubKey = Buffer.from(BLS.getPublicKey(minterPrivKey)).toString("hex");
@@ -101,7 +104,6 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     await new Promise((resolve) => {
       setTimeout(resolve, 1000);
     });
-
     // Check if coordinator node has accepted/rejected transactions from accounts.
     let coordinatorCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
@@ -142,7 +144,11 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
       }
 
       if (!accounts.every((a) => a?.nonce == accountNonce[accPubKey])) {
-        log.debug(`account ${accPubKey} does not have desired nonce at one or more client nodes`);
+        log.debug(
+          `account ${accPubKey} does not have desired nonce at one or more client nodes ${accounts.map((x) => {
+            x?.nonce;
+          })}`,
+        );
         clientCheck = false;
         break;
       }
@@ -199,21 +205,21 @@ async function setupDACommittee() {
   await daVerifier1.submitTransaction({
     stake: {
       stakeType: StakeType.DAVerifier,
-      amount: 1000n,
+      amount: 500n,
     },
     nonce: 0,
   });
   await daVerifier2.submitTransaction({
     stake: {
       stakeType: StakeType.DAVerifier,
-      amount: 1000n,
+      amount: 500n,
     },
     nonce: 0,
   });
   await daVerifier3.submitTransaction({
     stake: {
       stakeType: StakeType.DAVerifier,
-      amount: 1000n,
+      amount: 500n,
     },
     nonce: 0,
   });
@@ -222,28 +228,41 @@ async function setupDACommittee() {
   accountNonces[daVerifier1PubKey] = 0;
   accountNonces[daVerifier2PubKey] = 0;
   accountNonces[daVerifier3PubKey] = 0;
+
+  await waitForAccountNonce(accountNonces);
+
+  await daVerifier1.submitTransaction({
+    stake: {
+      stakeType: StakeType.StateVerifier,
+      amount: 500n,
+    },
+    nonce: 0,
+  });
+  await daVerifier2.submitTransaction({
+    stake: {
+      stakeType: StakeType.StateVerifier,
+      amount: 500n,
+    },
+    nonce: 0,
+  });
+  await daVerifier3.submitTransaction({
+    stake: {
+      stakeType: StakeType.StateVerifier,
+      amount: 500n,
+    },
+    nonce: 0,
+  });
+  accountNonces = {};
+  accountNonces[daVerifier1PubKey] = 1;
+  accountNonces[daVerifier2PubKey] = 1;
+  accountNonces[daVerifier3PubKey] = 1;
   await waitForAccountNonce(accountNonces);
 }
 
-interface DummyClaim {
-  appCID: CID;
-  courtCID: CID;
-  inputCID: CID;
-  outputCID: CID;
-}
+async function getDummyData(): Promise<CID> {
+  const data = BLS.utils.randomBytes(100);
 
-async function generateDummyClaim(): Promise<DummyClaim> {
-  const court = BLS.utils.randomBytes(100);
-  const app = BLS.utils.randomBytes(100);
-  const input = BLS.utils.randomBytes(100);
-  const output = BLS.utils.randomBytes(100);
-
-  return {
-    courtCID: await (await ipfs.getIPFS().add(court, { cidVersion: 1 })).cid,
-    appCID: await (await ipfs.getIPFS().add(app, { cidVersion: 1 })).cid,
-    inputCID: await (await ipfs.getIPFS().add(input, { cidVersion: 1 })).cid,
-    outputCID: await (await ipfs.getIPFS().add(output, { cidVersion: 1 })).cid,
-  };
+  return (await ipfs.getIPFS().add(data, { cidVersion: 1 })).cid;
 }
 
 async function verifyHeadClaim(rootClaimHash: string, headClaim: ComputeClaim | undefined): Promise<void> {
@@ -251,10 +270,9 @@ async function verifyHeadClaim(rootClaimHash: string, headClaim: ComputeClaim | 
   if (headClaim) {
     expect(chain).not.to.be.undefined;
     const headClaimInChain = chain?.claims[chain?.headClaimHash];
-    expect(headClaimInChain?.appCID).to.be.eq(headClaim.appCID.toString());
-    expect(headClaimInChain?.courtCID).to.be.eq(headClaim.courtCID.toString());
-    expect(headClaimInChain?.inputCID).to.be.eq(headClaim.inputCID.toString());
-    expect(headClaimInChain?.outputCID).to.be.eq(headClaim.outputCID.toString());
+    expect(headClaimInChain?.dataContract.cid).to.be.eq(headClaim.dataContract.cid.toString());
+    expect(headClaimInChain?.input.cid).to.be.eq(headClaim.input.cid.toString());
+    expect(headClaimInChain?.output.cid).to.be.eq(headClaim.output.cid.toString());
   } else {
     expect(chain).to.be.undefined;
   }
@@ -266,13 +284,11 @@ let headClaim: ComputeClaim;
 let headClaimHash: string;
 
 describe("DA verification is performed correctly", function () {
-  it("client creates new compute chain", async () => {
-    const claim = await generateDummyClaim();
+  it("client creates new compute chain (real data)", async () => {
     const txn = await client.generateCreateDatachainTxn({
-      appCID: claim.appCID,
-      courtCID: claim.courtCID,
-      inputCID: claim.inputCID,
-      outputCID: claim.outputCID,
+      dataContractCID: CID.parse(FUNCTION_CID),
+      inputCID: CID.parse(EMPTY_DIR_CID),
+      outputCID: CID.parse(EMPTY_DIR_CID),
     });
     if (!txn.createChain) {
       throw new Error("invalid CreateDatachain transaction");
@@ -293,12 +309,10 @@ describe("DA verification is performed correctly", function () {
   });
 
   it("client adds compute claim to existing chain", async () => {
-    const claim = await generateDummyClaim();
     const txn = await client.generateUpdateDatachainTxn({
-      appCID: claim.appCID,
-      courtCID: claim.courtCID,
-      inputCID: claim.inputCID,
-      outputCID: claim.outputCID,
+      dataContractCID: CID.parse(FUNCTION_CID),
+      inputCID: await getDummyData(),
+      outputCID: CID.parse(EMPTY_DIR_CID),
       rootClaimHash: rootClaimHash,
     });
     if (!txn.updateChain) {
@@ -319,26 +333,24 @@ describe("DA verification is performed correctly", function () {
 
   it("client tries to add compute claim with unvailable data to existing chain", async () => {
     // Generate valid valid UpdateDatachain transaction.
-    const claim = await generateDummyClaim();
     const txn = await client.generateUpdateDatachainTxn({
-      appCID: claim.appCID,
-      courtCID: claim.courtCID,
-      inputCID: claim.inputCID,
-      outputCID: claim.outputCID,
+      dataContractCID: CID.parse(FUNCTION_CID),
+      inputCID: await getDummyData(),
+      outputCID: CID.parse(EMPTY_DIR_CID),
       rootClaimHash: rootClaimHash,
     });
     if (!txn.updateChain) {
       throw new Error("invalid UpdateDatachain transaction");
     }
 
-    // Corrupt appCID.
+    // Corrupt inputCID.
     const invalidTxn: Transaction = {
       ...txn,
       updateChain: {
         rootClaimHash: rootClaimHash,
         claim: {
           ...txn.updateChain.claim,
-          appCID: FAKE_CID,
+          input: { ...txn.updateChain.claim.input, cid: FAKE_CID },
         },
       },
     };
@@ -350,7 +362,7 @@ describe("DA verification is performed correctly", function () {
 
     // Wait to ensure invalid transaction is rejected.
     await new Promise((resolve) => {
-      setTimeout(resolve, INAVLID_TXN_WAIT_PERIOD);
+      setTimeout(resolve, INVALID_TXN_WAIT_PERIOD);
     });
 
     await verifyHeadClaim(rootClaimHash, headClaim);
@@ -358,12 +370,10 @@ describe("DA verification is performed correctly", function () {
 
   it("client tries to use compute claim with unavailable data to create new chain", async () => {
     // Generate valid valid CreateDatachain transaction.
-    const claim = await generateDummyClaim();
     const txn = await client.generateCreateDatachainTxn({
-      appCID: claim.appCID,
-      courtCID: claim.courtCID,
-      inputCID: claim.inputCID,
-      outputCID: claim.outputCID,
+      dataContractCID: CID.parse(FUNCTION_CID),
+      inputCID: await getDummyData(),
+      outputCID: CID.parse(EMPTY_DIR_CID),
     });
     if (!txn.createChain) {
       throw new Error("invalid CreateDatachain transaction");
@@ -375,7 +385,7 @@ describe("DA verification is performed correctly", function () {
       createChain: {
         rootClaim: {
           ...txn.createChain.rootClaim,
-          courtCID: FAKE_CID,
+          dataContract: { ...txn.createChain.rootClaim.dataContract, cid: FAKE_CID },
         },
       },
     };
@@ -388,7 +398,7 @@ describe("DA verification is performed correctly", function () {
 
     // Wait to ensure invalid transaction is rejected.
     await new Promise((resolve) => {
-      setTimeout(resolve, INAVLID_TXN_WAIT_PERIOD);
+      setTimeout(resolve, INVALID_TXN_WAIT_PERIOD);
     });
 
     await verifyHeadClaim(invalidRootClaimHash, undefined);
@@ -413,10 +423,9 @@ describe("DA verification is performed correctly", function () {
 describe("invalid CreateDatachain and UpdateDatachian transactions are rejected", function () {
   it("CreateDatachain transaction, creating duplicate datachain, is rejected", async () => {
     const txn = await client.generateCreateDatachainTxn({
-      appCID: CID.parse(rootClaim.appCID),
-      courtCID: CID.parse(rootClaim.courtCID),
-      inputCID: CID.parse(rootClaim.inputCID),
-      outputCID: CID.parse(rootClaim.outputCID),
+      dataContractCID: CID.parse(rootClaim.dataContract.cid),
+      inputCID: CID.parse(rootClaim.input.cid),
+      outputCID: CID.parse(rootClaim.output.cid),
     });
     if (!txn.createChain) {
       throw new Error("invalid UpdateDatachain transaction");
@@ -426,19 +435,17 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
 
     // Wait to ensure invalid transaction is rejected.
     await new Promise((resolve) => {
-      setTimeout(resolve, INAVLID_TXN_WAIT_PERIOD);
+      setTimeout(resolve, INVALID_TXN_WAIT_PERIOD);
     });
 
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 
   it("UpdateDatachain transaction with invalid claimer public key is rejected", async () => {
-    const claim = await generateDummyClaim();
     const txn = await client.generateUpdateDatachainTxn({
-      appCID: claim.appCID,
-      courtCID: claim.courtCID,
-      inputCID: claim.inputCID,
-      outputCID: claim.outputCID,
+      dataContractCID: CID.parse(FUNCTION_CID),
+      inputCID: CID.parse(EMPTY_DIR_CID),
+      outputCID: CID.parse(EMPTY_DIR_CID),
       rootClaimHash: rootClaimHash,
     });
     if (!txn.updateChain) {
@@ -460,19 +467,17 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
 
     // Wait to ensure invalid transaction is rejected.
     await new Promise((resolve) => {
-      setTimeout(resolve, INAVLID_TXN_WAIT_PERIOD);
+      setTimeout(resolve, INVALID_TXN_WAIT_PERIOD);
     });
 
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 
   it("UpdateDatachain transaction wtih invalid hash of previous claim is rejected", async () => {
-    const claim = await generateDummyClaim();
     const txn = await client.generateUpdateDatachainTxn({
-      appCID: claim.appCID,
-      courtCID: claim.courtCID,
-      inputCID: claim.inputCID,
-      outputCID: claim.outputCID,
+      dataContractCID: CID.parse(FUNCTION_CID),
+      inputCID: CID.parse(EMPTY_DIR_CID),
+      outputCID: CID.parse(EMPTY_DIR_CID),
       rootClaimHash: rootClaimHash,
     });
     if (!txn.updateChain) {
@@ -494,7 +499,7 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
 
     // Wait to ensure invalid transaction is rejected.
     await new Promise((resolve) => {
-      setTimeout(resolve, INAVLID_TXN_WAIT_PERIOD);
+      setTimeout(resolve, INVALID_TXN_WAIT_PERIOD);
     });
 
     await verifyHeadClaim(rootClaimHash, headClaim);

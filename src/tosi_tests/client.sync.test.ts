@@ -121,7 +121,7 @@ async function checkHeadBlock(): Promise<void> {
   }
   const coordinatorBlock = await coordinator.getBlock(blockHash);
   if (coordinatorBlock == undefined) {
-    log.error(`client does not have block ${coordinatorBlock}`);
+    log.error(`coordinator does not have block ${coordinatorBlock}`);
     throw new Error("coordinatorBlock is undefined");
   }
 

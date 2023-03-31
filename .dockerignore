@@ -7,3 +7,4 @@ build
 dapp_data_*
 machines
 data-prepopulate
+.fetchcache

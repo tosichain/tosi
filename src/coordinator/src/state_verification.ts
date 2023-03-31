@@ -3,49 +3,50 @@ import winston from "winston";
 import { IPFS } from "../../node/ipfs";
 import { encodeCBOR, decodeCBOR } from "../../util";
 
-import { Account, ComputeClaim, DACheckResult, SignedTransaction, TransactionBundle } from "../../blockchain/types";
-import { verifyDACheckResultsAggergatedSignature, verifyDACheckResultSignature } from "../../blockchain/block_proof";
+import { Account, ComputeClaim, SignedTransaction, StateCheckResult, TransactionBundle } from "../../blockchain/types";
+import {
+  verifyStateCheckResultsAggergatedSignature,
+  verifyStateCheckResultSignature,
+} from "../../blockchain/block_proof";
 import { hashComputeClaim, stringifySignedTransaction, hashTransactionBundle } from "../../blockchain/util";
 import {
-  IPFS_PUB_SUB_DA_VERIFICATION,
-  IPFS_MESSAGE_DA_VERIFICATION_REQUEST,
-  IPFS_MESSAGE_DA_VERIFICATION_RESPONSE,
+  IPFS_PUB_SUB_STATE_VERIFICATION,
+  IPFS_MESSAGE_STATE_VERIFICATION_REQUEST,
+  IPFS_MESSAGE_STATE_VERIFICATION_RESPONSE,
 } from "../../p2p/constant";
-import { IPFSPubSubMessage, DAVerificationRequestMessage, DAVerificationResponseMessage } from "../../p2p/types";
-import { stringifyPubSubMessage, stringifyDAVerificationResponse } from "../../p2p/util";
+import { IPFSPubSubMessage, StateVerificationRequestMessage, StateVerificationResponseMessage } from "../../p2p/types";
+import { stringifyPubSubMessage, stringifyStateVerificationResponse } from "../../p2p/util";
 
-export interface DAVerificationManagerConfig {
+export interface StateVerificationManagerConfig {
   RequestBroadcastPeriod: number;
   RequestTimeout: number;
 }
 
-export interface TransactionBundleDACheckResult {
-  responses: DACheckResult[];
+export interface TransactionBundleStateCheckResult {
+  responses: StateCheckResult[];
   aggSignature: Uint8Array;
   acceptedTxns: SignedTransaction[];
   rejectedTxns: SignedTransaction[];
 }
 
-interface DACheckState {
-  request: DAVerificationRequestMessage;
+interface StateCheckState {
+  request: StateVerificationRequestMessage;
   commitee: Account[];
-  responses: Record<string, DAVerificationResponseMessage>;
+  responses: Record<string, StateVerificationResponseMessage>;
   resolve: any; // Promise resolve function.
   reject: any; // Promise reject function.
 }
 
-// Offchain computation manager coordinates offchain nodes, doing:
-// 1. Data availability sampling.
-// 2. Computation result verification.
-export class DAVerificationManager {
-  private readonly config: DAVerificationManagerConfig;
+// Computation result verification.
+export class StateVerificationManager {
+  private readonly config: StateVerificationManagerConfig;
   private readonly log: winston.Logger;
 
   private ipfs: IPFS;
 
-  private readonly checkState: DACheckState;
+  private readonly checkState: StateCheckState;
 
-  constructor(config: DAVerificationManagerConfig, log: winston.Logger, ipfs: IPFS) {
+  constructor(config: StateVerificationManagerConfig, log: winston.Logger, ipfs: IPFS) {
     this.config = config;
     this.log = log;
 
@@ -53,7 +54,7 @@ export class DAVerificationManager {
 
     this.checkState = {
       request: {
-        code: IPFS_MESSAGE_DA_VERIFICATION_REQUEST,
+        code: IPFS_MESSAGE_STATE_VERIFICATION_REQUEST,
         txnBundleHash: "",
         claims: [],
         randomnessProof: new Uint8Array(),
@@ -66,16 +67,16 @@ export class DAVerificationManager {
   }
 
   public async start(): Promise<void> {
-    await this.ipfs.getIPFS().pubsub.subscribe(IPFS_PUB_SUB_DA_VERIFICATION, (msg: IPFSPubSubMessage) => {
+    await this.ipfs.getIPFS().pubsub.subscribe(IPFS_PUB_SUB_STATE_VERIFICATION, (msg: IPFSPubSubMessage) => {
       this.handlePubSubMessage(msg);
     });
   }
 
-  public async checkTxnBundleDA(
+  public async checkTxnBundleState(
     txnBundle: TransactionBundle,
     blockRandProof: Uint8Array,
     committee: Account[],
-  ): Promise<TransactionBundleDACheckResult> {
+  ): Promise<TransactionBundleStateCheckResult> {
     // Collect all computational claims, appearing in transaction bundle.
     const requestClaims: ComputeClaim[] = [];
     const claimToTxn: Record<string, SignedTransaction> = {};
@@ -104,27 +105,27 @@ export class DAVerificationManager {
       };
     }
 
-    // Query DA committee.
-    // This fills DA state, which has to be resetted after.
-    await this.execDARequest(txnBundle, blockRandProof, committee, requestClaims);
+    // Query state check committee.
+    // This fills State check state, which has to be resetted after.
+    await this.execStateCheckRequest(txnBundle, blockRandProof, committee, requestClaims);
 
     // Sanity check of number of received responses.
     const responseCount = Object.keys(this.checkState.responses).length;
     if (responseCount < this.checkState.commitee.length) {
-      // Reset DA state to stop request broadcast.
-      this.resetDAState();
+      // Reset State check state to stop request broadcast.
+      this.resetStateCheckState();
       // That means coding error in message processing or callbacks.
-      throw new Error("Number of unique DA verification responses is less then size of DA committee");
+      throw new Error("Number of unique State verification responses is less then size of State committee");
     } else if (responseCount > this.checkState.commitee.length) {
-      // Reset DA state to stop request broadcast.
-      this.resetDAState();
+      // Reset State check state to stop request broadcast.
+      this.resetStateCheckState();
       // That means coding error in message processing callback.
-      throw new Error("Number of unique DA verification responses is greater then size of DA committee");
+      throw new Error("Number of unique State verification responses is greater then size of State committee");
     }
 
-    // We expect DA checkers to reach full consensus on data availability.
+    // We expect State checkers to reach full consensus on state correctness.
     // Hence we can consider to one of responses to carry "final result".
-    const result: TransactionBundleDACheckResult = {
+    const result: TransactionBundleStateCheckResult = {
       responses: Object.values(this.checkState.responses).map((response) => response.result),
       aggSignature: new Uint8Array(),
       acceptedTxns: [],
@@ -132,10 +133,10 @@ export class DAVerificationManager {
     };
     const claimResults = result.responses[0].claims;
 
-    // Check of aggregated signature of received DA verification responses.
-    // For now this also ensures that DA checkers have reached consensus.
+    // Check of aggregated signature of received State check verification responses.
+    // For now this also ensures that State checkers have reached consensus.
     const responseSigners = result.responses.map((response) => response.signer);
-    const [validAggSig, aggSig] = await verifyDACheckResultsAggergatedSignature(
+    const [validAggSig, aggSig] = await verifyStateCheckResultsAggergatedSignature(
       this.checkState.request.txnBundleHash,
       this.checkState.request.randomnessProof,
       claimResults,
@@ -145,57 +146,57 @@ export class DAVerificationManager {
     if (validAggSig) {
       result.aggSignature = aggSig;
     } else {
-      this.log.error("aggregated DA committee sample signature is invalid");
+      this.log.error("aggregated State committee sample signature is invalid");
       result.acceptedTxns = txnsWithoutClaim;
       result.rejectedTxns = Object.values(claimToTxn);
 
-      // Reset DA state to stop request broadcast.
-      this.resetDAState();
+      // Reset State Check state to stop request broadcast.
+      this.resetStateCheckState();
 
       return result;
     }
 
-    // Collect "DA votes" for every claim.
-    const claimDA: Record<string, boolean[]> = {};
+    // Collect "State check votes" for every claim.
+    const claimState: Record<string, boolean[]> = {};
     for (const claim of this.checkState.request.claims) {
-      claimDA[hashComputeClaim(claim)] = [];
+      claimState[hashComputeClaim(claim)] = [];
     }
     for (const response of Object.values(this.checkState.responses)) {
       for (const claimResult of response.result.claims) {
-        claimDA[claimResult.claimHash].push(claimResult.dataAvailable);
+        claimState[claimResult.claimHash].push(claimResult.stateCorrect);
       }
     }
 
-    // Find out, which claims have been rejected/accpeted and by DA
+    // Find out, which claims have been rejected/accpeted and by State
     // committee and ensure that last one has reached unanimous agreement.
-    for (const claimHash of Object.keys(claimDA)) {
-      if (claimDA[claimHash].every((dataAvailable) => dataAvailable)) {
-        // DA checkers agreed that data for claim is available.
+    for (const claimHash of Object.keys(claimState)) {
+      if (claimState[claimHash].every((stateCorrect) => stateCorrect)) {
+        // State checkers agreed that state for claim is correct.
         const txn = claimToTxn[claimHash];
         result.acceptedTxns.push(txn);
-      } else if (claimDA[claimHash].every((dataAvailable) => !dataAvailable)) {
-        // DA checkers agreed that data for claim is unavailable.
+      } else if (claimState[claimHash].every((stateCorrect) => !stateCorrect)) {
+        // State checkers agreed that state for claim is incorrect.
         const txn = claimToTxn[claimHash];
         result.rejectedTxns.push(txn);
-        this.log.error(`transaction ${stringifySignedTransaction(txn)} rejected - data unavailable`);
+        this.log.error(`transaction ${stringifySignedTransaction(txn)} rejected - state incorrect`);
       } else {
-        // DA checkers didn't reach consensus on claim data availability.
+        // State checkers didn't reach consensus on claim state correctness.
         result.acceptedTxns = txnsWithoutClaim;
         result.rejectedTxns = Object.values(claimToTxn);
         for (const txn of result.rejectedTxns) {
-          this.log.error(`transaction ${stringifySignedTransaction(txn)} rejected - DA committee consensus failure`);
+          this.log.error(`transaction ${stringifySignedTransaction(txn)} rejected - State committee consensus failure`);
         }
         break;
       }
     }
 
-    // Reset DA state to stop reqeust broadcast.
-    this.resetDAState();
+    // Reset State check state to stop reqeust broadcast.
+    this.resetStateCheckState();
 
     return result;
   }
 
-  private async execDARequest(
+  private async execStateCheckRequest(
     txnBunde: TransactionBundle,
     blockRandProof: Uint8Array,
     committee: Account[],
@@ -204,32 +205,32 @@ export class DAVerificationManager {
     // Setup request.
     const txnBundleHash = hashTransactionBundle(txnBunde);
     this.checkState.request = {
-      code: IPFS_MESSAGE_DA_VERIFICATION_REQUEST,
+      code: IPFS_MESSAGE_STATE_VERIFICATION_REQUEST,
       txnBundleHash: txnBundleHash,
       claims: claims,
       randomnessProof: blockRandProof,
     };
 
-    // Setup DA committee sample.
+    // Setup State committee sample.
     this.checkState.commitee = committee;
 
     // Clear responses for previous transaction bundle.
     this.checkState.responses = {};
 
-    // Need to wait until all DA verification responses.
+    // Need to wait until all State verification responses.
     // request are received (or timeout occurs).
-    const dasProgress = new Promise<void>((resolve, reject) => {
+    const stateCheckProgress = new Promise<void>((resolve, reject) => {
       this.checkState.resolve = resolve;
       this.checkState.reject = reject;
     });
 
-    this.setupDASRequestTimeout(this.checkState.request.txnBundleHash);
-    this.broadcastDASRequest(this.checkState.request.txnBundleHash);
+    this.setupStateCheckRequestTimeout(this.checkState.request.txnBundleHash);
+    this.broadcastStateCheckRequest(this.checkState.request.txnBundleHash);
 
-    await dasProgress;
+    await stateCheckProgress;
   }
 
-  private setupDASRequestTimeout(txnBundleHash: string): void {
+  private setupStateCheckRequestTimeout(txnBundleHash: string): void {
     setTimeout(() => {
       // Next transaction bundle is already being processed.
       if (txnBundleHash != this.checkState.request.txnBundleHash) {
@@ -240,26 +241,26 @@ export class DAVerificationManager {
       if (responseCount < this.checkState.commitee.length) {
         this.log.info(`did not receive enough responses for ${txnBundleHash}`);
         this.checkState.reject(
-          new Error("DA verification timeout - no response for " + this.config.RequestTimeout + "ms"),
+          new Error("State verification timeout - no response for " + this.config.RequestTimeout + "ms"),
         );
-        this.resetDAState();
+        this.resetStateCheckState();
         return;
       }
     }, this.config.RequestTimeout);
   }
 
-  private async broadcastDASRequest(txnBundleHash: string) {
-    this.log.info(`starting broadcast of DA verification request for transaction bundle ${txnBundleHash}`);
+  private async broadcastStateCheckRequest(txnBundleHash: string) {
+    this.log.info(`starting broadcast of State check verification request for transaction bundle ${txnBundleHash}`);
 
     while (true) {
       if (txnBundleHash != this.checkState.request.txnBundleHash) {
-        this.log.info(`stopping broadcast of DA verification request for transaction bundle ${txnBundleHash}`);
+        this.log.info(`stopping broadcast of State verification request for transaction bundle ${txnBundleHash}`);
         return;
       }
 
       // Send reqeust via IPFS pub-sub.
-      this.log.info(`publishing DA verification request for transaction bundle ${txnBundleHash}`);
-      this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_DA_VERIFICATION, encodeCBOR(this.checkState.request));
+      this.log.info(`publishing State verification request for transaction bundle ${txnBundleHash}`);
+      this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, encodeCBOR(this.checkState.request));
 
       await new Promise((resolve, _) => {
         setTimeout(resolve, this.config.RequestBroadcastPeriod);
@@ -267,9 +268,9 @@ export class DAVerificationManager {
     }
   }
 
-  private resetDAState(): void {
+  private resetStateCheckState(): void {
     this.checkState.request = {
-      code: IPFS_MESSAGE_DA_VERIFICATION_REQUEST,
+      code: IPFS_MESSAGE_STATE_VERIFICATION_REQUEST,
       txnBundleHash: "",
       claims: [],
       randomnessProof: new Uint8Array(),
@@ -296,10 +297,10 @@ export class DAVerificationManager {
       }
 
       const decoded = decodeCBOR(msg.data);
-      if (decoded && decoded.code && decoded.code === IPFS_MESSAGE_DA_VERIFICATION_REQUEST) {
-        this.log.error(`ignoring DA verification request - only coordinator can send DA verification requests`);
-      } else if (decoded && decoded.code && decoded.code == IPFS_MESSAGE_DA_VERIFICATION_RESPONSE) {
-        this.handleDAVerificationResponse(decoded as DAVerificationResponseMessage);
+      if (decoded && decoded.code && decoded.code === IPFS_MESSAGE_STATE_VERIFICATION_REQUEST) {
+        this.log.error(`ignoring State verification request - only coordinator can send State verification requests`);
+      } else if (decoded && decoded.code && decoded.code == IPFS_MESSAGE_STATE_VERIFICATION_RESPONSE) {
+        this.handleStateVerificationResponse(decoded as StateVerificationResponseMessage);
       } else {
         this.log.warn(`ignoring decoded message with unknown code`);
       }
@@ -308,12 +309,12 @@ export class DAVerificationManager {
     }
   }
 
-  private async handleDAVerificationResponse(msg: DAVerificationResponseMessage): Promise<void> {
-    this.log.info(`received DA verification response - ${stringifyDAVerificationResponse(msg)}`);
+  private async handleStateVerificationResponse(msg: StateVerificationResponseMessage): Promise<void> {
+    this.log.info(`received State verification response - ${stringifyStateVerificationResponse(msg)}`);
 
     // Check signature of response.
     if (
-      !(await verifyDACheckResultSignature(
+      !(await verifyStateCheckResultSignature(
         msg.result.txnBundleHash,
         msg.result.randomnessProof,
         msg.result.claims,
@@ -321,27 +322,27 @@ export class DAVerificationManager {
         msg.result.signer,
       ))
     ) {
-      this.log.error("DA check result signature is invalid");
+      this.log.error("State check result signature is invalid");
       return;
     }
 
     // Check that response is for current transaction bundle (check txnBundleHash)
     // TODO: should we check randomness proof here as well?
     if (msg.result.txnBundleHash != this.checkState.request.txnBundleHash) {
-      this.log.error("DA verification request transaction bundle hash does not match");
+      this.log.error("State verification request transaction bundle hash does not match");
       return;
     }
 
     // Check if sender is part of committee.
     const inCommittee = this.checkState.commitee.find((s) => s.address == msg.result.signer);
     if (!inCommittee) {
-      this.log.error("DA verification response signer does not belong to current DA committee sample");
+      this.log.error("State verification response signer does not belong to current State committee sample");
       return;
     }
 
     // Check if member already sent response.
     if (this.checkState.responses[msg.result.signer] != undefined) {
-      this.log.error("DA committee member already sent response for current transaction bundle");
+      this.log.error("State committee member already sent response for current transaction bundle");
       return;
     }
     this.checkState.responses[msg.result.signer] = msg;
@@ -351,7 +352,7 @@ export class DAVerificationManager {
     if (responseCount < this.checkState.commitee.length) {
       return;
     }
-    this.log.info("Received all responses for DA check");
+    this.log.info("Received all responses for State check");
     // Notify, that all respones have been received.
     this.checkState.resolve();
   }

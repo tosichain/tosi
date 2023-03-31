@@ -82,24 +82,34 @@ export interface DataChain {
   headClaimHash: string; // hex
 }
 
+export interface DAInfo {
+  size: number;
+  cartesiMerkleRoot: string; // hex
+}
+
 // ComputeClaim defines result of execution of risc-v program on particular input.
 // Output of such risc-v program is "part os the update of TOSI world state" and:
 // 1. Ouptut of, provided  by transaction sender directly is never trusted
 //   (it is always re-checked by network validators).
 // 2. Output is always computed offchain, hence a bunch of proofs, proving correctness
-//    of offhchain computation, is neccessary (see BlockProof).
+//    of offhchain computation, is neccessary. (see BlockProof)
+
+export interface ClaimDataRef {
+  readonly cid: string;
+  readonly size: number;
+  readonly cartesiMerkleRoot: string; // hex
+}
+
 export interface ComputeClaim {
   readonly claimer: string; // hex
   // Claims are "chained" akin to blocks in blockchain.
   readonly prevClaimHash: string; // hex
   // References to data, stored in IPFS.
-  readonly courtCID: string; // Court enivronment.
-  readonly appCID: string; // Application.
-  readonly inputCID: string; // Computation input.
-  readonly outputCID: string; // Computation output.
-  readonly daInfo: DAInfo[];
+  readonly dataContract: ClaimDataRef; // Data "contract" environment.
+  readonly input: ClaimDataRef; // Computation input.
+  readonly output: ClaimDataRef; // Computation output.
+
   // "Parameters" of computation.
-  readonly returnCode: number;
   readonly maxCartesiCycles: bigint;
 }
 
@@ -126,6 +136,8 @@ export interface BlockProof {
   readonly randomnessProof: Uint8Array;
   readonly DACheckResults: DACheckResult[];
   readonly aggDACheckResultSignature: Uint8Array;
+  readonly stateCheckResults: StateCheckResult[];
+  readonly aggStateCheckResultSignature: Uint8Array;
 }
 
 export interface DACheckResult {
@@ -136,9 +148,22 @@ export interface DACheckResult {
   readonly claims: ClaimDACheckResult[];
 }
 
+export interface StateCheckResult {
+  readonly txnBundleHash: string; // hex
+  readonly randomnessProof: Uint8Array;
+  readonly signature: Uint8Array;
+  readonly signer: string; // hex
+  readonly claims: ClaimStateCheckResult[];
+}
+
 export interface ClaimDACheckResult {
   readonly claimHash: string; // hex
   readonly dataAvailable: boolean;
+}
+
+export interface ClaimStateCheckResult {
+  readonly claimHash: string; // hex
+  readonly stateCorrect: boolean;
 }
 
 export interface TransactionBundle {
