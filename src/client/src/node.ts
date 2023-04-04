@@ -6,7 +6,7 @@ import * as BLS from "@noble/bls12-381";
 import { IPFS } from "../../node/ipfs";
 import { IPFSServiceOptions, IPFSService } from "../../node/ipfs-service";
 
-import { Transaction, Account, DAInfo, Block, ComputeChain, StakeType } from "../../blockchain/types";
+import { Transaction, Account, DAInfo, Block, DataChain, StakeType } from "../../blockchain/types";
 import { CoordinatorAPIClientConfig, CoordinatorAPIClient } from "../../coordinator/src/api_client";
 import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/storage";
 import { signTransaction } from "../../blockchain/block";
@@ -139,22 +139,25 @@ export class ClientNode {
   // API methods.
 
   public async generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction> {
-    const availability: [string, CID, DAInfo, string][] = await Promise.all(
+    const availability: [string, CID, DAInfo | undefined, string][] = await Promise.all(
       (
         [
           ["court.img", params.courtCID, "/prev/gov/court.img"],
           ["app.img", params.appCID, "/prev/gov/app.img"],
           ["input", params.inputCID, "/input"],
         ] as [string, CID, string][]
-      ).map(async ([path, cid, loc]): Promise<[string, CID, DAInfo, string]> => {
+      ).map(async ([path, cid, loc]): Promise<[string, CID, DAInfo | undefined, string]> => {
         const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), false, 120);
         this.log.info(`created DA info for ${path} ${cid.toString()} ${loc} - ${JSON.stringify(daInfo)}`);
         return [path, cid, daInfo, loc];
       }),
     );
+    if (availability.find(([path, cid, info, loc]) => !info)) {
+      throw Error("transaction data is not available");
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const daInfo: DAInfo[] = availability.map(([path, _cid, info, loc]) => {
+    const daInfo: DAInfo[] = (availability as [string, CID, DAInfo, string][]).map(([path, _cid, info, loc]) => {
       return {
         name: loc,
         size: info.size,
@@ -165,7 +168,7 @@ export class ClientNode {
     });
 
     const txn: Transaction = {
-      addChain: {
+      createChain: {
         rootClaim: {
           claimer: this.blsPubKey,
           prevClaimHash: "",
@@ -190,22 +193,25 @@ export class ClientNode {
       throw new Error(`can not find datachain with root claim ${params.rootClaimHash}`);
     }
 
-    const availability: [string, CID, DAInfo, string][] = await Promise.all(
+    const availability: [string, CID, DAInfo | undefined, string][] = await Promise.all(
       (
         [
           ["court.img", params.courtCID, "/prev/gov/court.img"],
           ["app.img", params.appCID, "/prev/gov/app.img"],
           ["input", params.inputCID, "/input"],
         ] as [string, CID, string][]
-      ).map(async ([path, cid, loc]): Promise<[string, CID, DAInfo, string]> => {
+      ).map(async ([path, cid, loc]): Promise<[string, CID, DAInfo | undefined, string]> => {
         const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), false, 120);
         this.log.info(`created DA info for ${path} ${cid.toString()} ${loc} - ${JSON.stringify(daInfo)}`);
         return [path, cid, daInfo, loc];
       }),
     );
+    if (availability.find(([path, cid, info, loc]) => !info)) {
+      throw Error("transaction data is not available");
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const daInfo: DAInfo[] = availability.map(([path, _cid, info, loc]) => {
+    const daInfo: DAInfo[] = (availability as [string, CID, DAInfo, string][]).map(([path, _cid, info, loc]) => {
       return {
         name: loc,
         size: info.size,
@@ -216,7 +222,7 @@ export class ClientNode {
     });
 
     const txn: Transaction = {
-      addClaim: {
+      updateChain: {
         rootClaimHash: chain.rootClaimHash,
         claim: {
           claimer: this.blsPubKey,
@@ -290,7 +296,7 @@ export class ClientNode {
     return stakers;
   }
 
-  public async getDataChain(rootClaimHash: string): Promise<ComputeChain | undefined> {
+  public async getDataChain(rootClaimHash: string): Promise<DataChain | undefined> {
     return await this.storage.getComputeChain(rootClaimHash);
   }
 

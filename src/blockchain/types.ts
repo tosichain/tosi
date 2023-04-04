@@ -15,8 +15,8 @@ export interface Transaction {
   transfer?: TransferToken;
   stake?: StakeToken;
   unstake?: UnstakeToken;
-  addChain?: AddComputeChain;
-  addClaim?: AddComputeClaim;
+  createChain?: CreateDataChain;
+  updateChain?: UpdateDataChain;
   nonce: number;
 }
 
@@ -45,13 +45,20 @@ export interface UnstakeToken {
   readonly amount: bigint;
 }
 
-export interface AddComputeChain {
+export interface CreateDataChain {
   readonly rootClaim: ComputeClaim;
 }
 
-export interface AddComputeClaim {
+export interface UpdateDataChain {
   readonly rootClaimHash: string; // hex
   readonly claim: ComputeClaim;
+}
+
+export interface WorldState {
+  readonly accounts: Record<string /*hex*/, Account>;
+  readonly stakePool: StakePool;
+  readonly minter: string; // hex
+  readonly dataChains: Record<string, DataChain>;
 }
 
 export interface Account {
@@ -62,20 +69,25 @@ export interface Account {
   readonly stateVerifierStake: bigint;
 }
 
-export interface DAInfo {
-  name: string;
-  size: number;
-  log2: number;
-  keccak256: string; // hex
-  cartesiMerkleRoot: string; // hex
+export interface StakePool {
+  readonly daVerifierPool: bigint;
+  readonly daVerifiers: string[]; // hex
+  readonly stateVerifierPool: bigint;
+  readonly stateVerifiers: string[]; // hex
+}
+
+export interface DataChain {
+  claims: Record<string, ComputeClaim>;
+  rootClaimHash: string; // hex
+  headClaimHash: string; // hex
 }
 
 // ComputeClaim defines result of execution of risc-v program on particular input.
 // Output of such risc-v program is "part os the update of TOSI world state" and:
 // 1. Ouptut of, provided  by transaction sender directly is never trusted
-//   (it is always re-checked by network validators)
+//   (it is always re-checked by network validators).
 // 2. Output is always computed offchain, hence a bunch of proofs, proving correctness
-//    of offhchain computation, is neccessary.
+//    of offhchain computation, is neccessary (see BlockProof).
 export interface ComputeClaim {
   readonly claimer: string; // hex
   // Claims are "chained" akin to blocks in blockchain.
@@ -91,24 +103,12 @@ export interface ComputeClaim {
   readonly maxCartesiCycles: bigint;
 }
 
-export interface ComputeChain {
-  claims: Record<string, ComputeClaim>;
-  rootClaimHash: string; // hex
-  headClaimHash: string; // hex
-}
-
-export interface StakePool {
-  readonly daVerifierPool: bigint;
-  readonly daVerifiers: string[]; // hex
-  readonly stateVerifierPool: bigint;
-  readonly stateVerifiers: string[]; // hex
-}
-
-export interface WorldState {
-  readonly accounts: Record<string /*hex*/, Account>;
-  readonly stakePool: StakePool;
-  readonly minter: string; // hex
-  readonly computeChains: Record<string, ComputeChain>;
+export interface DAInfo {
+  name: string;
+  size: number;
+  log2: number;
+  keccak256: string; // hex
+  cartesiMerkleRoot: string; // hex
 }
 
 export interface Block {
@@ -137,13 +137,17 @@ export interface DACheckResult {
 }
 
 export interface ClaimDACheckResult {
-  readonly claimHash: string;
+  readonly claimHash: string; // hex
   readonly dataAvailable: boolean;
 }
 
 export interface TransactionBundle {
   headBlockHash: string;
   transactions: SignedTransaction[];
+}
+
+export interface BlockMetadata {
+  readonly CID: string;
 }
 
 export interface DrandBeacon {
@@ -158,8 +162,4 @@ export interface DrandBeaconInfo {
   period: number;
   genesisTime: number;
   hash: string;
-}
-
-export interface BlockMetadata {
-  readonly CID: string;
 }

@@ -3,7 +3,7 @@ import mysql from "mysql";
 
 import { encodeCBOR, decodeCBOR } from "../util";
 
-import { WorldState, SignedTransaction, Block, Account, ComputeChain, ComputeClaim, StakePool } from "./types";
+import { WorldState, SignedTransaction, Block, Account, DataChain, ComputeClaim, StakePool } from "./types";
 import { accountsMerkleTree } from "./block";
 import { hashBlock, hashSignedTransaction, stringifySignedTransaction } from "./util";
 import {
@@ -273,22 +273,22 @@ export class BlockchainStorage {
     return state.stakePool;
   }
 
-  public async getComputeChain(rootClaimHash: string): Promise<ComputeChain | undefined> {
+  public async getComputeChain(rootClaimHash: string): Promise<DataChain | undefined> {
     const rawState = await this.getValue("state", DB_KEY_STATE_VALUE);
     if (!rawState) {
       throw new Error("world state does not exist in database");
     }
     const state = deserializeWorldState(rawState);
-    return state.computeChains[rootClaimHash];
+    return state.dataChains[rootClaimHash];
   }
 
-  public async getDatachains(): Promise<ComputeChain[] | undefined> {
+  public async getDatachains(): Promise<DataChain[] | undefined> {
     const rawState = await this.getValue("state", DB_KEY_STATE_VALUE);
     if (!rawState) {
       throw new Error("world state does not exist in database");
     }
     const state = deserializeWorldState(rawState);
-    return Object.values(state.computeChains);
+    return Object.values(state.dataChains);
   }
 
   public async getComputeClaim(claimHash: string): Promise<ComputeClaim | undefined> {
@@ -297,8 +297,8 @@ export class BlockchainStorage {
       throw new Error("world state does not exist in database");
     }
     const state = deserializeWorldState(rawState);
-    for (const rootClaimHash of Object.keys(state.computeChains)) {
-      const chain = state.computeChains[rootClaimHash];
+    for (const rootClaimHash of Object.keys(state.dataChains)) {
+      const chain = state.dataChains[rootClaimHash];
       if (chain.claims[claimHash] != undefined) {
         return chain.claims[claimHash];
       }

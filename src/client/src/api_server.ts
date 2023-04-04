@@ -3,9 +3,9 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import winston from "winston";
 
-import { Transaction, Account, Block, ComputeChain, StakeType } from "../../blockchain/types";
+import { Transaction, Account, Block, DataChain, StakeType } from "../../blockchain/types";
 import { serializeBlock } from "../../blockchain/serde";
-import { stringifyTransaction } from "../../blockchain/util";
+import { stringifyTransaction, stringifyAccount, stringifyAccounts, stringifyDataChain } from "../../blockchain/util";
 import { CreateDatachainParameters, UpdateDatachainParameters } from "./node";
 
 export const GENERATE_TXN_CREATE_DATACHAIN = "createDatachain";
@@ -18,12 +18,12 @@ export interface RequestHandler {
   getBlock(blockHash: string): Promise<Block | undefined>;
   getAccount(pubKey: string): Promise<Account | undefined>;
   getStakerList(stakeType: StakeType): Promise<Account[]>;
-  getDataChain(rootClaimHash: string): Promise<ComputeChain | undefined>;
+  getDataChain(rootClaimHash: string): Promise<DataChain | undefined>;
   getSyncStatus(): Promise<boolean>;
   getLatestBlockHash(): Promise<string>;
   getLatestLocalHash(): Promise<string>;
   getBlsPubKeyInHex(): Promise<string>;
-  getDatachains(): Promise<ComputeChain[] | undefined>;
+  getDatachains(): Promise<DataChain[] | undefined>;
   getAccountHistory(pubKey: string): Promise<Transaction[] | undefined>;
 }
 
@@ -142,7 +142,7 @@ export class ClientNodeAPIServer {
         res.status(404).send({ error: "account not found" });
         return;
       }
-      res.status(200).send(account);
+      res.status(200).send(stringifyAccount(account));
     } catch (err: any) {
       res.status(500).send({ error: err.message });
     }
@@ -151,7 +151,7 @@ export class ClientNodeAPIServer {
   private async getDAVerifiers(req: Request, res: Response): Promise<Response | void> {
     try {
       const stakers = await this.handler.getStakerList(StakeType.DAVerifier);
-      res.status(200).send(stakers);
+      res.status(200).send(stringifyAccounts(stakers));
     } catch (err: any) {
       res.status(500).send({ error: err.message });
     }
@@ -160,7 +160,7 @@ export class ClientNodeAPIServer {
   private async getStateVerifiers(req: Request, res: Response): Promise<Response | void> {
     try {
       const stakers = await this.handler.getStakerList(StakeType.StateVerifier);
-      res.status(200).send(stakers);
+      res.status(200).send(stringifyAccounts(stakers));
     } catch (err: any) {
       res.status(500).send({ error: err.message });
     }
@@ -176,7 +176,7 @@ export class ClientNodeAPIServer {
         res.status(404).send({ error: "data chain not found" });
         return;
       }
-      res.status(200).send(chain);
+      res.status(200).send(stringifyDataChain(chain));
     } catch (err: any) {
       res.status(500).send({ error: err.message });
     }
@@ -249,3 +249,4 @@ export class ClientNodeAPIServer {
     }
   }
 }
+

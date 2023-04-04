@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+import "blockchain.proto";
+import "node.proto";
+
+package client;
+
+service ClientNode {
+    rpc GetBlock(node.GetBlockRequest) returns (node.GetBlockResponse);
+    rpc GetAccount(node.GetAccountRequest) returns (node.GetAccountResponse);
+    rpc GetAccountTransactions(node.GetAccountTransactionsRequest) returns (node.GetAccountTransactionsResponse);
+    rpc GetStakerList(node.GetStakerListRequest) returns (node.GetStakerListResponse);
+    rpc GetDataChain(node.GetDataChainRequest) returns (node.GetDataChainResponse);
+    rpc GetDataChainList(node.GetDataChainListRequest) returns (node.GetDataChainResponse);
+    rpc GetHeadBlockHash(node.GetHeadBlockHashRequest) returns (node.GetDataChainListResponse);
+    rpc GetBLSPublicKey(node.GetBLSPublicKeyRequest) returns (node.GetBLSPublicKeyResponse);
+    rpc GenerateCreateDatachainTxn (GenerateCreateDataChainTxnRequest) returns (GenerateCreateDataChainTxnResponse);
+    rpc GenerateUpdateDatachainTxn (GenerateUpdateDataChainTxnRequest) returns (GenerateUpdateDataChainTxnResponse);
+    rpc SumbitTransaction(SubmitTransactionRequest) returns (SubmitTransactionResponse);
+    rpc GetSyncStatus(GetSyncStatusRequest) returns (GetSyncStatusResponse);
+    rpc GetLocalHeadBlockHash(GetLocalHeadBlockHashRequest) returns (GetLocalHeadBlockHashResponse);
+}
+
+message GenerateCreateDataChainTxnRequest {
+    string court_cid = 1;
+    string app_cid = 2;
+    string input_cid = 3;
+    string output_cid = 4;
+}
+
+message GenerateCreateDataChainTxnResponse {
+    blockchain.Transaction transaction = 1;
+}
+
+message GenerateUpdateDataChainTxnRequest {
+    string court_cid = 1;
+    string app_cid = 2;
+    string input_cid = 3;
+    string output_cid = 4;
+}
+
+message GenerateUpdateDataChainTxnResponse {
+    blockchain.Transaction transaction = 1;
+}
+
+message SubmitTransactionRequest {
+    blockchain.Transaction transaction = 1;
+}
+
+message SubmitTransactionResponse {
+}
+
+message GetSyncStatusRequest {
+}
+
+message GetSyncStatusResponse {
+    bool is_synced = 1;
+}
+
+message GetLocalHeadBlockHashRequest {
+}
+
+message GetLocalHeadBlockHashResponse {
+    string block_hash = 1;
+}

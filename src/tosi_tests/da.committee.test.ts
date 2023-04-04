@@ -277,11 +277,11 @@ describe("DA verification is performed correctly", function () {
       inputCID: claim.inputCID,
       outputCID: claim.outputCID,
     });
-    if (!txn.addChain) {
+    if (!txn.createChain) {
       throw new Error("invalid CreateDatachain transaction");
     }
 
-    rootClaim = txn.addChain.rootClaim;
+    rootClaim = txn.createChain.rootClaim;
     rootClaimHash = hashComputeClaim(rootClaim);
     headClaim = rootClaim;
     headClaimHash = rootClaimHash;
@@ -292,7 +292,7 @@ describe("DA verification is performed correctly", function () {
     accountNonces[clientPubKey] = 0;
     await waitForAccountNonce(accountNonces);
 
-    await verifyHeadClaim(rootClaimHash, txn.addChain.rootClaim);
+    await verifyHeadClaim(rootClaimHash, txn.createChain.rootClaim);
   });
 
   it("client adds compute claim to existing chain", async () => {
@@ -304,11 +304,11 @@ describe("DA verification is performed correctly", function () {
       outputCID: claim.outputCID,
       rootClaimHash: rootClaimHash,
     });
-    if (!txn.addClaim) {
+    if (!txn.updateChain) {
       throw new Error("invalid UpdateDatachain transaction");
     }
 
-    headClaim = txn.addClaim.claim;
+    headClaim = txn.updateChain.claim;
     headClaimHash = hashComputeClaim(headClaim);
 
     await client.submitTransaction(txn);
@@ -330,22 +330,22 @@ describe("DA verification is performed correctly", function () {
       outputCID: claim.outputCID,
       rootClaimHash: rootClaimHash,
     });
-    if (!txn.addClaim) {
+    if (!txn.updateChain) {
       throw new Error("invalid UpdateDatachain transaction");
     }
 
     // Corrupt appCID.
     const invalidTxn: Transaction = {
       ...txn,
-      addClaim: {
+      updateChain: {
         rootClaimHash: rootClaimHash,
         claim: {
-          ...txn.addClaim.claim,
+          ...txn.updateChain.claim,
           appCID: FAKE_CID,
         },
       },
     };
-    if (!invalidTxn.addClaim) {
+    if (!invalidTxn.updateChain) {
       throw new Error("invalid UpdateDatachain transaction");
     }
 
@@ -368,24 +368,24 @@ describe("DA verification is performed correctly", function () {
       inputCID: claim.inputCID,
       outputCID: claim.outputCID,
     });
-    if (!txn.addChain) {
+    if (!txn.createChain) {
       throw new Error("invalid CreateDatachain transaction");
     }
 
     // Corrupt courtCID.
     const invalidTxn: Transaction = {
       ...txn,
-      addChain: {
+      createChain: {
         rootClaim: {
-          ...txn.addChain.rootClaim,
+          ...txn.createChain.rootClaim,
           courtCID: FAKE_CID,
         },
       },
     };
-    if (!invalidTxn.addChain) {
+    if (!invalidTxn.createChain) {
       throw new Error("invalid CreateDatachain transaction");
     }
-    const invalidRootClaimHash = hashComputeClaim(invalidTxn.addChain.rootClaim);
+    const invalidRootClaimHash = hashComputeClaim(invalidTxn.createChain.rootClaim);
 
     await client.submitTransaction(invalidTxn);
 
@@ -421,7 +421,7 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
       inputCID: CID.parse(rootClaim.inputCID),
       outputCID: CID.parse(rootClaim.outputCID),
     });
-    if (!txn.addChain) {
+    if (!txn.createChain) {
       throw new Error("invalid UpdateDatachain transaction");
     }
 
@@ -444,16 +444,16 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
       outputCID: claim.outputCID,
       rootClaimHash: rootClaimHash,
     });
-    if (!txn.addClaim) {
+    if (!txn.updateChain) {
       throw new Error("invalid UpdateDatachain transaction");
     }
 
     const invalidTxn: Transaction = {
       ...txn,
-      addClaim: {
+      updateChain: {
         rootClaimHash: rootClaimHash,
         claim: {
-          ...txn.addClaim.claim,
+          ...txn.updateChain.claim,
           claimer: daVerifier1PubKey, // Must be clientPubKey instead.
         },
       },
@@ -478,16 +478,16 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
       outputCID: claim.outputCID,
       rootClaimHash: rootClaimHash,
     });
-    if (!txn.addClaim) {
+    if (!txn.updateChain) {
       throw new Error("invalid UpdateDatachain transaction");
     }
 
     const invalidTxn: Transaction = {
       ...txn,
-      addClaim: {
+      updateChain: {
         rootClaimHash: rootClaimHash,
         claim: {
-          ...txn.addClaim.claim,
+          ...txn.updateChain.claim,
           prevClaimHash: rootClaimHash, // must be headClaimHash instead.
         },
       },

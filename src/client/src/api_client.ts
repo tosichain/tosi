@@ -1,7 +1,7 @@
 import winston from "winston";
 import fetch from "node-fetch";
 
-import { Transaction, Account, Block, ComputeChain } from "../../blockchain/types";
+import { Transaction, Account, Block, DataChain } from "../../blockchain/types";
 import { stringifyTransaction, parseAccount } from "../../blockchain/util";
 import { deserializeBlock } from "../../blockchain/serde";
 import { CreateDatachainParameters, UpdateDatachainParameters } from "./node";
@@ -143,7 +143,7 @@ export class ClientNodeAPIClient {
     return stakers;
   }
 
-  public async getDataChain(rootClaimHash: string): Promise<ComputeChain | undefined> {
+  public async getDataChain(rootClaimHash: string): Promise<DataChain | undefined> {
     const url = `${this.config.apiURL}/dataChain/${rootClaimHash}`;
     const response = await fetch(url, {
       method: "GET",
@@ -157,7 +157,7 @@ export class ClientNodeAPIClient {
       throw new Error(`failed to get data chain - status: ${response.status}`);
     }
     const result = await response.json();
-    return result as ComputeChain;
+    return result as DataChain;
   }
 
   public async getSyncStatus(): Promise<boolean> {

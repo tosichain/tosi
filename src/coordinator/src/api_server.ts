@@ -4,6 +4,7 @@ import winston from "winston";
 
 import { SignedTransaction, Account, Block, BlockMetadata, StakeType } from "../../blockchain/types";
 import { serializeBlock } from "../../blockchain/serde";
+import { stringifyAccount, stringifyAccounts } from "../../blockchain/util";
 
 export interface RequestHandler {
   submitTransaction(txn: SignedTransaction): Promise<void>;
@@ -79,7 +80,7 @@ export class APIServer {
         res.status(404).send({ error: "account not found" });
         return;
       }
-      res.status(200).send(account);
+      res.status(200).send(stringifyAccount(account));
     } catch (err: any) {
       res.status(500).send({ error: err.message });
     }
@@ -88,7 +89,7 @@ export class APIServer {
   private async getDAVerifiers(req: Request, res: Response): Promise<Response | void> {
     try {
       const stakers = await this.handler.getStakerList(StakeType.DAVerifier);
-      res.status(200).send(stakers);
+      res.status(200).send(stringifyAccounts(stakers));
     } catch (err: any) {
       res.status(500).send({ error: err.message });
     }
@@ -97,7 +98,7 @@ export class APIServer {
   private async getStateVerifiers(req: Request, res: Response): Promise<Response | void> {
     try {
       const stakers = await this.handler.getStakerList(StakeType.StateVerifier);
-      res.status(200).send(stakers);
+      res.status(200).send(stringifyAccounts(stakers));
     } catch (err: any) {
       res.status(500).send({ error: err.message });
     }

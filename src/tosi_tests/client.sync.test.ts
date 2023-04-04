@@ -1,3 +1,5 @@
+// docker compose --profile build -p tosi-chain -f docker-compose-tosi-chain.yml up
+
 import { expect } from "chai";
 import chai from "chai";
 import chaiAsPromised from "chai-as-promised";

@@ -15,7 +15,7 @@ import {
 } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { BlockchainStorage } from "../../blockchain/storage";
-import { hashComputeClaim, stringifyComputeClaim } from "../../blockchain/util";
+import { hashComputeClaim, stringifyAccounts, stringifyComputeClaim } from "../../blockchain/util";
 import {
   IPFS_PUB_SUB_DA_VERIFICATION,
   IPFS_MESSAGE_DA_VERIFICATION_REQUEST,
@@ -164,6 +164,7 @@ export class DAVerifier {
       this.daCommitteeSampleSize,
       randSeed,
     );
+
     const inCommittee = committee.find((s) => s.address == this.blsPubKey) != undefined;
     if (!inCommittee) {
       this.log.info("can not process DA verification request - not in current DA committee sample");
@@ -186,21 +187,27 @@ export class DAVerifier {
       }
     }
 
-    const availability: [string, CID, DAInfo, string][] = await Promise.all(
+    const availability: [string, CID, DAInfo | undefined, string][] = await Promise.all(
       (
         [
           ["court.img", CID.parse(claim.courtCID), "/prev/gov/court.img"],
           ["app.img", CID.parse(claim.appCID), "/prev/gov/app.img"],
           ["input", CID.parse(claim.inputCID), "/input"],
         ] as [string, CID, string][]
-      ).map(async ([path, cid, loc]): Promise<[string, CID, DAInfo, string]> => {
+      ).map(async ([path, cid, loc]): Promise<[string, CID, DAInfo | undefined, string]> => {
         const daInfo = await this.fetchDAInfo(cid);
         return [path, cid, daInfo, loc];
       }),
     );
+    if (availability.find(([path, cid, info, loc]) => !info)) {
+      return {
+        claimHash: claimHash,
+        dataAvailable: false,
+      };
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const daInfo: DAInfo[] = availability.map(([path, cid, info, loc]) => {
+    const daInfo: DAInfo[] = (availability as [string, CID, DAInfo, string][]).map(([path, cid, info, loc]) => {
       return {
         ...info,
         name: loc,
@@ -236,7 +243,7 @@ export class DAVerifier {
     return { claimHash: claimHash, dataAvailable: true };
   }
 
-  private async fetchDAInfo(cid: CID): Promise<DAInfo> {
+  private async fetchDAInfo(cid: CID): Promise<DAInfo | undefined> {
     const cachedDAInfo = this.daInfoCache[cid.toString()];
     if (cachedDAInfo != undefined) {
       this.log.info(`found DA info for CID ${cid.toString()} in cache`);
@@ -244,6 +251,11 @@ export class DAVerifier {
     }
 
     const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), false, this.config.DACheckTimeout);
+    if (!daInfo) {
+      this.log.error(`failed to fetch DA info for CID ${cid.toString()}`);
+      return undefined;
+    }
+
     this.log.info(`fetched DA info for CID ${cid.toString()} - ${JSON.stringify(daInfo)}`);
 
     this.daInfoCache[cid.toString()] = daInfo;

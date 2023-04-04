@@ -12,14 +12,17 @@ export async function createDAInfo(
   path: string,
   noHash: boolean,
   timeout: number,
-): Promise<DAInfo> {
+): Promise<DAInfo | undefined> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
   const command = `IPFS_API=/dns4/${host}/tcp/${port} TIMEOUT=${timeout}s NO_HASH=${noHash} /app/grab-and-hash.sh ${path}`;
   const result = JSON.parse((await execCommand(log, command)).stdout);
+  if (result.error) {
+    return undefined;
+  }
   return {
     name: "",
-    size: result.size,
-    log2: result.log2,
+    size: Number(result.size),
+    log2: Number(result.log2),
     keccak256: result.keccak256,
     cartesiMerkleRoot: result.cartesi_merkle_root,
   } as DAInfo;

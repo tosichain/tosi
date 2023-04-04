@@ -3,6 +3,7 @@ import Gen from "random-seed";
 
 import { Account, StakeType } from "./types";
 import { BlockchainStorage } from "./storage";
+import { stringifyAccounts } from "./util";
 
 import { STAKE_AMOUNT_TO_NUMBER_DENOMINATOR } from "./constant";
 
@@ -13,8 +14,21 @@ export async function getVerificationCommitteeSample(
   randomness: string,
 ): Promise<Account[]> {
   const stakePool = await blockchain.getStakePool();
+
+  let stakerAddresses: string[] = [];
+  switch (committeeType) {
+    case StakeType.DAVerifier:
+      stakerAddresses = stakePool.daVerifiers;
+      break;
+    case StakeType.StateVerifier:
+      stakerAddresses = stakePool.stateVerifiers;
+      break;
+    default:
+      throw new Error("invalid stake type");
+  }
+
   const stakers: Account[] = [];
-  for (const pubKey of stakePool.stateVerifiers) {
+  for (const pubKey of stakerAddresses) {
     const account = await blockchain.getAccount(pubKey);
     if (account == undefined) {
       throw new Error("failed to find staker account");

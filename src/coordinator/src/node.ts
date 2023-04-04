@@ -287,6 +287,8 @@ export class CoordinatorNode {
 
         await this.storage.commitNextBlock(state, nextBlock);
       } catch (err: any) {
+        // !!!
+        throw err;
         this.log.error(`failed to mint next block - ${err.message}`);
       }
     }
