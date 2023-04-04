@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+import "blockchain.proto";
+
+package node;
+
+message GetBlockRequest {
+    string block_hash = 1;
+}
+
+message GetBlockResponse {
+    optional blockchain.Block block = 1;
+}
+
+message GetAccountRequest {
+    string account_address = 1;
+}
+
+message GetAccountResponse {
+    optional blockchain.Account account = 1;
+}
+
+message GetAccountTransactionsRequest {
+    string account_address = 1;
+}
+
+message GetAccountTransactionsResponse {
+    repeated blockchain.Transaction transactions = 1;
+}
+
+message GetStakerListRequest {
+    blockchain.StakeType stake_type = 1;
+}
+
+message GetStakerListResponse {
+    repeated blockchain.Account stakers = 1;
+}
+
+message GetDataChainRequest {
+    string root_claim_hash = 1;
+}
+
+message GetDataChainResponse {
+    blockchain.DataChain data_chain = 1;
+}
+
+message GetDataChainListRequest {
+}
+
+message GetDataChainListResponse {
+    repeated blockchain.DataChain data_chains = 1;
+}
+
+message GetHeadBlockHashRequest {
+}
+
+message GetHeadBlockHashResponse {
+    string block_hash = 1;
+}
+
+message GetBLSPublicKeyRequest {
+}
+
+message GetBLSPublicKeyResponse {
+    string public_key = 1;
+    string public_key_hex = 2;
+}

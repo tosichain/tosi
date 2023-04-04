@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+import "blockchain.proto";
+import "node.proto";
+
+package client;
+
+service CoordinatorNode {
+    rpc GetBlock(node.GetBlockRequest) returns (node.GetBlockResponse);
+    rpc GetAccount(node.GetAccountRequest) returns (node.GetAccountResponse);
+    rpc GetAccountTransactions(node.GetAccountTransactionsRequest) returns (node.GetAccountTransactionsResponse);
+    rpc GetStakerList(node.GetStakerListRequest) returns (node.GetStakerListResponse);
+    rpc GetDataChain(node.GetDataChainRequest) returns (node.GetDataChainResponse);
+    rpc GetDataChainList(node.GetDataChainListRequest) returns (node.GetDataChainResponse);
+    rpc GetHeadBlockHash(node.GetHeadBlockHashRequest) returns (node.GetDataChainListResponse);
+    rpc GetBLSPublicKey(node.GetBLSPublicKeyRequest) returns (node.GetBLSPublicKeyResponse);
+    rpc SumbitSignedTransaction(SubmitSignedTransactionRequest) returns (SubmitSignedTransactionResponse);
+    rpc GetBlockMetadata(GetBlockMetadataRequest) returns (GetBlockMetadataResponse);
+}
+
+message SubmitSignedTransactionRequest {
+    blockchain.SignedTransaction transaction = 1;
+}
+
+message SubmitSignedTransactionResponse {
+}
+
+
+message GetBlockMetadataRequest {
+    string block_hash = 1;
+}
+
+message GetBlockMetadataResponse {
+    blockchain.BlockMetadata block_metadata = 1;
+}

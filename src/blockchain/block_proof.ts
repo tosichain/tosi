@@ -33,7 +33,7 @@ export async function verifyBlockProof(
   // transactions, any further checks are not needed.
   let skipDAResultVerification = true;
   for (const txn of block.transactions) {
-    if (txn.txn.addChain || txn.txn.addClaim) {
+    if (txn.txn.createChain || txn.txn.updateChain) {
       skipDAResultVerification = false;
     }
   }

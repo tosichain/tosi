@@ -2,7 +2,17 @@ import process from "process";
 import keccak256 from "keccak256";
 import JSONbigint from "json-bigint";
 
-import { WorldState, SignedTransaction, Transaction, ComputeClaim, Block, TransactionBundle, Account, StakePool, StakeType } from "./types";
+import {
+  SignedTransaction,
+  Transaction,
+  WorldState,
+  Account,
+  StakePool,
+  DataChain,
+  ComputeClaim,
+  Block,
+  TransactionBundle,
+} from "./types";
 import { createAccount } from "./transaction";
 import {
   serializeBlock,
@@ -24,7 +34,7 @@ export function createInitialStateFromEnv(): WorldState {
       stateVerifiers: [],
     },
     minter: minterPubKey,
-    computeChains: {},
+    dataChains: {},
   };
   state.accounts[minterPubKey] = createAccount(minterPubKey, 0n, 0n, 0n);
 
@@ -83,8 +93,16 @@ export function parseAccount(accountStr: string): Account {
   };
 }
 
+export function stringifyAccounts(accounts: Account[]): string {
+  return JSONbigint.stringify(accounts);
+}
+
 export function stringifyStakePool(pool: StakePool): string {
   return JSONbigint.stringify(pool);
+}
+
+export function stringifyDataChain(chain: DataChain): string {
+  return JSONbigint.stringify(chain);
 }
 
 export function stringifyComputeClaim(claim: ComputeClaim): string {

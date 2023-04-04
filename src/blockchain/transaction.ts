@@ -4,10 +4,10 @@ import {
   TransferToken,
   StakeToken,
   UnstakeToken,
-  AddComputeChain,
-  AddComputeClaim,
+  CreateDataChain,
+  UpdateDataChain,
   Account,
-  ComputeChain,
+  DataChain,
   WorldState,
   StakeType,
 } from "./types";
@@ -46,10 +46,10 @@ export function applyTransaction(state: WorldState, txFrom: string, tx: Transact
       applyStakeTokenTxn(state, txFrom, tx.stake);
     } else if (tx.unstake) {
       applyUnstakeTokenTxn(state, txFrom, tx.unstake);
-    } else if (tx.addChain) {
-      applyAddComputeChainTxn(state, txFrom, tx.addChain);
-    } else if (tx.addClaim) {
-      applyAddComputeClaimTxn(state, txFrom, tx.addClaim);
+    } else if (tx.createChain) {
+      applyAddComputeChainTxn(state, txFrom, tx.createChain);
+    } else if (tx.updateChain) {
+      applyAddComputeClaimTxn(state, txFrom, tx.updateChain);
     } else {
       throw new Error("unknown transaction type");
     }
@@ -246,7 +246,7 @@ function applyStateVerifierUnstakeTokenTxn(
   }
 }
 
-export function applyAddComputeChainTxn(state: WorldState, txFrom: string, txn: AddComputeChain): void {
+export function applyAddComputeChainTxn(state: WorldState, txFrom: string, txn: CreateDataChain): void {
   const claimer = txn.rootClaim.claimer;
   const rootClaimHash = hashComputeClaim(txn.rootClaim);
 
@@ -256,22 +256,22 @@ export function applyAddComputeChainTxn(state: WorldState, txFrom: string, txn: 
   if (txFrom != txn.rootClaim.claimer) {
     throw new Error("only claimer of root claim can create new chain");
   }
-  if (state.computeChains[rootClaimHash] != undefined) {
+  if (state.dataChains[rootClaimHash] != undefined) {
     throw new Error("chain with the same root claim already exists");
   }
 
-  const chain: ComputeChain = {
+  const chain: DataChain = {
     claims: {},
     rootClaimHash: rootClaimHash,
     headClaimHash: rootClaimHash,
   };
   chain.claims[rootClaimHash] = txn.rootClaim;
-  state.computeChains[rootClaimHash] = chain;
+  state.dataChains[rootClaimHash] = chain;
 }
 
-export function applyAddComputeClaimTxn(state: WorldState, txFrom: string, txn: AddComputeClaim): void {
+export function applyAddComputeClaimTxn(state: WorldState, txFrom: string, txn: UpdateDataChain): void {
   const claimer = txn.claim.claimer;
-  const chain = state.computeChains[txn.rootClaimHash];
+  const chain = state.dataChains[txn.rootClaimHash];
 
   if (state.accounts[claimer] == undefined) {
     throw new Error("claimer account does not exist");

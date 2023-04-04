@@ -82,12 +82,12 @@ export class DAVerificationManager {
     const txnsWithoutClaim: SignedTransaction[] = [];
     for (const txn of txnBundle.transactions) {
       let claimHash = undefined;
-      if (txn.txn.addChain != undefined) {
-        requestClaims.push(txn.txn.addChain.rootClaim);
-        claimHash = hashComputeClaim(txn.txn.addChain.rootClaim);
-      } else if (txn.txn.addClaim != undefined) {
-        requestClaims.push(txn.txn.addClaim.claim);
-        claimHash = hashComputeClaim(txn.txn.addClaim.claim);
+      if (txn.txn.createChain != undefined) {
+        requestClaims.push(txn.txn.createChain.rootClaim);
+        claimHash = hashComputeClaim(txn.txn.createChain.rootClaim);
+      } else if (txn.txn.updateChain != undefined) {
+        requestClaims.push(txn.txn.updateChain.claim);
+        claimHash = hashComputeClaim(txn.txn.updateChain.claim);
       } else {
         txnsWithoutClaim.push(txn);
       }

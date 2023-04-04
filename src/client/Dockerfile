@@ -12,6 +12,7 @@ COPY [ "src/contracts", "./src/contracts" ]
 COPY [ "src/node/ipfs-service.ts", "./src/node/ipfs-service.ts" ]
 COPY [ "src/coordinator/src/api_client.ts", "./src/coordinator/src/api_client.ts" ]
 COPY [ "src/p2p", "./src/p2p" ]
+COPY [ "src/proto", "./src/proto"]
 
 # "Indirect" dependencies from computechain source.
 

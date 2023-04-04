@@ -9,6 +9,7 @@ COPY [ "src/node/ipfs.ts", "./src/node/ipfs.ts"]
 COPY [ "src/blockchain", "./src/blockchain" ]
 COPY [ "src/p2p", "./src/p2p" ]
 COPY [ "src/contracts", "./src/contracts" ]
+COPY [ "src/proto", "./src/proto"]
 
 # "Indirect" dependencies from computechain source.
 

@@ -1,0 +1,140 @@
+syntax = "proto3";
+
+package blockchain;
+
+message SignedTransaction {
+    string from = 1;
+    string signature = 2;
+    Transaction txn = 3;
+}
+
+message Transaction {
+    optional MintToken mint = 1;
+    optional TransferToken transfer = 2;
+    optional StakeToken stake = 3;
+    optional UnstakeToken unstake = 4;
+    optional CreateDataChain create_chain = 5;
+    optional UpdateDataChain update_chain = 6;
+    uint32 nonce = 7;
+}
+
+message MintToken {
+    string receiver = 1;
+    uint64 amount = 2 [jstype = JS_STRING];
+}
+
+message TransferToken {
+    string receiver = 1;
+    uint64 amount = 2 [jstype = JS_STRING];
+}
+
+enum StakeType {
+    da_verifier = 0;
+    state_verifier = 1;
+}
+
+message StakeToken {
+    StakeType stake_type = 1;
+    uint64 amount = 2 [jstype = JS_STRING];
+}
+
+message UnstakeToken {
+    StakeType stake_type = 1;
+    uint64 amount = 2 [jstype = JS_STRING];
+}
+
+message CreateDataChain {
+    ComputeClaim root_claim = 1;
+}
+
+message UpdateDataChain {
+    string root_claim_hash = 1;
+    ComputeClaim claim = 2;
+}
+
+message WorldState {
+    repeated Account accounts = 1;
+    StakePool stake_pool = 2;
+    string minter = 3;
+    repeated DataChain data_chains = 4;
+}
+
+message Account {
+    string address = 1;
+    int32 nonce = 2;
+    uint64 balance = 3 [jstype = JS_STRING];
+    uint64 da_verifier_stake = 4 [jstype = JS_STRING];
+    uint64 state_verifier_stake = 5 [jstype = JS_STRING];
+}
+
+message StakePool {
+    uint64 da_verifier_pool = 1 [jstype = JS_STRING];
+    repeated string da_verifiers = 2;
+    uint64 state_verifier_pool = 3 [jstype = JS_STRING];
+    repeated string state_verifiers = 4;
+}
+
+message DataChain {
+    repeated ComputeClaim claims = 1;
+    string root_claim_hash = 2;
+    string head_claim_hash = 3;
+}
+
+message ComputeClaim {
+    string claimer = 1;
+    string prev_claim_hash = 2;
+    string court_cid = 3;
+    string app_cid = 4;
+    string input_cid = 5;
+    string output_cid = 6;
+    repeated DAInfo da_info = 7;
+    uint32 return_code = 8;
+    uint64 max_cartesi_cycles = 9 [jstype = JS_STRING];
+}
+
+message DAInfo {
+    string name = 1;
+    uint32 size = 2;
+    uint32 log2 = 3;
+    string keccak_256 = 4;
+    string cartesi_merkle_root = 5;
+}
+
+message Block {
+    uint32 version = 1;
+    bytes prev_block_hash = 2;
+    repeated bytes accounts_merkle = 3;
+    repeated SignedTransaction transactions = 4;
+    BlockProof proof = 5;
+    uint32 time = 6;
+}
+
+message BlockProof {
+    string txn_bundle_hash = 1;
+    string txn_bundle_proposer = 2;
+    bytes randomness_proof = 3;
+    repeated DACheckResult da_check_results = 4;
+    bytes agg_da_check_result_signature = 5;
+}
+
+message DACheckResult {
+    string txn_bundle_hash = 1;
+    bytes randomness_proof = 2;
+    bytes signature = 3;
+    string signer = 4;
+    repeated ClaimDACheckResult claims = 5;
+}
+
+message ClaimDACheckResult {
+    string claim_hash = 1;
+    bool data_available = 2;
+}
+
+message TransactionBundle {
+    string head_block_hash = 1;
+    repeated SignedTransaction transactions = 2;
+}
+
+message BlockMetadata {
+    string cid = 1;
+}
