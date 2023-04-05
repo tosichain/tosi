@@ -14,7 +14,8 @@ import { BlockchainClientSyncConfig, BlockchainClientSync } from "./blockchain_s
 import { ClientNodeAPIServerConfig, ClientNodeAPIServer } from "./api_server";
 import { DAVerifierConfig, DAVerifier } from "./da_verifier";
 import { createDAInfo } from "./util";
-import { DEFAULT_PROGRAM_RETURN_CODE, DEFAULT_CARTESI_VM_MAX_CYCLES } from "./constant";
+import { DEFAULT_PROGRAM_RETURN_CODE, DEFAULT_CARTESI_VM_MAX_CYCLES, SWARM_PING_INTERVAL } from "./constant";
+import { keepConnectedToSwarm } from "../../p2p/util";
 
 export interface ClientNodeConfig {
   coordinator: CoordinatorAPIClientConfig;
@@ -109,6 +110,9 @@ export class ClientNode {
     await this.blockchainSync.start();
     await this.daVerifier?.start();
     await this.apiServer.start();
+
+    const genesisBlockHash = await this.storage.getGenesisBlockHash();
+    await keepConnectedToSwarm("tosi-" + genesisBlockHash, this.ipfs, this.log, SWARM_PING_INTERVAL);
   }
 
   // API methods.
