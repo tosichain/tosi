@@ -18,6 +18,7 @@ import { GENESIS_BLOCK_VERSION } from "./constant";
 
 const DB_KEY_HEAD_BLOCK = "headBlock";
 const DB_KEY_STATE_VALUE = "value";
+const DB_KEY_GENESIS_BLOCK = "genesisBlock";
 
 export interface BlockchainStorageConfig {
   readonly dbHost: string;
@@ -67,7 +68,8 @@ export class BlockchainStorage {
     }
     this.log.info("Checking DB state...");
     const headValue = await this.getValue("main", DB_KEY_HEAD_BLOCK);
-    if (headValue == null) {
+    const genesisValue = await this.getValue("main", DB_KEY_GENESIS_BLOCK);
+    if (headValue == null || genesisValue == null) {
       this.log.info("Initialising DB");
       if (this.config.initialState) {
         await this.initDB(this.config.initialState);
@@ -177,7 +179,18 @@ export class BlockchainStorage {
     // TODO do this in a singular commit next time
     await this.putValue("main", DB_KEY_HEAD_BLOCK, encodeStringValue(genesisBlockHash));
     await this.putValue("state", DB_KEY_STATE_VALUE, rawState);
+    await this.putValue("main", DB_KEY_GENESIS_BLOCK, encodeStringValue(genesisBlockHash));
+
     await this.putValue("block", genesisBlockHash, rawGenesisBlock);
+  }
+
+  public async getGenesisBlockHash(): Promise<string> {
+    const genesisBlock = await this.getValue("main", DB_KEY_GENESIS_BLOCK);
+    if (!genesisBlock) {
+      throw new Error("Genesis block info not found");
+    }
+    const genesisBlockHash = decodeStringValue(genesisBlock);
+    return genesisBlockHash;
   }
 
   public async submitTransaction(txn: SignedTransaction): Promise<void> {

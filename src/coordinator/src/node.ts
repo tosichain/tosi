@@ -35,7 +35,8 @@ import { DatachainV1 } from "../../contracts/DatachainV1";
 import { UUPSProxy__factory } from "../../contracts/factories/UUPSProxy__factory";
 import { APIServerConfig, APIServer } from "./api_server";
 import { DAVerificationManagerConfig, DAVerificationManager } from "./da_verification";
-import { COORDINATOR_BLOCK_VERSION } from "./constant";
+import { COORDINATOR_BLOCK_VERSION, SWARM_PING_INTERVAL } from "./constant";
+import { keepConnectedToSwarm } from "../../p2p/util";
 
 export type IPFSOptions = IpfsHttpClient.Options;
 
@@ -144,7 +145,8 @@ export class CoordinatorNode {
         }
       }
     }
-
+    const genesisBlockHash = await this.storage.getGenesisBlockHash();
+    await keepConnectedToSwarm("tosi-" + genesisBlockHash, this.ipfs, this.log, SWARM_PING_INTERVAL);
     await this.offchainManager.start();
 
     this.createNextBlock();
