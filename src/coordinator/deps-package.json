@@ -17,7 +17,6 @@
     "isomorphic-fetch": "^3.0.0",
     "json-bigint": "^1.0.0",
     "keccak256": "^1.0.3",
-    "level": "^8.0.0",
     "merkletreejs": "^0.2.24",
     "mysql": "^2.18.1",
     "node-fetch": "2.6.7",
