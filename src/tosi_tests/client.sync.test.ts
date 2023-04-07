@@ -126,10 +126,18 @@ async function checkHeadBlock(): Promise<void> {
     throw new Error("coordinatorBlock is undefined");
   }
 
-  // Get head block from client node.
-  const clientBlock = await client.getBlock(blockHash);
-  if (clientBlock == undefined) {
-    throw new Error("clientBlock is undefined");
+  let clientBlock;
+  while (true) {
+    // Get head block from client node.
+    clientBlock = await client.getBlock(blockHash);
+    if (clientBlock !== undefined) {
+      break;
+    } else {
+      log.info("client does not (yet?) have block: " + blockHash);
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+    }
   }
 
   // Check that blocks are "equal".
