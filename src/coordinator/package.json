@@ -31,7 +31,6 @@
     "express": "^4.17.1",
     "ipfs-http-client": "^56.0.1",
     "keccak256": "^1.0.3",
-    "level": "^8.0.0",
     "merkletreejs": "^0.2.24",
     "mysql": "^2.18.1",
     "winston": "^3.7.2"
