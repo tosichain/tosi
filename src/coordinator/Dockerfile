@@ -1,7 +1,7 @@
 FROM node:18-alpine3.14 as builder
 
 WORKDIR /computechain
-RUN apk add curl
+RUN apk add curl python3
 
 # "Direct" dependencies from computechain source.
 COPY [ "src/util.ts", "./src/util.ts" ]
