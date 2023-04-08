@@ -127,4 +127,20 @@ export class CoordinatorAPIClient {
     const rawBlock = new Uint8Array(Buffer.from(result.block, "base64"));
     return deserializeBlock(rawBlock);
   }
+
+  public async getIpfsBootstrap(): Promise<string[] | undefined> {
+    const url = `${this.config.apiURL}/ipfsBootstrap`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    if (response.status == 404) {
+      return undefined;
+    } else if (!response.ok) {
+      throw new Error(`failed to get ipfs bootstrap - status: ${response.status}`);
+    }
+    return (await response.json()) as string[];
+  }
 }
