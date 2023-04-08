@@ -80,6 +80,7 @@ jobs:
           sudo docker buildx build -f src/tosi_tests/Dockerfile -t test:1.0 .
       - name: Test contracts
         run: docker run --network=host test:1.0 npx hardhat test --network localhost
+        if: ${{ matrix.name == 'client sync on localnet' }}
       - name: Check IPFS peers before running tests
         run: |
           echo "ipfs-1" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-1 ipfs swarm peers
@@ -102,5 +103,7 @@ jobs:
           name: integration-logs.${{ matrix.composefile }}.${{ matrix.logfile }}
           path: logs.${{ matrix.composefile }}.${{ matrix.logfile }}.txt.gz
       - name: Stop the containers
+        if: ${{ always() }}
         run: |
-          docker compose -p tosi-chain -f ${{ matrix.composefile }} down
+          docker compose -p tosi-chain -f ${{ matrix.composefile }} down || true
+          docker compose -p tosi-chain -f ${{ matrix.composefile }} rm -f -s -v || true

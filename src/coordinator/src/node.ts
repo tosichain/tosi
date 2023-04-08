@@ -104,11 +104,22 @@ export class CoordinatorNode {
   }
 
   public async start(): Promise<void> {
-    if (this.config.eth.impersonateAddress) {
+    if (this.config.eth.impersonateAddress && this.config.chain.coordinatorSmartContract) {
       await this.ethProvider.send("hardhat_impersonateAccount", [this.config.eth.impersonateAddress]);
       await this.ethProvider.send("hardhat_setBalance", [this.config.eth.impersonateAddress, "0x50000000000000000"]);
 
       this.ethWallet = this.ethProvider.getSigner(this.config.eth.impersonateAddress);
+      this.log.info(`deploying smart contracts / upgrading`);
+
+      const contractFactory = new DatachainV1__factory(this.ethWallet);
+      const deployedContract = await contractFactory.deploy();
+      this.claimContract = DatachainV1__factory.connect(this.config.chain.coordinatorSmartContract, this.ethWallet);
+
+      await this.claimContract.setCoordinatorNode(await this.ethWallet.getAddress());
+      await this.claimContract.upgradeTo(deployedContract.address);
+
+      this.log.info("Upgraded smart contract and set coordinator node to " + (await this.ethWallet.getAddress()));
+      this.log.info(`smart contracts successfully deployed`);
     } else {
       this.ethWallet = new ethers.Wallet(this.config.eth.walletSecret, this.ethProvider);
       this.log.info("*** Ethereum wallet: " + (this.ethWallet as ethers.Wallet).address);
@@ -116,7 +127,16 @@ export class CoordinatorNode {
 
     await this.storage.init();
     await this.ipfs.up(this.log);
-
+    while (true) {
+      const peers = await this.ipfs.getIPFS().swarm.peers();
+      if (peers.length > 0) {
+        break;
+      }
+      this.log.info("IPFS has no peers, waiting a second..");
+      await new Promise((resolve, reject) => {
+        setTimeout(resolve, 1000);
+      });
+    }
     // Need to retry in case eth rpc endpoint is temporarily unavailable.
     let retryCount = 0;
     while (true) {
@@ -124,11 +144,9 @@ export class CoordinatorNode {
         throw new Error(`failed to connect to eth rpc endpoint`);
       }
       try {
-        if (!this.config.chain.coordinatorSmartContract) {
-          this.log.info(`deploying smart contracts`);
+        if (!this.config.chain.coordinatorSmartContract && !this.claimContract) {
           await this.deployEthContracts();
-          this.log.info(`smart contracts successfully deployed`);
-        } else {
+        } else if (!this.claimContract) {
           await this.connectEthContract();
         }
         break;
@@ -161,16 +179,9 @@ export class CoordinatorNode {
       throw new Error("ethWallet not connected");
     }
     if (!this.config.chain.coordinatorSmartContract) {
-      throw new Error("No smart contract address");
+      throw new Error("config.chain.coordinatorSmartContract not set");
     }
     this.claimContract = DatachainV1__factory.connect(this.config.chain.coordinatorSmartContract, this.ethWallet);
-    if (this.config.eth.impersonateAddress) {
-      const contractFactory = new DatachainV1__factory(this.ethWallet);
-      const deployedContract = await contractFactory.deploy();
-      await this.claimContract.setCoordinatorNode(await this.ethWallet.getAddress());
-      await this.claimContract.upgradeTo(deployedContract.address);
-      this.log.info("Upgraded smart contract and set coordinator node to " + (await this.ethWallet.getAddress()));
-    }
   }
 
   private async deployEthContracts(): Promise<void> {
@@ -405,5 +416,9 @@ export class CoordinatorNode {
 
   public async getBlock(blockHash: string): Promise<Block | undefined> {
     return await this.storage.getBlock(blockHash);
+  }
+
+  public async getIPFSMultiaddrs(): Promise<string[]> {
+    return (await this.ipfs.getIPFS().id()).addresses.map((x) => x.toString());
   }
 }

@@ -106,6 +106,27 @@ export class ClientNode {
 
   public async start(): Promise<void> {
     await this.ipfs.up(this.log);
+    const bootstrap = await this.coordinator.getIpfsBootstrap();
+    if (bootstrap) {
+      for (let i = 0; i < bootstrap.length; i++) {
+        this.ipfs
+          .getIPFS()
+          .swarm.connect(bootstrap[i])
+          .catch((err) => {
+            this.log.info("failed to connect to bootstrap peer: " + bootstrap[i]);
+          });
+      }
+    }
+    while (true) {
+      const peers = await this.ipfs.getIPFS().swarm.peers();
+      if (peers.length > 0) {
+        break;
+      }
+      this.log.info("IPFS has no peers, waiting a second..");
+      await new Promise((resolve, reject) => {
+        setTimeout(resolve, 1000);
+      });
+    }
     await this.storage.init();
     await this.blockchainSync.start();
     await this.daVerifier?.start();

@@ -12,6 +12,7 @@ export interface RequestHandler {
   getHeadBblockHash(): Promise<string>;
   getBlockMetadata(blockHash: string): Promise<BlockMetadata | undefined>;
   getBlock(blockHash: string): Promise<Block | undefined>;
+  getIPFSMultiaddrs(): Promise<string[]>;
 }
 
 export interface APIServerConfig {
@@ -39,6 +40,7 @@ export class APIServer {
     this.http.get("/api/headBlockHash", this.getHeadBlockHash.bind(this));
     this.http.get("/api/blockMetadata/:blockHash", this.getBlockMetadata.bind(this));
     this.http.get("/api/block/:blockHash", this.getBlock.bind(this));
+    this.http.get("/api/ipfsBootstrap", this.getIpfsBootstrap.bind(this));
     this.http.get("/health", this.health.bind(this));
   }
 
@@ -145,5 +147,9 @@ export class APIServer {
 
   private async health(req: Request, res: Response): Promise<Response | void> {
     res.status(200).send({ health: true });
+  }
+
+  private async getIpfsBootstrap(req: Request, res: Response): Promise<Response | void> {
+    res.status(200).send(await this.handler.getIPFSMultiaddrs());
   }
 }
