@@ -125,6 +125,11 @@ async function checkHeadBlock(): Promise<void> {
     log.error(`client does not have block ${coordinatorBlock}`);
     throw new Error("coordinatorBlock is undefined");
   }
+ 
+  const clientBlockHash = (await client.getLatestLocalHash()).slice(2);
+  if (clientBlockHash !== blockHash) {
+    throw new Error(`clientBlockHash ${clientBlockHash} != coordinator blockHash ${blockHash}`);
+  }
 
   // Get head block from client node.
   const clientBlock = await client.getBlock(blockHash);
