@@ -10,7 +10,7 @@ chai.use(chaiAsPromised);
 import { Transaction, ComputeClaim, StakeType } from "../blockchain/types";
 import { stringifyAccount } from "../blockchain/util";
 import { signTransaction } from "../blockchain/block";
-import { CoordinatorAPIClient } from "../coordinator/src/api_client";
+import { CoordinatorRPC } from "../coordinator/src/rpc";
 import { ClientNodeAPIClient } from "../client/src/api_client";
 import { IPFS } from "../node/ipfs";
 import { hashComputeClaim } from "../blockchain/util";
@@ -34,7 +34,7 @@ const daVerifier3PrivKey = Buffer.from("34a4db75366744ce1aef1702a981dac83bede3c9
 const daVerifier3PubKey = Buffer.from(BLS.getPublicKey(daVerifier3PrivKey)).toString("hex");
 
 let log: winston.Logger;
-let coordinator: CoordinatorAPIClient;
+let coordinator: CoordinatorRPC;
 let client: ClientNodeAPIClient;
 let daVerifier1: ClientNodeAPIClient;
 let daVerifier2: ClientNodeAPIClient;
@@ -55,12 +55,9 @@ before(async () => {
     }),
   );
 
-  coordinator = new CoordinatorAPIClient(
-    {
-      apiURL: "http://127.0.0.1:20001/api",
-    },
-    log,
-  );
+  coordinator = new CoordinatorRPC({
+    serverAddr: "127.0.0.1:20001",
+  });
 
   client = new ClientNodeAPIClient(
     {
@@ -88,7 +85,7 @@ before(async () => {
     log,
   );
 
-  lastHeadBlockHash = await coordinator.getHeadBblockHash();
+  lastHeadBlockHash = await coordinator.getHeadBlockHash();
 
   ipfs = new IPFS({ host: "127.0.0.1", port: 50011 }, log);
   await ipfs.up(log);
@@ -167,7 +164,7 @@ async function setupDACommittee() {
     },
     nonce: 0,
   };
-  await coordinator.submitTransaction(await signTransaction(txn1, minterPrivKey));
+  await coordinator.submitSignedTransaction(await signTransaction(txn1, minterPrivKey));
   const txn2 = {
     mint: {
       receiver: daVerifier1PubKey,
@@ -175,7 +172,7 @@ async function setupDACommittee() {
     },
     nonce: 1,
   };
-  await coordinator.submitTransaction(await signTransaction(txn2, minterPrivKey));
+  await coordinator.submitSignedTransaction(await signTransaction(txn2, minterPrivKey));
   const txn3 = {
     mint: {
       receiver: daVerifier2PubKey,
@@ -183,7 +180,7 @@ async function setupDACommittee() {
     },
     nonce: 2,
   };
-  await coordinator.submitTransaction(await signTransaction(txn3, minterPrivKey));
+  await coordinator.submitSignedTransaction(await signTransaction(txn3, minterPrivKey));
   const txn4 = {
     mint: {
       receiver: daVerifier3PubKey,
@@ -191,7 +188,7 @@ async function setupDACommittee() {
     },
     nonce: 3,
   };
-  await coordinator.submitTransaction(await signTransaction(txn4, minterPrivKey));
+  await coordinator.submitSignedTransaction(await signTransaction(txn4, minterPrivKey));
 
   let accountNonces: Record<string, number> = {};
   accountNonces[minterPubKey] = 3;

@@ -1,6 +1,6 @@
 import { Transaction } from "../../blockchain/types";
 import { signTransaction } from "../../blockchain/block";
-import { CoordinatorAPIClient } from "../../coordinator/src/api_client";
+import { CoordinatorRPC } from "../../coordinator/src/rpc";
 import winston from "winston";
 
 let log: winston.Logger;
@@ -13,9 +13,9 @@ async function init() {
     process.exit(1);
   }
 
-  const coordinatorAPIurl = process.env.COORDINATOR_API;
-  if (!coordinatorAPIurl) {
-    console.error("COORDINATOR_API environment variable is not set.");
+  const coordinatorRPCServerAddr = process.env.COORDINATOR_RPC_SERVER_ADDR;
+  if (!coordinatorRPCServerAddr) {
+    console.error("COORDINATOR_RPC_SERVER_ADDR environment variable is not set.");
     process.exit(1);
   }
 
@@ -65,13 +65,10 @@ async function init() {
   const signature = await signTransaction(txn, sendPrivKey);
 
   // Send the signed transaction to the coordinator.
-  const coordinator = new CoordinatorAPIClient(
-    {
-      apiURL: coordinatorAPIurl,
-    },
-    log,
-  );
-  await coordinator.submitTransaction(signature);
+  const coordinator = new CoordinatorRPC({
+    serverAddr: coordinatorRPCServerAddr,
+  });
+  await coordinator.submitSignedTransaction(signature);
 }
 
 init().catch((err) => {

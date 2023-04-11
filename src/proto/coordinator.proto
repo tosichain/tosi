@@ -11,9 +11,11 @@ service CoordinatorNode {
     rpc GetAccountTransactions(node.GetAccountTransactionsRequest) returns (node.GetAccountTransactionsResponse);
     rpc GetStakerList(node.GetStakerListRequest) returns (node.GetStakerListResponse);
     rpc GetDataChain(node.GetDataChainRequest) returns (node.GetDataChainResponse);
-    rpc GetDataChainList(node.GetDataChainListRequest) returns (node.GetDataChainResponse);
-    rpc GetHeadBlockHash(node.GetHeadBlockHashRequest) returns (node.GetDataChainListResponse);
+    rpc GetDataChainList(node.GetDataChainListRequest) returns (node.GetDataChainListResponse);
+    rpc GetHeadBlockHash(node.GetHeadBlockHashRequest) returns (node.GetHeadBlockHashResponse);
     rpc GetBLSPublicKey(node.GetBLSPublicKeyRequest) returns (node.GetBLSPublicKeyResponse);
+    rpc GetIPFSBootstrap(node.GetIPFSBootstrapRequest) returns (node.GetIPFSBootstrapResponse);
+    rpc GetHealth(node.GetHealthRequest) returns (node.GetHealthResponse);
     rpc SumbitSignedTransaction(SubmitSignedTransactionRequest) returns (SubmitSignedTransactionResponse);
     rpc GetBlockMetadata(GetBlockMetadataRequest) returns (GetBlockMetadataResponse);
 }

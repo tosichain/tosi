@@ -7,7 +7,7 @@ import { createInitialStateFromEnv } from "../../blockchain/util";
 (async () => {
   const config: ClientNodeConfig = {
     coordinator: {
-      apiURL: String(process.env.COORDINATOR_API_URL),
+      serverAddr: String(process.env.COORDINATOR_RPC_SERVER_ADDR),
     },
     ipfs: {
       host: process.env.IPFS_HTTP_API_HOST,

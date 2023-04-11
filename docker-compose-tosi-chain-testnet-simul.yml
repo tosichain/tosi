@@ -152,7 +152,7 @@ services:
       IPFS_SERVICE_HOST_PORT: "descartes-ipfs-2:50051"
       STORAGE_DB_PATH: "./tosi-blockchain-db"
       COORDINATOR_PUB_KEY: "9514e6d6ea03d953a9b8ae4157e96f6523ff8f4819839842892ba180b9c2a6eb5bc23bf7e5a4ea64c0fba491bc7b5f78"
-      COORDINATOR_API_URL: "http://coordinator:20001/api"
+      COORDINATOR_RPC_SERVER_ADDR: "coordinator:20001"
       VERIFIER_HOST: "client-verifier"
       SYNC_ETH_RPC: "http://localnet:8545"
       SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x4731A0Dd87e637321D4E4980BeF351f992F14b77" # UUPSProxy contract.
@@ -223,7 +223,7 @@ services:
       IPFS_SERVICE_HOST_PORT: "descartes-ipfs-3:50051"
       STORAGE_DB_PATH: "./tosi-blockchain-db"
       COORDINATOR_PUB_KEY: "9514e6d6ea03d953a9b8ae4157e96f6523ff8f4819839842892ba180b9c2a6eb5bc23bf7e5a4ea64c0fba491bc7b5f78"
-      COORDINATOR_API_URL: "http://coordinator:20001/api"
+      COORDINATOR_RPC_SERVER_ADDR: "coordinator:20001"
       SYNC_ETH_RPC: "http://localnet:8545"
       SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x4731A0Dd87e637321D4E4980BeF351f992F14b77" # UUPSProxy contract.
       SYNC_PERIOD: 1000 # 1 second
@@ -297,7 +297,7 @@ services:
       IPFS_SERVICE_HOST_PORT: "descartes-ipfs-4:50051"
       STORAGE_DB_PATH: "./tosi-blockchain-db"
       COORDINATOR_PUB_KEY: "9514e6d6ea03d953a9b8ae4157e96f6523ff8f4819839842892ba180b9c2a6eb5bc23bf7e5a4ea64c0fba491bc7b5f78"
-      COORDINATOR_API_URL: "http://coordinator:20001/api"
+      COORDINATOR_RPC_SERVER_ADDR: "coordinator:20001"
       VERIFIER_HOST: "da-checker-2-verifier"
       SYNC_ETH_RPC: "http://localnet:8545"
       SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x4731A0Dd87e637321D4E4980BeF351f992F14b77" # UUPSProxy contract.
@@ -369,7 +369,7 @@ services:
       IPFS_SERVICE_HOST_PORT: "descartes-ipfs-5:50051"
       STORAGE_DB_PATH: "./tosi-blockchain-db"
       COORDINATOR_PUB_KEY: "9514e6d6ea03d953a9b8ae4157e96f6523ff8f4819839842892ba180b9c2a6eb5bc23bf7e5a4ea64c0fba491bc7b5f78"
-      COORDINATOR_API_URL: "http://coordinator:20001/api"
+      COORDINATOR_RPC_SERVER_ADDR: "coordinator:20001"
       VERIFIER_HOST: "da-checker-3-verifier"
       SYNC_ETH_RPC: "http://localnet:8545"
       SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x4731A0Dd87e637321D4E4980BeF351f992F14b77" # UUPSProxy contract.

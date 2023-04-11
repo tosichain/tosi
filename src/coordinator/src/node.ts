@@ -8,12 +8,14 @@ import { currentUnixTime } from "../../util";
 
 import {
   SignedTransaction,
+  Transaction,
   Account,
-  Block,
-  BlockMetadata,
-  BlockProof,
-  TransactionBundle,
   StakeType,
+  DataChain,
+  Block,
+  BlockProof,
+  BlockMetadata,
+  TransactionBundle,
 } from "../../blockchain/types";
 import { serializeBlock, deserializeBlockMetadata, serializeBlockMetadata } from "../../blockchain/serde";
 import { mintNextBlock } from "../../blockchain/block";
@@ -33,7 +35,7 @@ import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/sto
 import { DatachainV1__factory } from "../../contracts/factories/DatachainV1__factory";
 import { DatachainV1 } from "../../contracts/DatachainV1";
 import { UUPSProxy__factory } from "../../contracts/factories/UUPSProxy__factory";
-import { APIServerConfig, APIServer } from "./api_server";
+import { CoordinatorRPCServerConfig, CoordinatorRPCServer } from "./rpc_server";
 import { DAVerificationManagerConfig, DAVerificationManager } from "./da_verification";
 import { COORDINATOR_BLOCK_VERSION, SWARM_PING_INTERVAL } from "./constant";
 import { keepConnectedToSwarm } from "../../p2p/util";
@@ -43,7 +45,7 @@ export type IPFSOptions = IpfsHttpClient.Options;
 
 export interface CoordinatorNodeConfig {
   storage: BlockchainStorageConfig;
-  apiServer?: APIServerConfig;
+  apiServer?: CoordinatorRPCServerConfig;
   ipfs: {
     options: IPFSOptions;
     blockchainSyncPeriod: number;
@@ -76,7 +78,7 @@ export class CoordinatorNode {
   private readonly storage: BlockchainStorage;
   private readonly ipfs: IPFS;
 
-  private readonly api?: APIServer;
+  private readonly api?: CoordinatorRPCServer;
 
   private ethProvider: ethers.providers.JsonRpcProvider;
   private ethWallet: ethers.Signer | undefined;
@@ -96,7 +98,7 @@ export class CoordinatorNode {
     this.storage = new BlockchainStorage(this.config.storage, this.log);
     this.ipfs = new IPFS(this.config.ipfs.options, this.log);
     if (this.config.apiServer != undefined) {
-      this.api = new APIServer(this.config.apiServer, this.log, this);
+      this.api = new CoordinatorRPCServer(this.config.apiServer, this.log, this);
     }
     this.ethProvider = new ethers.providers.JsonRpcProvider(this.config.eth.rpc);
 
@@ -365,12 +367,38 @@ export class CoordinatorNode {
 
   // API methods.
 
-  public async submitTransaction(txn: SignedTransaction): Promise<void> {
-    this.storage.submitTransaction(txn);
+  public async getBlock(blockHash: string): Promise<Block | undefined> {
+    return await this.storage.getBlock(blockHash);
   }
 
-  public async getAccount(pubKey: string): Promise<Account | undefined> {
-    return this.storage.getAccount(pubKey);
+  public async getAccount(address: string): Promise<Account | undefined> {
+    return this.storage.getAccount(address);
+  }
+
+  public async getAccountTransactions(address: string): Promise<Transaction[] | undefined> {
+    if (!(await this.storage.getAccount(address))) {
+      return undefined;
+    }
+
+    const transactions: Transaction[] = [];
+    let lastBlockHash = await this.storage.getHeadBlockHash();
+    while (true) {
+      const block = await this.storage.getBlock(lastBlockHash);
+      if (block == undefined) {
+        break;
+      }
+      block.transactions.forEach((transaction) => {
+        if (transaction.from == address) {
+          transactions.push(transaction.txn);
+        }
+      });
+      lastBlockHash = block.prevBlockHash;
+      if (lastBlockHash == "") {
+        break;
+      }
+    }
+
+    return transactions;
   }
 
   public async getStakerList(stakeType: StakeType): Promise<Account[]> {
@@ -401,8 +429,28 @@ export class CoordinatorNode {
     return stakers;
   }
 
+  public async getDataChain(rootClaimHash: string): Promise<DataChain | undefined> {
+    return await this.storage.getComputeChain(rootClaimHash);
+  }
+
+  public async getDataChainList(): Promise<DataChain[]> {
+    return await this.storage.getDataChainList();
+  }
+
   public async getHeadBblockHash(): Promise<string> {
     return await this.storage.getHeadBlockHash();
+  }
+
+  public async getBLSPublicKey(): Promise<string> {
+    return this.blsPubKey;
+  }
+
+  public async getIPFSBootstrap(): Promise<string[]> {
+    return (await this.ipfs.getIPFS().id()).addresses.map((x) => x.toString());
+  }
+
+  public async submitSignedTransaction(txn: SignedTransaction): Promise<void> {
+    await this.storage.submitTransaction(txn);
   }
 
   public async getBlockMetadata(blockHash: string): Promise<BlockMetadata | undefined> {
@@ -412,13 +460,5 @@ export class CoordinatorNode {
     }
     const meta = deserializeBlockMetadata(rawMeta);
     return meta;
-  }
-
-  public async getBlock(blockHash: string): Promise<Block | undefined> {
-    return await this.storage.getBlock(blockHash);
-  }
-
-  public async getIPFSMultiaddrs(): Promise<string[]> {
-    return (await this.ipfs.getIPFS().id()).addresses.map((x) => x.toString());
   }
 }

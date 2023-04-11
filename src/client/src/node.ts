@@ -7,7 +7,7 @@ import { IPFS } from "../../node/ipfs";
 import { IPFSServiceOptions, IPFSService } from "../../node/ipfs-service";
 
 import { Transaction, Account, DAInfo, Block, DataChain, StakeType } from "../../blockchain/types";
-import { CoordinatorAPIClientConfig, CoordinatorAPIClient } from "../../coordinator/src/api_client";
+import { CoordinatorRPCConfig, CoordinatorRPC } from "../../coordinator/src/rpc";
 import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/storage";
 import { signTransaction } from "../../blockchain/block";
 import { BlockchainClientSyncConfig, BlockchainClientSync } from "./blockchain_sync";
@@ -18,7 +18,7 @@ import { DEFAULT_PROGRAM_RETURN_CODE, DEFAULT_CARTESI_VM_MAX_CYCLES, SWARM_PING_
 import { keepConnectedToSwarm } from "../../p2p/util";
 
 export interface ClientNodeConfig {
-  coordinator: CoordinatorAPIClientConfig;
+  coordinator: CoordinatorRPCConfig;
   ipfs: IpfsHttpClient.Options;
   ipfsService: IPFSServiceOptions;
   storage: BlockchainStorageConfig;
@@ -55,7 +55,7 @@ export class ClientNode {
 
   private readonly log: winston.Logger;
 
-  private readonly coordinator: CoordinatorAPIClient;
+  private readonly coordinator: CoordinatorRPC;
 
   private readonly ipfs: IPFS;
   private readonly ipfsService: IPFSService;
@@ -73,7 +73,7 @@ export class ClientNode {
 
     this.log = log;
 
-    this.coordinator = new CoordinatorAPIClient(this.config.coordinator, this.log);
+    this.coordinator = new CoordinatorRPC(this.config.coordinator);
 
     this.ipfs = new IPFS(this.config.ipfs, this.log);
     this.ipfsService = new IPFSService(this.config.ipfsService, this.log);
@@ -106,7 +106,7 @@ export class ClientNode {
 
   public async start(): Promise<void> {
     await this.ipfs.up(this.log);
-    const bootstrap = await this.coordinator.getIpfsBootstrap();
+    const bootstrap = await this.coordinator.getIPFSBootstrap();
     if (bootstrap) {
       for (let i = 0; i < bootstrap.length; i++) {
         this.ipfs
@@ -255,7 +255,7 @@ export class ClientNode {
 
     // Sign transaction and send it.
     const signedTxn = await signTransaction(txnWithNonce, this.config.blsSecKey);
-    await this.coordinator.submitTransaction(signedTxn);
+    await this.coordinator.submitSignedTransaction(signedTxn);
 
     return;
   }
@@ -319,7 +319,7 @@ export class ClientNode {
   }
 
   public async getDatachains() {
-    return await this.storage.getDatachains();
+    return await this.storage.getDataChainList();
   }
 
   public async getAccountHistory(pubkey: string) {

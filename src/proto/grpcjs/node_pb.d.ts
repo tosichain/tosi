@@ -316,8 +316,6 @@ export namespace GetBLSPublicKeyRequest {
 export class GetBLSPublicKeyResponse extends jspb.Message { 
     getPublicKey(): string;
     setPublicKey(value: string): GetBLSPublicKeyResponse;
-    getPublicKeyHex(): string;
-    setPublicKeyHex(value: string): GetBLSPublicKeyResponse;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GetBLSPublicKeyResponse.AsObject;
@@ -332,6 +330,81 @@ export class GetBLSPublicKeyResponse extends jspb.Message {
 export namespace GetBLSPublicKeyResponse {
     export type AsObject = {
         publicKey: string,
-        publicKeyHex: string,
+    }
+}
+
+export class GetIPFSBootstrapRequest extends jspb.Message { 
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): GetIPFSBootstrapRequest.AsObject;
+    static toObject(includeInstance: boolean, msg: GetIPFSBootstrapRequest): GetIPFSBootstrapRequest.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: GetIPFSBootstrapRequest, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): GetIPFSBootstrapRequest;
+    static deserializeBinaryFromReader(message: GetIPFSBootstrapRequest, reader: jspb.BinaryReader): GetIPFSBootstrapRequest;
+}
+
+export namespace GetIPFSBootstrapRequest {
+    export type AsObject = {
+    }
+}
+
+export class GetIPFSBootstrapResponse extends jspb.Message { 
+    clearMultiaddrsList(): void;
+    getMultiaddrsList(): Array<string>;
+    setMultiaddrsList(value: Array<string>): GetIPFSBootstrapResponse;
+    addMultiaddrs(value: string, index?: number): string;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): GetIPFSBootstrapResponse.AsObject;
+    static toObject(includeInstance: boolean, msg: GetIPFSBootstrapResponse): GetIPFSBootstrapResponse.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: GetIPFSBootstrapResponse, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): GetIPFSBootstrapResponse;
+    static deserializeBinaryFromReader(message: GetIPFSBootstrapResponse, reader: jspb.BinaryReader): GetIPFSBootstrapResponse;
+}
+
+export namespace GetIPFSBootstrapResponse {
+    export type AsObject = {
+        multiaddrsList: Array<string>,
+    }
+}
+
+export class GetHealthRequest extends jspb.Message { 
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): GetHealthRequest.AsObject;
+    static toObject(includeInstance: boolean, msg: GetHealthRequest): GetHealthRequest.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: GetHealthRequest, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): GetHealthRequest;
+    static deserializeBinaryFromReader(message: GetHealthRequest, reader: jspb.BinaryReader): GetHealthRequest;
+}
+
+export namespace GetHealthRequest {
+    export type AsObject = {
+    }
+}
+
+export class GetHealthResponse extends jspb.Message { 
+    getIsHealthy(): boolean;
+    setIsHealthy(value: boolean): GetHealthResponse;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): GetHealthResponse.AsObject;
+    static toObject(includeInstance: boolean, msg: GetHealthResponse): GetHealthResponse.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: GetHealthResponse, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): GetHealthResponse;
+    static deserializeBinaryFromReader(message: GetHealthResponse, reader: jspb.BinaryReader): GetHealthResponse;
+}
+
+export namespace GetHealthResponse {
+    export type AsObject = {
+        isHealthy: boolean,
     }
 }

@@ -18,6 +18,8 @@ interface ICoordinatorNodeService extends grpc.ServiceDefinition<grpc.UntypedSer
     getDataChainList: ICoordinatorNodeService_IGetDataChainList;
     getHeadBlockHash: ICoordinatorNodeService_IGetHeadBlockHash;
     getBLSPublicKey: ICoordinatorNodeService_IGetBLSPublicKey;
+    getIPFSBootstrap: ICoordinatorNodeService_IGetIPFSBootstrap;
+    getHealth: ICoordinatorNodeService_IGetHealth;
     sumbitSignedTransaction: ICoordinatorNodeService_ISumbitSignedTransaction;
     getBlockMetadata: ICoordinatorNodeService_IGetBlockMetadata;
 }
@@ -67,23 +69,23 @@ interface ICoordinatorNodeService_IGetDataChain extends grpc.MethodDefinition<no
     responseSerialize: grpc.serialize<node_pb.GetDataChainResponse>;
     responseDeserialize: grpc.deserialize<node_pb.GetDataChainResponse>;
 }
-interface ICoordinatorNodeService_IGetDataChainList extends grpc.MethodDefinition<node_pb.GetDataChainListRequest, node_pb.GetDataChainResponse> {
+interface ICoordinatorNodeService_IGetDataChainList extends grpc.MethodDefinition<node_pb.GetDataChainListRequest, node_pb.GetDataChainListResponse> {
     path: "/client.CoordinatorNode/GetDataChainList";
     requestStream: false;
     responseStream: false;
     requestSerialize: grpc.serialize<node_pb.GetDataChainListRequest>;
     requestDeserialize: grpc.deserialize<node_pb.GetDataChainListRequest>;
-    responseSerialize: grpc.serialize<node_pb.GetDataChainResponse>;
-    responseDeserialize: grpc.deserialize<node_pb.GetDataChainResponse>;
+    responseSerialize: grpc.serialize<node_pb.GetDataChainListResponse>;
+    responseDeserialize: grpc.deserialize<node_pb.GetDataChainListResponse>;
 }
-interface ICoordinatorNodeService_IGetHeadBlockHash extends grpc.MethodDefinition<node_pb.GetHeadBlockHashRequest, node_pb.GetDataChainListResponse> {
+interface ICoordinatorNodeService_IGetHeadBlockHash extends grpc.MethodDefinition<node_pb.GetHeadBlockHashRequest, node_pb.GetHeadBlockHashResponse> {
     path: "/client.CoordinatorNode/GetHeadBlockHash";
     requestStream: false;
     responseStream: false;
     requestSerialize: grpc.serialize<node_pb.GetHeadBlockHashRequest>;
     requestDeserialize: grpc.deserialize<node_pb.GetHeadBlockHashRequest>;
-    responseSerialize: grpc.serialize<node_pb.GetDataChainListResponse>;
-    responseDeserialize: grpc.deserialize<node_pb.GetDataChainListResponse>;
+    responseSerialize: grpc.serialize<node_pb.GetHeadBlockHashResponse>;
+    responseDeserialize: grpc.deserialize<node_pb.GetHeadBlockHashResponse>;
 }
 interface ICoordinatorNodeService_IGetBLSPublicKey extends grpc.MethodDefinition<node_pb.GetBLSPublicKeyRequest, node_pb.GetBLSPublicKeyResponse> {
     path: "/client.CoordinatorNode/GetBLSPublicKey";
@@ -93,6 +95,24 @@ interface ICoordinatorNodeService_IGetBLSPublicKey extends grpc.MethodDefinition
     requestDeserialize: grpc.deserialize<node_pb.GetBLSPublicKeyRequest>;
     responseSerialize: grpc.serialize<node_pb.GetBLSPublicKeyResponse>;
     responseDeserialize: grpc.deserialize<node_pb.GetBLSPublicKeyResponse>;
+}
+interface ICoordinatorNodeService_IGetIPFSBootstrap extends grpc.MethodDefinition<node_pb.GetIPFSBootstrapRequest, node_pb.GetIPFSBootstrapResponse> {
+    path: "/client.CoordinatorNode/GetIPFSBootstrap";
+    requestStream: false;
+    responseStream: false;
+    requestSerialize: grpc.serialize<node_pb.GetIPFSBootstrapRequest>;
+    requestDeserialize: grpc.deserialize<node_pb.GetIPFSBootstrapRequest>;
+    responseSerialize: grpc.serialize<node_pb.GetIPFSBootstrapResponse>;
+    responseDeserialize: grpc.deserialize<node_pb.GetIPFSBootstrapResponse>;
+}
+interface ICoordinatorNodeService_IGetHealth extends grpc.MethodDefinition<node_pb.GetHealthRequest, node_pb.GetHealthResponse> {
+    path: "/client.CoordinatorNode/GetHealth";
+    requestStream: false;
+    responseStream: false;
+    requestSerialize: grpc.serialize<node_pb.GetHealthRequest>;
+    requestDeserialize: grpc.deserialize<node_pb.GetHealthRequest>;
+    responseSerialize: grpc.serialize<node_pb.GetHealthResponse>;
+    responseDeserialize: grpc.deserialize<node_pb.GetHealthResponse>;
 }
 interface ICoordinatorNodeService_ISumbitSignedTransaction extends grpc.MethodDefinition<coordinator_pb.SubmitSignedTransactionRequest, coordinator_pb.SubmitSignedTransactionResponse> {
     path: "/client.CoordinatorNode/SumbitSignedTransaction";
@@ -121,9 +141,11 @@ export interface ICoordinatorNodeServer extends grpc.UntypedServiceImplementatio
     getAccountTransactions: grpc.handleUnaryCall<node_pb.GetAccountTransactionsRequest, node_pb.GetAccountTransactionsResponse>;
     getStakerList: grpc.handleUnaryCall<node_pb.GetStakerListRequest, node_pb.GetStakerListResponse>;
     getDataChain: grpc.handleUnaryCall<node_pb.GetDataChainRequest, node_pb.GetDataChainResponse>;
-    getDataChainList: grpc.handleUnaryCall<node_pb.GetDataChainListRequest, node_pb.GetDataChainResponse>;
-    getHeadBlockHash: grpc.handleUnaryCall<node_pb.GetHeadBlockHashRequest, node_pb.GetDataChainListResponse>;
+    getDataChainList: grpc.handleUnaryCall<node_pb.GetDataChainListRequest, node_pb.GetDataChainListResponse>;
+    getHeadBlockHash: grpc.handleUnaryCall<node_pb.GetHeadBlockHashRequest, node_pb.GetHeadBlockHashResponse>;
     getBLSPublicKey: grpc.handleUnaryCall<node_pb.GetBLSPublicKeyRequest, node_pb.GetBLSPublicKeyResponse>;
+    getIPFSBootstrap: grpc.handleUnaryCall<node_pb.GetIPFSBootstrapRequest, node_pb.GetIPFSBootstrapResponse>;
+    getHealth: grpc.handleUnaryCall<node_pb.GetHealthRequest, node_pb.GetHealthResponse>;
     sumbitSignedTransaction: grpc.handleUnaryCall<coordinator_pb.SubmitSignedTransactionRequest, coordinator_pb.SubmitSignedTransactionResponse>;
     getBlockMetadata: grpc.handleUnaryCall<coordinator_pb.GetBlockMetadataRequest, coordinator_pb.GetBlockMetadataResponse>;
 }
@@ -144,15 +166,21 @@ export interface ICoordinatorNodeClient {
     getDataChain(request: node_pb.GetDataChainRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
     getDataChain(request: node_pb.GetDataChainRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
     getDataChain(request: node_pb.GetDataChainRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
-    getDataChainList(request: node_pb.GetDataChainListRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
-    getDataChainList(request: node_pb.GetDataChainListRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
-    getDataChainList(request: node_pb.GetDataChainListRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
-    getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
-    getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
-    getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
+    getDataChainList(request: node_pb.GetDataChainListRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
+    getDataChainList(request: node_pb.GetDataChainListRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
+    getDataChainList(request: node_pb.GetDataChainListRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
+    getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetHeadBlockHashResponse) => void): grpc.ClientUnaryCall;
+    getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetHeadBlockHashResponse) => void): grpc.ClientUnaryCall;
+    getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetHeadBlockHashResponse) => void): grpc.ClientUnaryCall;
     getBLSPublicKey(request: node_pb.GetBLSPublicKeyRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetBLSPublicKeyResponse) => void): grpc.ClientUnaryCall;
     getBLSPublicKey(request: node_pb.GetBLSPublicKeyRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetBLSPublicKeyResponse) => void): grpc.ClientUnaryCall;
     getBLSPublicKey(request: node_pb.GetBLSPublicKeyRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetBLSPublicKeyResponse) => void): grpc.ClientUnaryCall;
+    getIPFSBootstrap(request: node_pb.GetIPFSBootstrapRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetIPFSBootstrapResponse) => void): grpc.ClientUnaryCall;
+    getIPFSBootstrap(request: node_pb.GetIPFSBootstrapRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetIPFSBootstrapResponse) => void): grpc.ClientUnaryCall;
+    getIPFSBootstrap(request: node_pb.GetIPFSBootstrapRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetIPFSBootstrapResponse) => void): grpc.ClientUnaryCall;
+    getHealth(request: node_pb.GetHealthRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
+    getHealth(request: node_pb.GetHealthRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
+    getHealth(request: node_pb.GetHealthRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
     sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
     sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
     sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
@@ -178,15 +206,21 @@ export class CoordinatorNodeClient extends grpc.Client implements ICoordinatorNo
     public getDataChain(request: node_pb.GetDataChainRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
     public getDataChain(request: node_pb.GetDataChainRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
     public getDataChain(request: node_pb.GetDataChainRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
-    public getDataChainList(request: node_pb.GetDataChainListRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
-    public getDataChainList(request: node_pb.GetDataChainListRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
-    public getDataChainList(request: node_pb.GetDataChainListRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainResponse) => void): grpc.ClientUnaryCall;
-    public getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
-    public getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
-    public getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
+    public getDataChainList(request: node_pb.GetDataChainListRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
+    public getDataChainList(request: node_pb.GetDataChainListRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
+    public getDataChainList(request: node_pb.GetDataChainListRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetDataChainListResponse) => void): grpc.ClientUnaryCall;
+    public getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetHeadBlockHashResponse) => void): grpc.ClientUnaryCall;
+    public getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetHeadBlockHashResponse) => void): grpc.ClientUnaryCall;
+    public getHeadBlockHash(request: node_pb.GetHeadBlockHashRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetHeadBlockHashResponse) => void): grpc.ClientUnaryCall;
     public getBLSPublicKey(request: node_pb.GetBLSPublicKeyRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetBLSPublicKeyResponse) => void): grpc.ClientUnaryCall;
     public getBLSPublicKey(request: node_pb.GetBLSPublicKeyRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetBLSPublicKeyResponse) => void): grpc.ClientUnaryCall;
     public getBLSPublicKey(request: node_pb.GetBLSPublicKeyRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetBLSPublicKeyResponse) => void): grpc.ClientUnaryCall;
+    public getIPFSBootstrap(request: node_pb.GetIPFSBootstrapRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetIPFSBootstrapResponse) => void): grpc.ClientUnaryCall;
+    public getIPFSBootstrap(request: node_pb.GetIPFSBootstrapRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetIPFSBootstrapResponse) => void): grpc.ClientUnaryCall;
+    public getIPFSBootstrap(request: node_pb.GetIPFSBootstrapRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetIPFSBootstrapResponse) => void): grpc.ClientUnaryCall;
+    public getHealth(request: node_pb.GetHealthRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
+    public getHealth(request: node_pb.GetHealthRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
+    public getHealth(request: node_pb.GetHealthRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
     public sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
     public sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
     public sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
