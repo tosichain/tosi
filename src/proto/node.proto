@@ -63,5 +63,18 @@ message GetBLSPublicKeyRequest {
 
 message GetBLSPublicKeyResponse {
     string public_key = 1;
-    string public_key_hex = 2;
+}
+
+message GetIPFSBootstrapRequest {
+}
+
+message GetIPFSBootstrapResponse {
+    repeated string multiaddrs = 1;
+}
+
+message GetHealthRequest {
+}
+
+message GetHealthResponse {
+    bool is_healthy = 1;
 }

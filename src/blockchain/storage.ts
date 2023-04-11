@@ -282,7 +282,7 @@ export class BlockchainStorage {
     return state.dataChains[rootClaimHash];
   }
 
-  public async getDatachains(): Promise<DataChain[] | undefined> {
+  public async getDataChainList(): Promise<DataChain[]> {
     const rawState = await this.getValue("state", DB_KEY_STATE_VALUE);
     if (!rawState) {
       throw new Error("world state does not exist in database");

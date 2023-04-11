@@ -14,7 +14,7 @@ import { deserializeBlock } from "../../blockchain/serde";
 import { hashBlock, stringifySignedTransaction } from "../../blockchain/util";
 import { verifyBlockProof } from "../../blockchain/block_proof";
 import { BlockchainStorage } from "../../blockchain/storage";
-import { CoordinatorAPIClient } from "../../coordinator/src/api_client";
+import { CoordinatorRPC } from "../../coordinator/src/rpc";
 import { CLIENT_MAX_SUPPORTED_BLOCK_VERSION, CLIENT_MIN_SUPPORTED_BLOCK_VERSION } from "./constant";
 
 export interface BlockchainClientSyncConfig {
@@ -31,7 +31,7 @@ export class BlockchainClientSync {
 
   private readonly log: winston.Logger;
 
-  private readonly coordinator: CoordinatorAPIClient;
+  private readonly coordinator: CoordinatorRPC;
 
   private readonly ipfs: IPFS;
 
@@ -44,7 +44,7 @@ export class BlockchainClientSync {
     daCommitteeSampleSize: number,
     config: BlockchainClientSyncConfig,
     log: winston.Logger,
-    coordinator: CoordinatorAPIClient,
+    coordinator: CoordinatorRPC,
     ipfs: IPFS,
     storage: BlockchainStorage,
   ) {

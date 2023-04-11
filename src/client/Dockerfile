@@ -10,7 +10,7 @@ COPY [ "src/node/ipfs.ts", "./src/node/ipfs.ts"]
 COPY [ "src/blockchain", "./src/blockchain" ]
 COPY [ "src/contracts", "./src/contracts" ]
 COPY [ "src/node/ipfs-service.ts", "./src/node/ipfs-service.ts" ]
-COPY [ "src/coordinator/src/api_client.ts", "./src/coordinator/src/api_client.ts" ]
+COPY [ "src/coordinator/src/rpc.ts", "./src/coordinator/src/rpc.ts" ]
 COPY [ "src/p2p", "./src/p2p" ]
 COPY [ "src/proto", "./src/proto"]
 

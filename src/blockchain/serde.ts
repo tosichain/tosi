@@ -158,17 +158,39 @@ export function transferTokenFromPB(pb: PBTransferToken): TransferToken {
   };
 }
 
+// StakeType
+
+export function stakeTypeToPB(stakeType: StakeType): PBStakeType {
+  switch (stakeType) {
+    case StakeType.DAVerifier:
+      return PBStakeType.DA_VERIFIER;
+    case StakeType.StateVerifier:
+      return PBStakeType.STATE_VERIFIER;
+    default:
+      throw new Error("invalid stake type");
+  }
+}
+
+export function stakeTypeFromPB(pb: PBStakeType): StakeType {
+  switch (pb) {
+    case PBStakeType.DA_VERIFIER:
+      return StakeType.DAVerifier;
+    case PBStakeType.STATE_VERIFIER:
+      return StakeType.StateVerifier;
+    default:
+      throw new Error("invalid stake type");
+  }
+}
+
 // StakeToken
 
 export function stakeTokenToPB(txn: StakeToken): PBStakeToken {
-  const stakeType: PBStakeType =
-    txn.stakeType == StakeType.DAVerifier ? PBStakeType.DA_VERIFIER : PBStakeType.STATE_VERIFIER;
+  const stakeType = stakeTypeToPB(txn.stakeType);
   return new PBStakeToken().setStakeType(stakeType).setAmount(String(txn.amount));
 }
 
 export function stakeTokenFromPB(pb: PBStakeToken): StakeToken {
-  const stakeType: StakeType =
-    pb.getStakeType() == PBStakeType.DA_VERIFIER ? StakeType.DAVerifier : StakeType.StateVerifier;
+  const stakeType = stakeTypeFromPB(pb.getStakeType());
   return {
     stakeType: stakeType,
     amount: BigInt(pb.getAmount()),
