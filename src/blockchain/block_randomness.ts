@@ -2,7 +2,7 @@ import fetch from "isomorphic-fetch";
 import * as BLS from "@noble/bls12-381";
 import crypto from "crypto";
 
-import { encodeCBOR, decodeCBOR, currentUnixTime } from "../util";
+import { encodeCBOR, decodeCBOR } from "../util";
 
 import { DRAND_BEACON_LIFE_TIME } from "./constant";
 import { DrandBeacon, DrandBeaconInfo } from "./types";
@@ -55,28 +55,6 @@ export function getSeedFromBlockRandomnessProof(proof: Uint8Array): string {
   const hash = crypto.createHash("sha256").update(blsSig).digest().toString("hex");
   return hash;
 }
-
-export async function getRandSeed(
-  txnBundleHash: Uint8Array,
-  randomnessProof: Uint8Array,
-  coordinatorPubKey: Uint8Array,
-): Promise<string | undefined> {
-  const beaconInfo = await fetchDrandBeaconInfo();
-  const validRandProof = await verifyBlockRandomnessProof(
-    txnBundleHash,
-    coordinatorPubKey,
-    randomnessProof,
-    beaconInfo,
-    currentUnixTime(),
-  );
-  if (!validRandProof) {
-    return undefined;
-  }
-
-  // Check if no is in current DA commitee sample and is expected to process request.
-  return getSeedFromBlockRandomnessProof(randomnessProof);
-}
-
 
 export async function verifyBlockRandomnessProof(
   txnBundleHash: Uint8Array,
