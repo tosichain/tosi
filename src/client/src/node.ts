@@ -9,7 +9,7 @@ import { CoordinatorRPCConfig, CoordinatorRPC } from "../../coordinator/src/rpc"
 import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/storage";
 import { signTransaction } from "../../blockchain/block";
 import { BlockchainClientSyncConfig, BlockchainClientSync } from "./blockchain_sync";
-import { ClientNodeAPIServerConfig, ClientNodeAPIServer } from "./api_server";
+import { ClientNodeRPCServerConfig, ClientNodeRPCServer } from "./rpc_server";
 import { DAVerifierConfig, DAVerifier } from "./da_verifier";
 import { createDAInfo } from "./util";
 import { DEFAULT_CARTESI_VM_MAX_CYCLES, SWARM_PING_INTERVAL } from "./constant";
@@ -21,7 +21,7 @@ export interface ClientNodeConfig {
   ipfs: IpfsHttpClient.Options;
   storage: BlockchainStorageConfig;
   blokchainSync: BlockchainClientSyncConfig;
-  api: ClientNodeAPIServerConfig;
+  rpc: ClientNodeRPCServerConfig;
   blsSecKey: string;
   coordinatorPubKey: string;
   DACommitteeSampleSize: number; // TODO: must be sealed in blockchain.
@@ -62,7 +62,7 @@ export class ClientNode {
 
   private readonly daVerifier: DAVerifier | undefined;
   private readonly stateVerifier: StateVerifier | undefined;
-  private readonly apiServer: ClientNodeAPIServer;
+  private readonly apiServer: ClientNodeRPCServer;
 
   constructor(config: ClientNodeConfig, log: winston.Logger) {
     this.config = config;
@@ -108,7 +108,7 @@ export class ClientNode {
       );
     }
 
-    this.apiServer = new ClientNodeAPIServer(this.config.api, this.log, this);
+    this.apiServer = new ClientNodeRPCServer(this.config.rpc, this.log, this);
   }
 
   public async start(): Promise<void> {
@@ -144,7 +144,89 @@ export class ClientNode {
     await keepConnectedToSwarm("tosi-" + genesisBlockHash, this.ipfs, this.log, SWARM_PING_INTERVAL);
   }
 
-  // API methods.
+  // RPC methods.
+
+  public async getBlock(blockHash: string): Promise<Block | undefined> {
+    return await this.storage.getBlock(blockHash);
+  }
+
+  public async getAccount(address: string): Promise<Account | undefined> {
+    return await this.storage.getAccount(address);
+  }
+
+  public async getAccountTransactions(address: string): Promise<Transaction[] | undefined> {
+    if (!(await this.storage.getAccount(address))) {
+      return undefined;
+    }
+
+    const transactions: Transaction[] = [];
+    let lastBlockHash = await this.storage.getHeadBlockHash();
+    while (true) {
+      const block = await this.storage.getBlock(lastBlockHash);
+      if (block == undefined) {
+        break;
+      }
+      block.transactions.forEach((transaction) => {
+        if (transaction.from == address) {
+          transactions.push(transaction.txn);
+        }
+      });
+      lastBlockHash = block.prevBlockHash;
+      if (lastBlockHash == "") {
+        break;
+      }
+    }
+
+    return transactions;
+  }
+
+  public async getStakerList(stakeType: StakeType): Promise<Account[]> {
+    const stakePool = await this.storage.getStakePool();
+
+    let stakerPubKeys: string[];
+    switch (stakeType) {
+      case StakeType.DAVerifier:
+        stakerPubKeys = stakePool.daVerifiers;
+        break;
+      case StakeType.StateVerifier:
+        stakerPubKeys = stakePool.stateVerifiers;
+        break;
+      default:
+        throw new Error("invalid stake type");
+    }
+
+    const stakers: Account[] = [];
+    for (const pubKey of stakerPubKeys) {
+      const staker = await this.storage.getAccount(pubKey);
+      if (staker != undefined) {
+        stakers.push(staker);
+      } else {
+        // TODO: this means error in storage.
+      }
+    }
+
+    return stakers;
+  }
+
+  public async getDataChain(rootClaimHash: string): Promise<DataChain | undefined> {
+    return await this.storage.getComputeChain(rootClaimHash);
+  }
+
+  public async getDataChainList(): Promise<DataChain[]> {
+    return await this.storage.getDataChainList();
+  }
+
+  public async getHeadBblockHash(): Promise<string> {
+    return await this.storage.getHeadBlockHash();
+  }
+
+  public async getBLSPublicKey(): Promise<string> {
+    return this.blsPubKey;
+  }
+
+  public async getIPFSBootstrap(): Promise<string[]> {
+    return (await this.ipfs.getIPFS().id()).addresses.map((x) => x.toString());
+  }
 
   public async generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction> {
     const functionDataPromise = this.fetchDAInfoNoCache(params.dataContractCID, false);
@@ -175,11 +257,6 @@ export class ClientNode {
     };
 
     return txn;
-  }
-
-  private async fetchDAInfoNoCache(cid: CID, car: boolean): Promise<DAInfo | undefined> {
-    const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), 600, car);
-    return daInfo;
   }
 
   public async generateUpdateDatachainTxn(params: UpdateDatachainParameters): Promise<Transaction> {
@@ -219,6 +296,11 @@ export class ClientNode {
     return txn;
   }
 
+  private async fetchDAInfoNoCache(cid: CID, car: boolean): Promise<DAInfo | undefined> {
+    const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), 600, car);
+    return daInfo;
+  }
+
   public async submitTransaction(txn: Transaction): Promise<void> {
     // Do not rely on nonce, provided by client.
     const account = await this.storage.getAccount(this.blsPubKey);
@@ -237,50 +319,12 @@ export class ClientNode {
     return;
   }
 
-  public async getBlock(blockHash: string): Promise<Block | undefined> {
-    return await this.storage.getBlock(blockHash);
-  }
-
-  public async getAccount(pubKey: string): Promise<Account | undefined> {
-    return await this.storage.getAccount(pubKey);
-  }
-
-  public async getStakerList(stakeType: StakeType): Promise<Account[]> {
-    const stakePool = await this.storage.getStakePool();
-
-    let stakerPubKeys: string[];
-    switch (stakeType) {
-      case StakeType.DAVerifier:
-        stakerPubKeys = stakePool.daVerifiers;
-        break;
-      case StakeType.StateVerifier:
-        stakerPubKeys = stakePool.stateVerifiers;
-        break;
-      default:
-        throw new Error("invalid stake type");
-    }
-
-    const stakers: Account[] = [];
-    for (const pubKey of stakerPubKeys) {
-      const staker = await this.storage.getAccount(pubKey);
-      if (staker != undefined) {
-        stakers.push(staker);
-      } else {
-        // TODO: this means error in storage.
-      }
-    }
-
-    return stakers;
-  }
-
-  public async getDataChain(rootClaimHash: string): Promise<DataChain | undefined> {
-    return await this.storage.getComputeChain(rootClaimHash);
-  }
-
-  public async getSyncStatus() {
+  public async getSyncStatus(): Promise<boolean> {
     return await this.blockchainSync.isSynced();
   }
 
+  //!!!
+  /*
   public async getLatestBlockHash() {
     return await this.blockchainSync.latestHash();
   }
@@ -289,39 +333,5 @@ export class ClientNode {
     const latestLocalHash = await this.storage.getHeadBlockHash();
     return "0x" + latestLocalHash;
   }
-
-  public async getBlsPubKeyInHex() {
-    const blsPubKeyInHex = this.blsPubKey;
-    return blsPubKeyInHex;
-  }
-
-  public async getDatachains() {
-    return await this.storage.getDataChainList();
-  }
-
-  public async getAccountHistory(pubkey: string) {
-    let headBlockHash = await this.storage.getHeadBlockHash();
-    const history: Transaction[] = [];
-
-    while (true) {
-      const block = await this.storage.getBlock(headBlockHash);
-
-      if (block == undefined) {
-        break;
-      }
-
-      block.transactions.forEach((transaction) => {
-        if (transaction.from == pubkey) {
-          history.push(transaction.txn);
-        }
-      });
-
-      headBlockHash = block.prevBlockHash;
-      if (headBlockHash == "") {
-        break;
-      }
-    }
-
-    return history;
-  }
+  */
 }

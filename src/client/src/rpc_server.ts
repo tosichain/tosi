@@ -1,25 +1,17 @@
+import { CID } from "ipfs-http-client";
 import { Server, ServerCredentials, ServerUnaryCall, sendUnaryData } from "@grpc/grpc-js";
 import winston from "winston";
 
+import { Transaction, Account, StakeType, DataChain, Block } from "../../blockchain/types";
 import {
-  SignedTransaction,
-  Transaction,
-  Account,
-  StakeType,
-  DataChain,
-  Block,
-  BlockMetadata,
-} from "../../blockchain/types";
-import {
-  signedTransactionFromPB,
   transactionToPB,
+  transactionFromPB,
   stakeTypeFromPB,
   accountToPB,
   dataChainToPB,
   blockToPB,
-  blockMetadataToPB,
 } from "../../blockchain/serde";
-import { SignedTransaction as PBSignedTransaction } from "../../proto/grpcjs/blockchain_pb";
+import { Transaction as PBTransaction } from "../../proto/grpcjs/blockchain_pb";
 import {
   GetBlockRequest,
   GetBlockResponse,
@@ -43,12 +35,17 @@ import {
   GetIPFSBootstrapResponse,
 } from "../../proto/grpcjs/node_pb";
 import {
-  SubmitSignedTransactionRequest,
-  SubmitSignedTransactionResponse,
-  GetBlockMetadataRequest,
-  GetBlockMetadataResponse,
-} from "../../proto/grpcjs/coordinator_pb";
-import { CoordinatorNodeService, ICoordinatorNodeServer } from "../../proto/grpcjs/coordinator_grpc_pb";
+  GenerateCreateDataChainTxnRequest,
+  GenerateCreateDataChainTxnResponse,
+  GenerateUpdateDataChainTxnRequest,
+  GenerateUpdateDataChainTxnResponse,
+  SubmitTransactionRequest,
+  SubmitTransactionResponse,
+  GetSyncStatusRequest,
+  GetSyncStatusResponse,
+} from "../../proto/grpcjs/client_pb";
+import { ClientNodeService, IClientNodeServer } from "../../proto/grpcjs/client_grpc_pb";
+import { CreateDatachainParameters, UpdateDatachainParameters } from "./node";
 
 export interface RequestHandler {
   getBlock(blockHash: string): Promise<Block | undefined>;
@@ -60,29 +57,31 @@ export interface RequestHandler {
   getHeadBblockHash(): Promise<string>;
   getBLSPublicKey(): Promise<string>;
   getIPFSBootstrap(): Promise<string[]>;
-  submitSignedTransaction(txn: SignedTransaction): Promise<void>;
-  getBlockMetadata(blockHash: string): Promise<BlockMetadata | undefined>;
+  generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction>;
+  generateUpdateDatachainTxn(params: UpdateDatachainParameters): Promise<Transaction>;
+  submitTransaction(txn: Transaction): Promise<void>;
+  getSyncStatus(): Promise<boolean>;
 }
 
-export interface CoordinatorRPCServerConfig {
+export interface ClientNodeRPCServerConfig {
   port: number;
 }
 
-export class CoordinatorRPCServer implements ICoordinatorNodeServer {
+export class ClientNodeRPCServer implements IClientNodeServer {
   [method: string]: any;
 
-  private readonly config: CoordinatorRPCServerConfig;
+  private readonly config: ClientNodeRPCServerConfig;
   private readonly log: winston.Logger;
   private readonly handler: RequestHandler;
   private readonly grpc: Server;
 
-  constructor(config: CoordinatorRPCServerConfig, logger: winston.Logger, handler: RequestHandler) {
+  constructor(config: ClientNodeRPCServerConfig, logger: winston.Logger, handler: RequestHandler) {
     this.config = config;
     this.log = logger;
     this.handler = handler;
     this.grpc = new Server();
 
-    this.grpc.addService(CoordinatorNodeService, this);
+    this.grpc.addService(ClientNodeService, this);
   }
 
   public start(): void {
@@ -204,26 +203,53 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
     callback(null, new GetHealthResponse().setIsHealthy(true));
   }
 
-  public sumbitSignedTransaction(
-    call: ServerUnaryCall<SubmitSignedTransactionRequest, SubmitSignedTransactionResponse>,
-    callback: sendUnaryData<SubmitSignedTransactionResponse>,
+  public generateCreateDataChainTxn(
+    call: ServerUnaryCall<GenerateCreateDataChainTxnRequest, GenerateCreateDataChainTxnResponse>,
+    callback: sendUnaryData<GenerateCreateDataChainTxnResponse>,
   ): void {
-    const txn = signedTransactionFromPB(call.request.getTransaction() as PBSignedTransaction);
-    this.handler.submitSignedTransaction(txn).then(() => {
-      callback(null, new SubmitSignedTransactionResponse());
+    const params: CreateDatachainParameters = {
+      dataContractCID: CID.parse(call.request.getDataContractCid()),
+      inputCID: CID.parse(call.request.getInputCid()),
+      outputCID: CID.parse(call.request.getOutputCid()),
+    };
+    this.handler.generateCreateDatachainTxn(params).then((txn) => {
+      const pbTxn = transactionToPB(txn);
+      callback(null, new GenerateCreateDataChainTxnResponse().setTransaction(pbTxn));
     });
   }
 
-  public getBlockMetadata(
-    call: ServerUnaryCall<GetBlockMetadataRequest, GetBlockMetadataResponse>,
-    callback: sendUnaryData<GetBlockMetadataResponse>,
+  public generateUpdateDataChainTxn(
+    call: ServerUnaryCall<GenerateUpdateDataChainTxnRequest, GenerateUpdateDataChainTxnResponse>,
+    callback: sendUnaryData<GenerateUpdateDataChainTxnResponse>,
   ): void {
-    this.handler.getBlockMetadata(call.request.getBlockHash()).then((meta) => {
-      const resp = new GetBlockMetadataResponse();
-      if (meta) {
-        resp.setBlockMetadata(blockMetadataToPB(meta));
-      }
-      callback(null, resp);
+    const params: UpdateDatachainParameters = {
+      dataContractCID: CID.parse(call.request.getDataContractCid()),
+      inputCID: CID.parse(call.request.getInputCid()),
+      outputCID: CID.parse(call.request.getOutputCid()),
+      rootClaimHash: call.request.getRootClaimHash(),
+    };
+    this.handler.generateUpdateDatachainTxn(params).then((txn) => {
+      const pbTxn = transactionToPB(txn);
+      callback(null, new GenerateUpdateDataChainTxnResponse().setTransaction(pbTxn));
+    });
+  }
+
+  public sumbitTransaction(
+    call: ServerUnaryCall<SubmitTransactionRequest, SubmitTransactionResponse>,
+    callback: sendUnaryData<SubmitTransactionResponse>,
+  ): void {
+    const txn = transactionFromPB(call.request.getTransaction() as PBTransaction);
+    this.handler.submitTransaction(txn).then(() => {
+      callback(null, new SubmitTransactionResponse());
+    });
+  }
+
+  public getSyncStatus(
+    call: ServerUnaryCall<GetSyncStatusRequest, GetSyncStatusResponse>,
+    callback: sendUnaryData<GetSyncStatusResponse>,
+  ): void {
+    this.handler.getSyncStatus().then((is_synced) => {
+      callback(null, new GetSyncStatusResponse().setIsSynced(is_synced));
     });
   }
 }

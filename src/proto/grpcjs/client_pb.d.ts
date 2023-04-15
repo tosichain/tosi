@@ -9,10 +9,8 @@ import * as blockchain_pb from "./blockchain_pb";
 import * as node_pb from "./node_pb";
 
 export class GenerateCreateDataChainTxnRequest extends jspb.Message { 
-    getCourtCid(): string;
-    setCourtCid(value: string): GenerateCreateDataChainTxnRequest;
-    getAppCid(): string;
-    setAppCid(value: string): GenerateCreateDataChainTxnRequest;
+    getDataContractCid(): string;
+    setDataContractCid(value: string): GenerateCreateDataChainTxnRequest;
     getInputCid(): string;
     setInputCid(value: string): GenerateCreateDataChainTxnRequest;
     getOutputCid(): string;
@@ -30,8 +28,7 @@ export class GenerateCreateDataChainTxnRequest extends jspb.Message {
 
 export namespace GenerateCreateDataChainTxnRequest {
     export type AsObject = {
-        courtCid: string,
-        appCid: string,
+        dataContractCid: string,
         inputCid: string,
         outputCid: string,
     }
@@ -61,14 +58,14 @@ export namespace GenerateCreateDataChainTxnResponse {
 }
 
 export class GenerateUpdateDataChainTxnRequest extends jspb.Message { 
-    getCourtCid(): string;
-    setCourtCid(value: string): GenerateUpdateDataChainTxnRequest;
-    getAppCid(): string;
-    setAppCid(value: string): GenerateUpdateDataChainTxnRequest;
+    getDataContractCid(): string;
+    setDataContractCid(value: string): GenerateUpdateDataChainTxnRequest;
     getInputCid(): string;
     setInputCid(value: string): GenerateUpdateDataChainTxnRequest;
     getOutputCid(): string;
     setOutputCid(value: string): GenerateUpdateDataChainTxnRequest;
+    getRootClaimHash(): string;
+    setRootClaimHash(value: string): GenerateUpdateDataChainTxnRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GenerateUpdateDataChainTxnRequest.AsObject;
@@ -82,10 +79,10 @@ export class GenerateUpdateDataChainTxnRequest extends jspb.Message {
 
 export namespace GenerateUpdateDataChainTxnRequest {
     export type AsObject = {
-        courtCid: string,
-        appCid: string,
+        dataContractCid: string,
         inputCid: string,
         outputCid: string,
+        rootClaimHash: string,
     }
 }
 
@@ -186,42 +183,5 @@ export class GetSyncStatusResponse extends jspb.Message {
 export namespace GetSyncStatusResponse {
     export type AsObject = {
         isSynced: boolean,
-    }
-}
-
-export class GetLocalHeadBlockHashRequest extends jspb.Message { 
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): GetLocalHeadBlockHashRequest.AsObject;
-    static toObject(includeInstance: boolean, msg: GetLocalHeadBlockHashRequest): GetLocalHeadBlockHashRequest.AsObject;
-    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: GetLocalHeadBlockHashRequest, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): GetLocalHeadBlockHashRequest;
-    static deserializeBinaryFromReader(message: GetLocalHeadBlockHashRequest, reader: jspb.BinaryReader): GetLocalHeadBlockHashRequest;
-}
-
-export namespace GetLocalHeadBlockHashRequest {
-    export type AsObject = {
-    }
-}
-
-export class GetLocalHeadBlockHashResponse extends jspb.Message { 
-    getBlockHash(): string;
-    setBlockHash(value: string): GetLocalHeadBlockHashResponse;
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): GetLocalHeadBlockHashResponse.AsObject;
-    static toObject(includeInstance: boolean, msg: GetLocalHeadBlockHashResponse): GetLocalHeadBlockHashResponse.AsObject;
-    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: GetLocalHeadBlockHashResponse, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): GetLocalHeadBlockHashResponse;
-    static deserializeBinaryFromReader(message: GetLocalHeadBlockHashResponse, reader: jspb.BinaryReader): GetLocalHeadBlockHashResponse;
-}
-
-export namespace GetLocalHeadBlockHashResponse {
-    export type AsObject = {
-        blockHash: string,
     }
 }

@@ -50,28 +50,6 @@ function deserialize_client_GenerateUpdateDataChainTxnResponse(buffer_arg) {
   return client_pb.GenerateUpdateDataChainTxnResponse.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
-function serialize_client_GetLocalHeadBlockHashRequest(arg) {
-  if (!(arg instanceof client_pb.GetLocalHeadBlockHashRequest)) {
-    throw new Error('Expected argument of type client.GetLocalHeadBlockHashRequest');
-  }
-  return Buffer.from(arg.serializeBinary());
-}
-
-function deserialize_client_GetLocalHeadBlockHashRequest(buffer_arg) {
-  return client_pb.GetLocalHeadBlockHashRequest.deserializeBinary(new Uint8Array(buffer_arg));
-}
-
-function serialize_client_GetLocalHeadBlockHashResponse(arg) {
-  if (!(arg instanceof client_pb.GetLocalHeadBlockHashResponse)) {
-    throw new Error('Expected argument of type client.GetLocalHeadBlockHashResponse');
-  }
-  return Buffer.from(arg.serializeBinary());
-}
-
-function deserialize_client_GetLocalHeadBlockHashResponse(buffer_arg) {
-  return client_pb.GetLocalHeadBlockHashResponse.deserializeBinary(new Uint8Array(buffer_arg));
-}
-
 function serialize_client_GetSyncStatusRequest(arg) {
   if (!(arg instanceof client_pb.GetSyncStatusRequest)) {
     throw new Error('Expected argument of type client.GetSyncStatusRequest');
@@ -259,6 +237,61 @@ function deserialize_node_GetHeadBlockHashRequest(buffer_arg) {
   return node_pb.GetHeadBlockHashRequest.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
+function serialize_node_GetHeadBlockHashResponse(arg) {
+  if (!(arg instanceof node_pb.GetHeadBlockHashResponse)) {
+    throw new Error('Expected argument of type node.GetHeadBlockHashResponse');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_node_GetHeadBlockHashResponse(buffer_arg) {
+  return node_pb.GetHeadBlockHashResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_node_GetHealthRequest(arg) {
+  if (!(arg instanceof node_pb.GetHealthRequest)) {
+    throw new Error('Expected argument of type node.GetHealthRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_node_GetHealthRequest(buffer_arg) {
+  return node_pb.GetHealthRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_node_GetHealthResponse(arg) {
+  if (!(arg instanceof node_pb.GetHealthResponse)) {
+    throw new Error('Expected argument of type node.GetHealthResponse');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_node_GetHealthResponse(buffer_arg) {
+  return node_pb.GetHealthResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_node_GetIPFSBootstrapRequest(arg) {
+  if (!(arg instanceof node_pb.GetIPFSBootstrapRequest)) {
+    throw new Error('Expected argument of type node.GetIPFSBootstrapRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_node_GetIPFSBootstrapRequest(buffer_arg) {
+  return node_pb.GetIPFSBootstrapRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_node_GetIPFSBootstrapResponse(arg) {
+  if (!(arg instanceof node_pb.GetIPFSBootstrapResponse)) {
+    throw new Error('Expected argument of type node.GetIPFSBootstrapResponse');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_node_GetIPFSBootstrapResponse(buffer_arg) {
+  return node_pb.GetIPFSBootstrapResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
 function serialize_node_GetStakerListRequest(arg) {
   if (!(arg instanceof node_pb.GetStakerListRequest)) {
     throw new Error('Expected argument of type node.GetStakerListRequest');
@@ -343,22 +376,22 @@ var ClientNodeService = exports.ClientNodeService = {
     requestStream: false,
     responseStream: false,
     requestType: node_pb.GetDataChainListRequest,
-    responseType: node_pb.GetDataChainResponse,
+    responseType: node_pb.GetDataChainListResponse,
     requestSerialize: serialize_node_GetDataChainListRequest,
     requestDeserialize: deserialize_node_GetDataChainListRequest,
-    responseSerialize: serialize_node_GetDataChainResponse,
-    responseDeserialize: deserialize_node_GetDataChainResponse,
+    responseSerialize: serialize_node_GetDataChainListResponse,
+    responseDeserialize: deserialize_node_GetDataChainListResponse,
   },
   getHeadBlockHash: {
     path: '/client.ClientNode/GetHeadBlockHash',
     requestStream: false,
     responseStream: false,
     requestType: node_pb.GetHeadBlockHashRequest,
-    responseType: node_pb.GetDataChainListResponse,
+    responseType: node_pb.GetHeadBlockHashResponse,
     requestSerialize: serialize_node_GetHeadBlockHashRequest,
     requestDeserialize: deserialize_node_GetHeadBlockHashRequest,
-    responseSerialize: serialize_node_GetDataChainListResponse,
-    responseDeserialize: deserialize_node_GetDataChainListResponse,
+    responseSerialize: serialize_node_GetHeadBlockHashResponse,
+    responseDeserialize: deserialize_node_GetHeadBlockHashResponse,
   },
   getBLSPublicKey: {
     path: '/client.ClientNode/GetBLSPublicKey',
@@ -371,8 +404,30 @@ var ClientNodeService = exports.ClientNodeService = {
     responseSerialize: serialize_node_GetBLSPublicKeyResponse,
     responseDeserialize: deserialize_node_GetBLSPublicKeyResponse,
   },
-  generateCreateDatachainTxn: {
-    path: '/client.ClientNode/GenerateCreateDatachainTxn',
+  getIPFSBootstrap: {
+    path: '/client.ClientNode/GetIPFSBootstrap',
+    requestStream: false,
+    responseStream: false,
+    requestType: node_pb.GetIPFSBootstrapRequest,
+    responseType: node_pb.GetIPFSBootstrapResponse,
+    requestSerialize: serialize_node_GetIPFSBootstrapRequest,
+    requestDeserialize: deserialize_node_GetIPFSBootstrapRequest,
+    responseSerialize: serialize_node_GetIPFSBootstrapResponse,
+    responseDeserialize: deserialize_node_GetIPFSBootstrapResponse,
+  },
+  getHealth: {
+    path: '/client.ClientNode/GetHealth',
+    requestStream: false,
+    responseStream: false,
+    requestType: node_pb.GetHealthRequest,
+    responseType: node_pb.GetHealthResponse,
+    requestSerialize: serialize_node_GetHealthRequest,
+    requestDeserialize: deserialize_node_GetHealthRequest,
+    responseSerialize: serialize_node_GetHealthResponse,
+    responseDeserialize: deserialize_node_GetHealthResponse,
+  },
+  generateCreateDataChainTxn: {
+    path: '/client.ClientNode/GenerateCreateDataChainTxn',
     requestStream: false,
     responseStream: false,
     requestType: client_pb.GenerateCreateDataChainTxnRequest,
@@ -382,8 +437,8 @@ var ClientNodeService = exports.ClientNodeService = {
     responseSerialize: serialize_client_GenerateCreateDataChainTxnResponse,
     responseDeserialize: deserialize_client_GenerateCreateDataChainTxnResponse,
   },
-  generateUpdateDatachainTxn: {
-    path: '/client.ClientNode/GenerateUpdateDatachainTxn',
+  generateUpdateDataChainTxn: {
+    path: '/client.ClientNode/GenerateUpdateDataChainTxn',
     requestStream: false,
     responseStream: false,
     requestType: client_pb.GenerateUpdateDataChainTxnRequest,
@@ -414,17 +469,6 @@ var ClientNodeService = exports.ClientNodeService = {
     requestDeserialize: deserialize_client_GetSyncStatusRequest,
     responseSerialize: serialize_client_GetSyncStatusResponse,
     responseDeserialize: deserialize_client_GetSyncStatusResponse,
-  },
-  getLocalHeadBlockHash: {
-    path: '/client.ClientNode/GetLocalHeadBlockHash',
-    requestStream: false,
-    responseStream: false,
-    requestType: client_pb.GetLocalHeadBlockHashRequest,
-    responseType: client_pb.GetLocalHeadBlockHashResponse,
-    requestSerialize: serialize_client_GetLocalHeadBlockHashRequest,
-    requestDeserialize: deserialize_client_GetLocalHeadBlockHashRequest,
-    responseSerialize: serialize_client_GetLocalHeadBlockHashResponse,
-    responseDeserialize: deserialize_client_GetLocalHeadBlockHashResponse,
   },
 };
 

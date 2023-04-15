@@ -11,21 +11,21 @@ service ClientNode {
     rpc GetAccountTransactions(node.GetAccountTransactionsRequest) returns (node.GetAccountTransactionsResponse);
     rpc GetStakerList(node.GetStakerListRequest) returns (node.GetStakerListResponse);
     rpc GetDataChain(node.GetDataChainRequest) returns (node.GetDataChainResponse);
-    rpc GetDataChainList(node.GetDataChainListRequest) returns (node.GetDataChainResponse);
-    rpc GetHeadBlockHash(node.GetHeadBlockHashRequest) returns (node.GetDataChainListResponse);
+    rpc GetDataChainList(node.GetDataChainListRequest) returns (node.GetDataChainListResponse);
+    rpc GetHeadBlockHash(node.GetHeadBlockHashRequest) returns (node.GetHeadBlockHashResponse);
     rpc GetBLSPublicKey(node.GetBLSPublicKeyRequest) returns (node.GetBLSPublicKeyResponse);
-    rpc GenerateCreateDatachainTxn (GenerateCreateDataChainTxnRequest) returns (GenerateCreateDataChainTxnResponse);
-    rpc GenerateUpdateDatachainTxn (GenerateUpdateDataChainTxnRequest) returns (GenerateUpdateDataChainTxnResponse);
+    rpc GetIPFSBootstrap(node.GetIPFSBootstrapRequest) returns (node.GetIPFSBootstrapResponse);
+    rpc GetHealth(node.GetHealthRequest) returns (node.GetHealthResponse);
+    rpc GenerateCreateDataChainTxn (GenerateCreateDataChainTxnRequest) returns (GenerateCreateDataChainTxnResponse);
+    rpc GenerateUpdateDataChainTxn (GenerateUpdateDataChainTxnRequest) returns (GenerateUpdateDataChainTxnResponse);
     rpc SumbitTransaction(SubmitTransactionRequest) returns (SubmitTransactionResponse);
     rpc GetSyncStatus(GetSyncStatusRequest) returns (GetSyncStatusResponse);
-    rpc GetLocalHeadBlockHash(GetLocalHeadBlockHashRequest) returns (GetLocalHeadBlockHashResponse);
 }
 
 message GenerateCreateDataChainTxnRequest {
-    string court_cid = 1;
-    string app_cid = 2;
-    string input_cid = 3;
-    string output_cid = 4;
+    string data_contract_cid = 1;
+    string input_cid = 2;
+    string output_cid = 3;
 }
 
 message GenerateCreateDataChainTxnResponse {
@@ -33,10 +33,10 @@ message GenerateCreateDataChainTxnResponse {
 }
 
 message GenerateUpdateDataChainTxnRequest {
-    string court_cid = 1;
-    string app_cid = 2;
-    string input_cid = 3;
-    string output_cid = 4;
+    string data_contract_cid = 1;
+    string input_cid = 2;
+    string output_cid = 3;
+    string root_claim_hash = 4;
 }
 
 message GenerateUpdateDataChainTxnResponse {
@@ -55,11 +55,4 @@ message GetSyncStatusRequest {
 
 message GetSyncStatusResponse {
     bool is_synced = 1;
-}
-
-message GetLocalHeadBlockHashRequest {
-}
-
-message GetLocalHeadBlockHashResponse {
-    string block_hash = 1;
 }

@@ -13,7 +13,7 @@ import { stringifyAccount } from "../blockchain/util";
 import { signTransaction } from "../blockchain/block";
 import { serializeBlock } from "../blockchain/serde";
 import { CoordinatorRPC } from "../coordinator/src/rpc";
-import { ClientNodeAPIClient } from "../client/src/api_client";
+import { ClientRPC } from "../client/src/rpc";
 
 const INAVLID_TXN_WAIT_PERIOD = 20000; // 20 seconds
 
@@ -28,7 +28,7 @@ const accTwoPubKey = Buffer.from(BLS.getPublicKey(accTwoPrivKey)).toString("hex"
 
 let log: winston.Logger;
 let coordinator: CoordinatorRPC;
-let client: ClientNodeAPIClient;
+let client: ClientRPC;
 
 before(async () => {
   log = winston.createLogger({
@@ -46,12 +46,9 @@ before(async () => {
   coordinator = new CoordinatorRPC({
     serverAddr: "127.0.0.1:20001",
   });
-  client = new ClientNodeAPIClient(
-    {
-      apiURL: "http://127.0.0.1:30001/api",
-    },
-    log,
-  );
+  client = new ClientRPC({
+    serverAddr: "127.0.0.1:30001",
+  });
 });
 
 async function waitForAccountNonce(accountNonce: Record<string, number>): Promise<void> {
@@ -124,10 +121,9 @@ async function checkHeadBlock(): Promise<void> {
     log.error(`coordinator does not have block ${coordinatorBlock}`);
     throw new Error("coordinatorBlock is undefined");
   }
-
-  const clientBlockHash = (await client.getLatestLocalHash()).slice(2);
+  const clientBlockHash = await client.getHeadBlockHash();
   if (clientBlockHash !== blockHash) {
-    throw new Error(`clientBlockHash ${clientBlockHash} != coordinator blockHash ${blockHash}`);
+    throw new Error(`client block hash ${clientBlockHash} != coordinator block hash ${blockHash}`);
   }
 
   // Get head block from client node.
@@ -172,7 +168,7 @@ async function checkAccounts(accounts: Account[]): Promise<void> {
 
 async function checkDAVerifiers(verifiersPubKeys: string[]): Promise<void> {
   const coordinatorVerifiers = await coordinator.getStakerList(StakeType.DAVerifier);
-  const clientVerifiers = await client.getDAVerifiers();
+  const clientVerifiers = await client.getStakerList(StakeType.DAVerifier);
 
   expect(coordinatorVerifiers.length).to.be.equal(verifiersPubKeys.length);
   expect(clientVerifiers.length).to.be.equal(verifiersPubKeys.length);
@@ -187,7 +183,7 @@ async function checkDAVerifiers(verifiersPubKeys: string[]): Promise<void> {
 
 async function checkStateVerifiers(verifiersPubKeys: string[]): Promise<void> {
   const coordinatorVerifiers = await coordinator.getStakerList(StakeType.StateVerifier);
-  const clientVerifiers = await client.getStateVerifiers();
+  const clientVerifiers = await client.getStakerList(StakeType.StateVerifier);
 
   expect(coordinatorVerifiers.length).to.be.equal(verifiersPubKeys.length);
   expect(clientVerifiers.length).to.be.equal(verifiersPubKeys.length);

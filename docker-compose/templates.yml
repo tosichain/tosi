@@ -165,7 +165,7 @@ services:
       DB_DB: "tosi"
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:30001/health"]
+      test: ["CMD-SHELL", "nc localhost 30001 < /dev/null" ]
       interval: 30s
       timeout: 10s
       retries: 3

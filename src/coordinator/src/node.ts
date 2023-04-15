@@ -46,7 +46,7 @@ export type IPFSOptions = IpfsHttpClient.Options;
 
 export interface CoordinatorNodeConfig {
   storage: BlockchainStorageConfig;
-  apiServer?: CoordinatorRPCServerConfig;
+  rpc?: CoordinatorRPCServerConfig;
   ipfs: {
     options: IPFSOptions;
     blockchainSyncPeriod: number;
@@ -80,7 +80,7 @@ export class CoordinatorNode {
   private readonly storage: BlockchainStorage;
   private readonly ipfs: IPFS;
 
-  private readonly api?: CoordinatorRPCServer;
+  private readonly rpc?: CoordinatorRPCServer;
 
   private ethProvider: ethers.providers.JsonRpcProvider;
   private ethWallet: ethers.Signer | undefined;
@@ -100,8 +100,8 @@ export class CoordinatorNode {
 
     this.storage = new BlockchainStorage(this.config.storage, this.log);
     this.ipfs = new IPFS(this.config.ipfs.options, this.log);
-    if (this.config.apiServer != undefined) {
-      this.api = new CoordinatorRPCServer(this.config.apiServer, this.log, this);
+    if (this.config.rpc != undefined) {
+      this.rpc = new CoordinatorRPCServer(this.config.rpc, this.log, this);
     }
     this.ethProvider = new ethers.providers.JsonRpcProvider(this.config.eth.rpc);
 
@@ -168,8 +168,8 @@ export class CoordinatorNode {
         }
       }
     }
-    if (this.api != undefined) {
-      await this.api.start();
+    if (this.rpc != undefined) {
+      await this.rpc.start();
     }
     const genesisBlockHash = await this.storage.getGenesisBlockHash();
     await keepConnectedToSwarm("tosi-" + genesisBlockHash, this.ipfs, this.log, SWARM_PING_INTERVAL);
@@ -387,7 +387,7 @@ export class CoordinatorNode {
     return block;
   }
 
-  // API methods.
+  // RPC methods.
 
   public async getBlock(blockHash: string): Promise<Block | undefined> {
     return await this.storage.getBlock(blockHash);
