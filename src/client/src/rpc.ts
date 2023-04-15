@@ -1,24 +1,16 @@
 import { credentials } from "@grpc/grpc-js";
 
+import { Transaction, StakeType, Account, DataChain, Block } from "../../blockchain/types";
 import {
-  SignedTransaction,
-  Transaction,
-  StakeType,
-  Account,
-  DataChain,
-  Block,
-  BlockMetadata,
-} from "../../blockchain/types";
-import {
-  signedTransactionToPB,
   transactionFromPB,
+  transactionToPB,
   stakeTypeToPB,
   accountFromPB,
   dataChainFromPB,
   blockFromPB,
-  blockMetadataFromPB,
 } from "../../blockchain/serde";
-import { CoordinatorNodeClient } from "../../proto/grpcjs/coordinator_grpc_pb";
+import { CreateDatachainParameters, UpdateDatachainParameters } from "./node";
+import { Transaction as PBTransaction } from "../../proto/grpcjs/blockchain_pb";
 import {
   GetAccountRequest,
   GetAccountTransactionsRequest,
@@ -31,19 +23,25 @@ import {
   GetIPFSBootstrapRequest,
   GetHealthRequest,
 } from "../../proto/grpcjs/node_pb";
-import { GetBlockMetadataRequest, SubmitSignedTransactionRequest } from "../../proto/grpcjs/coordinator_pb";
+import {
+  GenerateCreateDataChainTxnRequest,
+  GenerateUpdateDataChainTxnRequest,
+  SubmitTransactionRequest,
+  GetSyncStatusRequest,
+} from "../../proto/grpcjs/client_pb";
+import { ClientNodeClient } from "../../proto/grpcjs/client_grpc_pb";
 
-export interface CoordinatorRPCConfig {
+export interface ClientRPCConfig {
   serverAddr: string;
 }
 
-export class CoordinatorRPC {
-  private config: CoordinatorRPCConfig;
-  private grpc: CoordinatorNodeClient;
+export class ClientRPC {
+  private config: ClientRPCConfig;
+  private grpc: ClientNodeClient;
 
-  constructor(config: CoordinatorRPCConfig) {
+  constructor(config: ClientRPCConfig) {
     this.config = config;
-    this.grpc = new CoordinatorNodeClient(config.serverAddr, credentials.createInsecure());
+    this.grpc = new ClientNodeClient(config.serverAddr, credentials.createInsecure());
   }
 
   public async getBlock(blockHash: string): Promise<Block | undefined> {
@@ -177,10 +175,43 @@ export class CoordinatorRPC {
     });
   }
 
-  public async submitSignedTransaction(txn: SignedTransaction): Promise<void> {
-    const req = new SubmitSignedTransactionRequest().setTransaction(signedTransactionToPB(txn));
+  public async generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction> {
+    const req = new GenerateCreateDataChainTxnRequest()
+      .setDataContractCid(params.dataContractCID.toString())
+      .setInputCid(params.inputCID.toString())
+      .setOutputCid(params.outputCID.toString());
+    return new Promise<Transaction>((resolve, reject) => {
+      this.grpc.generateCreateDataChainTxn(req, (err, resp) => {
+        if (err) {
+          return reject(err);
+        }
+        const txn = transactionFromPB(resp.getTransaction() as PBTransaction);
+        resolve(txn);
+      });
+    });
+  }
+
+  public async generateUpdateDatachainTxn(params: UpdateDatachainParameters): Promise<Transaction> {
+    const req = new GenerateUpdateDataChainTxnRequest()
+      .setDataContractCid(params.dataContractCID.toString())
+      .setInputCid(params.inputCID.toString())
+      .setOutputCid(params.outputCID.toString())
+      .setRootClaimHash(params.rootClaimHash);
+    return new Promise<Transaction>((resolve, reject) => {
+      this.grpc.generateUpdateDataChainTxn(req, (err, resp) => {
+        if (err) {
+          return reject(err);
+        }
+        const txn = transactionFromPB(resp.getTransaction() as PBTransaction);
+        resolve(txn);
+      });
+    });
+  }
+
+  public async submitTransaction(txn: Transaction): Promise<void> {
+    const req = new SubmitTransactionRequest().setTransaction(transactionToPB(txn));
     return new Promise<void>((resolve, reject) => {
-      this.grpc.sumbitSignedTransaction(req, (err, resp) => {
+      this.grpc.sumbitTransaction(req, (err, resp) => {
         if (err) {
           return reject(err);
         }
@@ -189,15 +220,14 @@ export class CoordinatorRPC {
     });
   }
 
-  public async getBlockMetadata(blockHash: string): Promise<BlockMetadata | undefined> {
-    const req = new GetBlockMetadataRequest().setBlockHash(blockHash);
-    return await new Promise<BlockMetadata | undefined>((resolve, reject) => {
-      this.grpc.getBlockMetadata(req, (err, resp) => {
+  public async getSyncStatus(): Promise<boolean> {
+    const req = new GetSyncStatusRequest();
+    return new Promise<boolean>((resolve, reject) => {
+      this.grpc.getSyncStatus(req, (err, resp) => {
         if (err) {
           return reject(err);
         }
-        const pbMeta = resp.getBlockMetadata();
-        pbMeta ? resolve(blockMetadataFromPB(pbMeta)) : resolve(undefined);
+        resolve(resp.getIsSynced());
       });
     });
   }

@@ -34,7 +34,7 @@ import { createInitialStateFromEnv } from "../../blockchain/util";
         stateCheckTimeout: Number(process.env.ROLE_STATE_VERIFIER_CHECK_TIMEOUT),
       },
     },
-    api: {
+    rpc: {
       port: Number(process.env.API_PORT),
     },
     blsSecKey: String(process.env.BLS_SEC_KEY),

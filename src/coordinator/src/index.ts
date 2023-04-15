@@ -19,7 +19,7 @@ import { createInitialStateFromEnv } from "../../blockchain/util";
       },
       blockchainSyncPeriod: Number(process.env.IPFS_BLOCKCHAIN_SYNC_PERIOD),
     },
-    apiServer: {
+    rpc: {
       port: Number(process.env.API_PORT),
     },
     eth: {

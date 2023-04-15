@@ -1,3 +1,5 @@
+// docker compose --profile build -p tosi-chain -f docker-compose-tosi-chain.yml up
+
 import { expect } from "chai";
 import chai from "chai";
 import chaiAsPromised from "chai-as-promised";
@@ -11,7 +13,7 @@ import { Transaction, ComputeClaim, StakeType } from "../blockchain/types";
 import { stringifyAccount } from "../blockchain/util";
 import { signTransaction } from "../blockchain/block";
 import { CoordinatorRPC } from "../coordinator/src/rpc";
-import { ClientNodeAPIClient } from "../client/src/api_client";
+import { ClientRPC } from "../client/src/rpc";
 import { IPFS } from "../node/ipfs";
 import { hashComputeClaim } from "../blockchain/util";
 
@@ -38,10 +40,10 @@ const daVerifier3PubKey = Buffer.from(BLS.getPublicKey(daVerifier3PrivKey)).toSt
 
 let log: winston.Logger;
 let coordinator: CoordinatorRPC;
-let client: ClientNodeAPIClient;
-let daVerifier1: ClientNodeAPIClient;
-let daVerifier2: ClientNodeAPIClient;
-let daVerifier3: ClientNodeAPIClient;
+let client: ClientRPC;
+let daVerifier1: ClientRPC;
+let daVerifier2: ClientRPC;
+let daVerifier3: ClientRPC;
 let ipfs: IPFS;
 let lastHeadBlockHash: string;
 
@@ -62,31 +64,19 @@ before(async () => {
     serverAddr: "127.0.0.1:20001",
   });
 
-  client = new ClientNodeAPIClient(
-    {
-      apiURL: "http://127.0.0.1:30001/api",
-    },
-    log,
-  );
+  client = new ClientRPC({
+    serverAddr: "127.0.0.1:30001",
+  });
 
-  daVerifier1 = new ClientNodeAPIClient(
-    {
-      apiURL: "http://127.0.0.1:30002/api",
-    },
-    log,
-  );
-  daVerifier2 = new ClientNodeAPIClient(
-    {
-      apiURL: "http://127.0.0.1:30003/api",
-    },
-    log,
-  );
-  daVerifier3 = new ClientNodeAPIClient(
-    {
-      apiURL: "http://127.0.0.1:30004/api",
-    },
-    log,
-  );
+  daVerifier1 = new ClientRPC({
+    serverAddr: "127.0.0.1:30002",
+  });
+  daVerifier2 = new ClientRPC({
+    serverAddr: "127.0.0.1:30003",
+  });
+  daVerifier3 = new ClientRPC({
+    serverAddr: "127.0.0.1:30004",
+  });
 
   lastHeadBlockHash = await coordinator.getHeadBlockHash();
 
@@ -129,7 +119,7 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     }
 
     // Check if all client nodes have accepted/rejected transactions from accounts.
-    const clients: ClientNodeAPIClient[] = [client, daVerifier1, daVerifier2, daVerifier3];
+    const clients: ClientRPC[] = [client, daVerifier1, daVerifier2, daVerifier3];
     let clientCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
       log.debug(`querying account ${accPubKey} at at all client nodes`);

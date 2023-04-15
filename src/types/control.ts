@@ -1,5 +1,3 @@
-import { ClaimMessage } from "./claims";
-
 export interface ControlMessage<MessageType, PayloadType = unknown> {
   requestId: string;
   type: MessageType;
