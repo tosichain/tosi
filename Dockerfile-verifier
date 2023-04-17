@@ -86,6 +86,7 @@ RUN sed -i '/^#Port 22/s/^#//' /etc/ssh/sshd_config \
 WORKDIR /app
 
 RUN --mount=type=cache,target=/fetchcache8 wget -c -P /fetchcache8 https://web3.link/loader.squashfs && mkdir -p /data/prepopulate && cp /fetchcache8/* /data/prepopulate
+RUN truncate -s 16384 /data/prepopulate/empty.16kb
 
 COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" /app
 COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/.config" /app

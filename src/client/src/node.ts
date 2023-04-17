@@ -77,6 +77,7 @@ export class ClientNode {
     this.storage = new BlockchainStorage(this.config.storage, this.log);
     this.blockchainSync = new BlockchainClientSync(
       this.config.DACommitteeSampleSize,
+      this.config.stateCommitteeSampleSize,
       this.config.blokchainSync,
       this.log,
       this.coordinator,

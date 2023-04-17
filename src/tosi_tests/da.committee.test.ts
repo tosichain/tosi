@@ -20,6 +20,7 @@ import { hashComputeClaim } from "../blockchain/util";
 const FAKE_CID = "bafybeibnikymft2ikuygct6phxedz7x623cqlvcwxztedds5fzbb5mhdk4";
 const FUNCTION_CID = "bafybeihordq4yjtlp43mzrk7sn5h5vd25hdtvn6xjzvtt4jeejcvuqqbe4";
 const EMPTY_DIR_CID = "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354";
+const EMPTY_16KB_CID = "bafkreicp462zv5w6hntfwz3yrtbptgesvobh56xdurttikz3wtr3zds37y";
 
 const INVALID_TXN_WAIT_PERIOD = 25000; // 25 seconds
 
@@ -274,6 +275,28 @@ let headClaim: ComputeClaim;
 let headClaimHash: string;
 
 describe("DA verification is performed correctly", function () {
+  it("client creates new compute chain with intentionally broken function", async () => {
+    const txn = await client.generateCreateDatachainTxn({
+      dataContractCID: CID.parse(EMPTY_16KB_CID),
+      inputCID: CID.parse(EMPTY_DIR_CID),
+      outputCID: CID.parse(EMPTY_DIR_CID),
+    });
+    if (!txn.createChain) {
+      throw new Error("invalid CreateDatachain transaction");
+    }
+
+    const invalidRootClaimHash = hashComputeClaim(txn.createChain.rootClaim);
+
+    await client.submitTransaction(txn);
+
+    // Wait to ensure invalid transaction is rejected.
+    await new Promise((resolve) => {
+      setTimeout(resolve, INVALID_TXN_WAIT_PERIOD);
+    });
+
+    await verifyHeadClaim(invalidRootClaimHash, undefined);
+  });
+
   it("client creates new compute chain (real data)", async () => {
     const txn = await client.generateCreateDatachainTxn({
       dataContractCID: CID.parse(FUNCTION_CID),

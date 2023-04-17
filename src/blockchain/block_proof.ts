@@ -13,6 +13,7 @@ export async function verifyBlockProof(
   block: Block,
   blockchain: BlockchainStorage,
   daCommitteeSampleSzie: number,
+  stateCommitteeSampleSzie: number,
 ): Promise<boolean> {
   const proof = block.proof;
 
@@ -67,6 +68,34 @@ export async function verifyBlockProof(
     return false;
   }
   if (!Buffer.from(aggDACheckResultSig).equals(proof.aggDACheckResultSignature)) {
+    return false;
+  }
+
+  // Check that proof carries responses from all verifiers of State committee sample.
+  const stateCommittee = await getVerificationCommitteeSample(
+    blockchain,
+    StakeType.StateVerifier,
+    stateCommitteeSampleSzie,
+    randSeed,
+  );
+  for (const staker of stateCommittee) {
+    if (!proof.stateCheckResults.find((stateResult) => stateResult.signer == staker.address)) {
+      return false;
+    }
+  }
+
+  // Verify aggregated signature of responses from state verifiers.
+  const [aggStateCheckResultSigValid, aggStateCheckResultSig] = await verifyStateCheckResultsAggergatedSignature(
+    proof.txnBundleHash,
+    proof.randomnessProof,
+    proof.stateCheckResults[0].claims, // For now we expect full consensus among state verifiers.
+    proof.stateCheckResults,
+    proof.stateCheckResults.map((result) => result.signer),
+  );
+  if (!aggStateCheckResultSigValid) {
+    return false;
+  }
+  if (!Buffer.from(aggStateCheckResultSig).equals(proof.aggStateCheckResultSignature)) {
     return false;
   }
 

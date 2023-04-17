@@ -27,6 +27,8 @@ export interface BlockchainClientSyncConfig {
 
 export class BlockchainClientSync {
   private readonly daCommiteeSampleSize: number;
+  private readonly stateCommiteeSampleSize: number;
+
   private readonly config: BlockchainClientSyncConfig;
 
   private readonly log: winston.Logger;
@@ -42,6 +44,7 @@ export class BlockchainClientSync {
 
   constructor(
     daCommitteeSampleSize: number,
+    stateCommitteeSampleSize: number,
     config: BlockchainClientSyncConfig,
     log: winston.Logger,
     coordinator: CoordinatorRPC,
@@ -49,6 +52,8 @@ export class BlockchainClientSync {
     storage: BlockchainStorage,
   ) {
     this.daCommiteeSampleSize = daCommitteeSampleSize;
+    this.stateCommiteeSampleSize = stateCommitteeSampleSize;
+
     this.config = config;
 
     this.log = log;
@@ -188,7 +193,7 @@ export class BlockchainClientSync {
       );
     }
 
-    if (!(await verifyBlockProof(block, this.storage, this.daCommiteeSampleSize))) {
+    if (!(await verifyBlockProof(block, this.storage, this.daCommiteeSampleSize, this.stateCommiteeSampleSize))) {
       throw new Error(`block proof is invalid`);
     }
 
