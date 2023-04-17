@@ -1,11 +1,9 @@
 import winston from "winston";
 import mysql from "mysql";
 
-import { encodeCBOR, decodeCBOR } from "../util";
-
 import { WorldState, SignedTransaction, Block, Account, DataChain, ComputeClaim, StakePool } from "./types";
 import { accountsMerkleTree } from "./block";
-import { hashBlock, hashSignedTransaction, stringifySignedTransaction } from "./util";
+import { bytesToHex, hashBlock, hashSignedTransaction, stringifySignedTransaction } from "./util";
 import {
   deserializeBlock,
   deserializeSignedTransaction,
@@ -143,18 +141,6 @@ export class BlockchainStorage {
     });
   }
 
-  private async clearAllKeys(table: string): Promise<void> {
-    return await new Promise((resolve, reject) => {
-      this.db.query("DELETE FROM " + table, function (error, results, fields) {
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
-
   private async initDB(state: WorldState): Promise<void> {
     // TODO: some general metdata must be put into this.db
     const rawState = serializeWorldState(state);
@@ -165,8 +151,8 @@ export class BlockchainStorage {
       accountsMerkle: accountsMerkleTree(state),
       transactions: [],
       proof: {
-        txnBundleHash: "",
-        txnBundleProposer: "",
+        txnBundleHash: new Uint8Array(),
+        txnBundleProposer: new Uint8Array(),
         DACheckResults: [],
         stateCheckResults: [],
         randomnessProof: new Uint8Array(),
@@ -179,35 +165,33 @@ export class BlockchainStorage {
     const genesisBlockHash = hashBlock(genesisBlock);
 
     // TODO do this in a singular commit next time
-    await this.putValue("main", DB_KEY_HEAD_BLOCK, encodeStringValue(genesisBlockHash));
+    await this.putValue("main", DB_KEY_HEAD_BLOCK, genesisBlockHash);
     await this.putValue("state", DB_KEY_STATE_VALUE, rawState);
-    await this.putValue("main", DB_KEY_GENESIS_BLOCK, encodeStringValue(genesisBlockHash));
+    await this.putValue("main", DB_KEY_GENESIS_BLOCK, genesisBlockHash);
 
-    await this.putValue("block", genesisBlockHash, rawGenesisBlock);
+    await this.putValue("block", bytesToHex(genesisBlockHash), rawGenesisBlock);
   }
 
-  public async getGenesisBlockHash(): Promise<string> {
+  public async getGenesisBlockHash(): Promise<Uint8Array> {
     const genesisBlock = await this.getValue("main", DB_KEY_GENESIS_BLOCK);
     if (!genesisBlock) {
       throw new Error("Genesis block info not found");
     }
-    const genesisBlockHash = decodeStringValue(genesisBlock);
-    return genesisBlockHash;
+    return genesisBlock;
   }
 
   public async submitTransaction(txn: SignedTransaction): Promise<void> {
     // TODO: transactions signature must be verified.
     const serializedTxn = serializeSignedTransaction(txn);
     const txnHash = hashSignedTransaction(txn);
-    await this.putValue("mempool", txnHash, serializedTxn);
+    await this.putValue("mempool", bytesToHex(txnHash), serializedTxn);
     this.log.info(`transaction ${stringifySignedTransaction(txn)} submitted to the mempool`);
   }
 
   public async removePendingTransaction(txn: SignedTransaction): Promise<void> {
     const txnHash = hashSignedTransaction(txn);
-    this.clearKey("mempool", txnHash);
-    await this.clearKey("mempool", txnHash);
-    this.log.info(`transaction ${txnHash} removed from the mempool`);
+    await this.clearKey("mempool", bytesToHex(txnHash));
+    this.log.info(`transaction ${bytesToHex(txnHash)} removed from the mempool`);
   }
 
   public async getNextBlockInput(): Promise<[WorldState, Block, SignedTransaction[]]> {
@@ -219,12 +203,11 @@ export class BlockchainStorage {
     const state = deserializeWorldState(rawState);
 
     // Fetch current head block.
-    const keyHeadBlock = await this.getValue("main", DB_KEY_HEAD_BLOCK);
-    if (!keyHeadBlock) {
+    const headBlockHash = await this.getValue("main", DB_KEY_HEAD_BLOCK);
+    if (!headBlockHash) {
       throw new Error("Head block info not found");
     }
-    const headBlockHash = decodeStringValue(keyHeadBlock);
-    const rawHeadBlock = await this.getValue("block", headBlockHash);
+    const rawHeadBlock = await this.getValue("block", bytesToHex(headBlockHash));
     if (!rawHeadBlock) {
       throw new Error("Coud not locate head block");
     }
@@ -244,26 +227,26 @@ export class BlockchainStorage {
     const nextBlockHash = hashBlock(block);
 
     /* TODO: turn this atomic */
-    await this.putValue("main", DB_KEY_HEAD_BLOCK, encodeStringValue(nextBlockHash));
+    await this.putValue("main", DB_KEY_HEAD_BLOCK, nextBlockHash);
     await this.putValue("state", DB_KEY_STATE_VALUE, serializeWorldState(state));
-    await this.putValue("block", nextBlockHash, rawBlock);
-    this.log.info(`block ${nextBlockHash} committed to storage`);
+    await this.putValue("block", bytesToHex(nextBlockHash), rawBlock);
+    this.log.info(`block ${bytesToHex(nextBlockHash)} committed to storage`);
 
     // Remove block transactions from mempool.
     for (const txn of block.transactions) {
       const txnHash = hashSignedTransaction(txn);
-      await this.clearKey("mempool", txnHash);
-      this.log.info(`transaction ${txnHash} removed from the mempool`);
+      await this.clearKey("mempool", bytesToHex(txnHash));
+      this.log.info(`transaction ${bytesToHex(txnHash)} removed from the mempool`);
     }
   }
 
-  public async getAccount(pubKey: string): Promise<Account | undefined> {
+  public async getAccount(address: Uint8Array): Promise<Account | undefined> {
     const rawState = await this.getValue("state", DB_KEY_STATE_VALUE);
     if (!rawState) {
       throw new Error("world state does not exist in database");
     }
     const state = deserializeWorldState(rawState);
-    return state.accounts[pubKey];
+    return state.accounts[bytesToHex(address)];
   }
 
   public async getStakePool(): Promise<StakePool> {
@@ -275,13 +258,13 @@ export class BlockchainStorage {
     return state.stakePool;
   }
 
-  public async getComputeChain(rootClaimHash: string): Promise<DataChain | undefined> {
+  public async getComputeChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined> {
     const rawState = await this.getValue("state", DB_KEY_STATE_VALUE);
     if (!rawState) {
       throw new Error("world state does not exist in database");
     }
     const state = deserializeWorldState(rawState);
-    return state.dataChains[rootClaimHash];
+    return state.dataChains[bytesToHex(rootClaimHash)];
   }
 
   public async getDataChainList(): Promise<DataChain[]> {
@@ -293,62 +276,47 @@ export class BlockchainStorage {
     return Object.values(state.dataChains);
   }
 
-  public async getComputeClaim(claimHash: string): Promise<ComputeClaim | undefined> {
+  public async getComputeClaim(claimHash: Uint8Array): Promise<ComputeClaim | undefined> {
     const rawState = await this.getValue("state", DB_KEY_STATE_VALUE);
     if (!rawState) {
       throw new Error("world state does not exist in database");
     }
     const state = deserializeWorldState(rawState);
+    const claimHashHex = bytesToHex(claimHash);
     for (const rootClaimHash of Object.keys(state.dataChains)) {
       const chain = state.dataChains[rootClaimHash];
-      if (chain.claims[claimHash] != undefined) {
-        return chain.claims[claimHash];
+      if (chain.claims[claimHashHex] != undefined) {
+        return chain.claims[claimHashHex];
       }
     }
     return undefined;
   }
 
-  public async getHeadBlockHash(): Promise<string> {
+  public async getHeadBlockHash(): Promise<Uint8Array> {
     const rawHash = await this.getValue("main", DB_KEY_HEAD_BLOCK);
     if (!rawHash) {
       throw new Error("head block hash does not exist in database");
     }
-    return decodeStringValue(rawHash);
+    return rawHash;
   }
 
-  public async getBlock(blockHash: string): Promise<Block | undefined> {
-    const rawBlock = await this.getValue("block", blockHash);
+  public async getBlock(blockHash: Uint8Array): Promise<Block | undefined> {
+    const rawBlock = await this.getValue("block", bytesToHex(blockHash));
     if (!rawBlock) {
       return undefined;
     }
     return deserializeBlock(rawBlock);
   }
 
-  public async setBlockMetadata(blockHash: string, meta: Uint8Array): Promise<void> {
-    await this.putValue("blockMeta", blockHash, meta);
+  public async setBlockMetadata(blockHash: Uint8Array, meta: Uint8Array): Promise<void> {
+    await this.putValue("blockMeta", bytesToHex(blockHash), meta);
   }
 
-  public async getBlockMetadata(blockHash: string): Promise<Uint8Array | undefined> {
-    const rawBlock = await this.getValue("blockMeta", blockHash);
+  public async getBlockMetadata(blockHash: Uint8Array): Promise<Uint8Array | undefined> {
+    const rawBlock = await this.getValue("blockMeta", bytesToHex(blockHash));
     if (!rawBlock) {
       return undefined;
     }
     return rawBlock;
   }
-}
-
-function encodeStringValue(s: string): Uint8Array {
-  return encodeCBOR(s);
-}
-
-function decodeStringValue(s: Uint8Array): string {
-  return decodeCBOR(s) as string;
-}
-
-function encodeNumberValue(n: number): Uint8Array {
-  return encodeCBOR(n);
-}
-
-function decodeNumberValue(n: Uint8Array): number {
-  return decodeCBOR(n) as number;
 }

@@ -2,7 +2,7 @@ import process from "process";
 import winston from "winston";
 
 import { ClientNodeConfig, ClientNode } from "./node";
-import { createInitialStateFromEnv } from "../../blockchain/util";
+import { bytesFromHex, createInitialStateFromEnv } from "../../blockchain/util";
 
 (async () => {
   const config: ClientNodeConfig = {
@@ -37,8 +37,8 @@ import { createInitialStateFromEnv } from "../../blockchain/util";
     rpc: {
       port: Number(process.env.API_PORT),
     },
-    blsSecKey: String(process.env.BLS_SEC_KEY),
-    coordinatorPubKey: String(process.env.COORDINATOR_PUB_KEY),
+    blsSecKey: bytesFromHex(String(process.env.BLS_SEC_KEY)),
+    coordinatorPubKey: bytesFromHex(String(process.env.COORDINATOR_PUB_KEY)),
     DACommitteeSampleSize: Number(process.env.OFFCHAIN_DA_COMMITEE_SAMPLE_SIZE),
     stateCommitteeSampleSize: Number(process.env.OFFCHAIN_STATE_COMMITEE_SAMPLE_SIZE),
   };

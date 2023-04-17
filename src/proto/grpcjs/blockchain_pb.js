@@ -560,8 +560,8 @@ proto.blockchain.SignedTransaction.prototype.toObject = function(opt_includeInst
  */
 proto.blockchain.SignedTransaction.toObject = function(includeInstance, msg) {
   var f, obj = {
-    from: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    signature: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    from: msg.getFrom_asB64(),
+    signature: msg.getSignature_asB64(),
     txn: (f = msg.getTxn()) && proto.blockchain.Transaction.toObject(includeInstance, f)
   };
 
@@ -600,11 +600,11 @@ proto.blockchain.SignedTransaction.deserializeBinaryFromReader = function(msg, r
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setFrom(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setSignature(value);
       break;
     case 3:
@@ -641,16 +641,16 @@ proto.blockchain.SignedTransaction.prototype.serializeBinary = function() {
  */
 proto.blockchain.SignedTransaction.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getFrom();
+  f = message.getFrom_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
   }
-  f = message.getSignature();
+  f = message.getSignature_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       2,
       f
     );
@@ -667,38 +667,86 @@ proto.blockchain.SignedTransaction.serializeBinaryToWriter = function(message, w
 
 
 /**
- * optional string from = 1;
- * @return {string}
+ * optional bytes from = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.SignedTransaction.prototype.getFrom = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes from = 1;
+ * This is a type-conversion wrapper around `getFrom()`
+ * @return {string}
+ */
+proto.blockchain.SignedTransaction.prototype.getFrom_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getFrom()));
+};
+
+
+/**
+ * optional bytes from = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getFrom()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.SignedTransaction.prototype.getFrom_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getFrom()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.SignedTransaction} returns this
  */
 proto.blockchain.SignedTransaction.prototype.setFrom = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
 /**
- * optional string signature = 2;
- * @return {string}
+ * optional bytes signature = 2;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.SignedTransaction.prototype.getSignature = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes signature = 2;
+ * This is a type-conversion wrapper around `getSignature()`
+ * @return {string}
+ */
+proto.blockchain.SignedTransaction.prototype.getSignature_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getSignature()));
+};
+
+
+/**
+ * optional bytes signature = 2;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getSignature()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.SignedTransaction.prototype.getSignature_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getSignature()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.SignedTransaction} returns this
  */
 proto.blockchain.SignedTransaction.prototype.setSignature = function(value) {
-  return jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3BytesField(this, 2, value);
 };
 
 
@@ -1207,7 +1255,7 @@ proto.blockchain.MintToken.prototype.toObject = function(opt_includeInstance) {
  */
 proto.blockchain.MintToken.toObject = function(includeInstance, msg) {
   var f, obj = {
-    receiver: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    receiver: msg.getReceiver_asB64(),
     amount: jspb.Message.getFieldWithDefault(msg, 2, "0")
   };
 
@@ -1246,7 +1294,7 @@ proto.blockchain.MintToken.deserializeBinaryFromReader = function(msg, reader) {
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setReceiver(value);
       break;
     case 2:
@@ -1282,9 +1330,9 @@ proto.blockchain.MintToken.prototype.serializeBinary = function() {
  */
 proto.blockchain.MintToken.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getReceiver();
+  f = message.getReceiver_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -1300,20 +1348,44 @@ proto.blockchain.MintToken.serializeBinaryToWriter = function(message, writer) {
 
 
 /**
- * optional string receiver = 1;
- * @return {string}
+ * optional bytes receiver = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.MintToken.prototype.getReceiver = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes receiver = 1;
+ * This is a type-conversion wrapper around `getReceiver()`
+ * @return {string}
+ */
+proto.blockchain.MintToken.prototype.getReceiver_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getReceiver()));
+};
+
+
+/**
+ * optional bytes receiver = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getReceiver()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.MintToken.prototype.getReceiver_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getReceiver()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.MintToken} returns this
  */
 proto.blockchain.MintToken.prototype.setReceiver = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -1367,7 +1439,7 @@ proto.blockchain.TransferToken.prototype.toObject = function(opt_includeInstance
  */
 proto.blockchain.TransferToken.toObject = function(includeInstance, msg) {
   var f, obj = {
-    receiver: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    receiver: msg.getReceiver_asB64(),
     amount: jspb.Message.getFieldWithDefault(msg, 2, "0")
   };
 
@@ -1406,7 +1478,7 @@ proto.blockchain.TransferToken.deserializeBinaryFromReader = function(msg, reade
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setReceiver(value);
       break;
     case 2:
@@ -1442,9 +1514,9 @@ proto.blockchain.TransferToken.prototype.serializeBinary = function() {
  */
 proto.blockchain.TransferToken.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getReceiver();
+  f = message.getReceiver_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -1460,20 +1532,44 @@ proto.blockchain.TransferToken.serializeBinaryToWriter = function(message, write
 
 
 /**
- * optional string receiver = 1;
- * @return {string}
+ * optional bytes receiver = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.TransferToken.prototype.getReceiver = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes receiver = 1;
+ * This is a type-conversion wrapper around `getReceiver()`
+ * @return {string}
+ */
+proto.blockchain.TransferToken.prototype.getReceiver_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getReceiver()));
+};
+
+
+/**
+ * optional bytes receiver = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getReceiver()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.TransferToken.prototype.getReceiver_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getReceiver()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.TransferToken} returns this
  */
 proto.blockchain.TransferToken.prototype.setReceiver = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -1998,7 +2094,7 @@ proto.blockchain.UpdateDataChain.prototype.toObject = function(opt_includeInstan
  */
 proto.blockchain.UpdateDataChain.toObject = function(includeInstance, msg) {
   var f, obj = {
-    rootClaimHash: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    rootClaimHash: msg.getRootClaimHash_asB64(),
     claim: (f = msg.getClaim()) && proto.blockchain.ComputeClaim.toObject(includeInstance, f)
   };
 
@@ -2037,7 +2133,7 @@ proto.blockchain.UpdateDataChain.deserializeBinaryFromReader = function(msg, rea
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setRootClaimHash(value);
       break;
     case 2:
@@ -2074,9 +2170,9 @@ proto.blockchain.UpdateDataChain.prototype.serializeBinary = function() {
  */
 proto.blockchain.UpdateDataChain.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getRootClaimHash();
+  f = message.getRootClaimHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -2093,20 +2189,44 @@ proto.blockchain.UpdateDataChain.serializeBinaryToWriter = function(message, wri
 
 
 /**
- * optional string root_claim_hash = 1;
- * @return {string}
+ * optional bytes root_claim_hash = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.UpdateDataChain.prototype.getRootClaimHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes root_claim_hash = 1;
+ * This is a type-conversion wrapper around `getRootClaimHash()`
+ * @return {string}
+ */
+proto.blockchain.UpdateDataChain.prototype.getRootClaimHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getRootClaimHash()));
+};
+
+
+/**
+ * optional bytes root_claim_hash = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getRootClaimHash()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.UpdateDataChain.prototype.getRootClaimHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getRootClaimHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.UpdateDataChain} returns this
  */
 proto.blockchain.UpdateDataChain.prototype.setRootClaimHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -2189,7 +2309,7 @@ proto.blockchain.WorldState.toObject = function(includeInstance, msg) {
     accountsList: jspb.Message.toObjectList(msg.getAccountsList(),
     proto.blockchain.Account.toObject, includeInstance),
     stakePool: (f = msg.getStakePool()) && proto.blockchain.StakePool.toObject(includeInstance, f),
-    minter: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    minter: msg.getMinter_asB64(),
     dataChainsList: jspb.Message.toObjectList(msg.getDataChainsList(),
     proto.blockchain.DataChain.toObject, includeInstance)
   };
@@ -2239,7 +2359,7 @@ proto.blockchain.WorldState.deserializeBinaryFromReader = function(msg, reader) 
       msg.setStakePool(value);
       break;
     case 3:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setMinter(value);
       break;
     case 4:
@@ -2292,9 +2412,9 @@ proto.blockchain.WorldState.serializeBinaryToWriter = function(message, writer) 
       proto.blockchain.StakePool.serializeBinaryToWriter
     );
   }
-  f = message.getMinter();
+  f = message.getMinter_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       3,
       f
     );
@@ -2386,20 +2506,44 @@ proto.blockchain.WorldState.prototype.hasStakePool = function() {
 
 
 /**
- * optional string minter = 3;
- * @return {string}
+ * optional bytes minter = 3;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.WorldState.prototype.getMinter = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes minter = 3;
+ * This is a type-conversion wrapper around `getMinter()`
+ * @return {string}
+ */
+proto.blockchain.WorldState.prototype.getMinter_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getMinter()));
+};
+
+
+/**
+ * optional bytes minter = 3;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getMinter()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.WorldState.prototype.getMinter_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getMinter()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.WorldState} returns this
  */
 proto.blockchain.WorldState.prototype.setMinter = function(value) {
-  return jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3BytesField(this, 3, value);
 };
 
 
@@ -2473,7 +2617,7 @@ proto.blockchain.Account.prototype.toObject = function(opt_includeInstance) {
  */
 proto.blockchain.Account.toObject = function(includeInstance, msg) {
   var f, obj = {
-    address: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    address: msg.getAddress_asB64(),
     nonce: jspb.Message.getFieldWithDefault(msg, 2, 0),
     balance: jspb.Message.getFieldWithDefault(msg, 3, "0"),
     daVerifierStake: jspb.Message.getFieldWithDefault(msg, 4, "0"),
@@ -2515,7 +2659,7 @@ proto.blockchain.Account.deserializeBinaryFromReader = function(msg, reader) {
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setAddress(value);
       break;
     case 2:
@@ -2563,9 +2707,9 @@ proto.blockchain.Account.prototype.serializeBinary = function() {
  */
 proto.blockchain.Account.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getAddress();
+  f = message.getAddress_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -2602,20 +2746,44 @@ proto.blockchain.Account.serializeBinaryToWriter = function(message, writer) {
 
 
 /**
- * optional string address = 1;
- * @return {string}
+ * optional bytes address = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.Account.prototype.getAddress = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes address = 1;
+ * This is a type-conversion wrapper around `getAddress()`
+ * @return {string}
+ */
+proto.blockchain.Account.prototype.getAddress_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getAddress()));
+};
+
+
+/**
+ * optional bytes address = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getAddress()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.Account.prototype.getAddress_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getAddress()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.Account} returns this
  */
 proto.blockchain.Account.prototype.setAddress = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -2731,9 +2899,9 @@ proto.blockchain.StakePool.prototype.toObject = function(opt_includeInstance) {
 proto.blockchain.StakePool.toObject = function(includeInstance, msg) {
   var f, obj = {
     daVerifierPool: jspb.Message.getFieldWithDefault(msg, 1, "0"),
-    daVerifiersList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
+    daVerifiersList: msg.getDaVerifiersList_asB64(),
     stateVerifierPool: jspb.Message.getFieldWithDefault(msg, 3, "0"),
-    stateVerifiersList: (f = jspb.Message.getRepeatedField(msg, 4)) == null ? undefined : f
+    stateVerifiersList: msg.getStateVerifiersList_asB64()
   };
 
   if (includeInstance) {
@@ -2775,7 +2943,7 @@ proto.blockchain.StakePool.deserializeBinaryFromReader = function(msg, reader) {
       msg.setDaVerifierPool(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.addDaVerifiers(value);
       break;
     case 3:
@@ -2783,7 +2951,7 @@ proto.blockchain.StakePool.deserializeBinaryFromReader = function(msg, reader) {
       msg.setStateVerifierPool(value);
       break;
     case 4:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.addStateVerifiers(value);
       break;
     default:
@@ -2822,9 +2990,9 @@ proto.blockchain.StakePool.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getDaVerifiersList();
+  f = message.getDaVerifiersList_asU8();
   if (f.length > 0) {
-    writer.writeRepeatedString(
+    writer.writeRepeatedBytes(
       2,
       f
     );
@@ -2836,9 +3004,9 @@ proto.blockchain.StakePool.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getStateVerifiersList();
+  f = message.getStateVerifiersList_asU8();
   if (f.length > 0) {
-    writer.writeRepeatedString(
+    writer.writeRepeatedBytes(
       4,
       f
     );
@@ -2865,16 +3033,40 @@ proto.blockchain.StakePool.prototype.setDaVerifierPool = function(value) {
 
 
 /**
- * repeated string da_verifiers = 2;
- * @return {!Array<string>}
+ * repeated bytes da_verifiers = 2;
+ * @return {!(Array<!Uint8Array>|Array<string>)}
  */
 proto.blockchain.StakePool.prototype.getDaVerifiersList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
+  return /** @type {!(Array<!Uint8Array>|Array<string>)} */ (jspb.Message.getRepeatedField(this, 2));
 };
 
 
 /**
- * @param {!Array<string>} value
+ * repeated bytes da_verifiers = 2;
+ * This is a type-conversion wrapper around `getDaVerifiersList()`
+ * @return {!Array<string>}
+ */
+proto.blockchain.StakePool.prototype.getDaVerifiersList_asB64 = function() {
+  return /** @type {!Array<string>} */ (jspb.Message.bytesListAsB64(
+      this.getDaVerifiersList()));
+};
+
+
+/**
+ * repeated bytes da_verifiers = 2;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getDaVerifiersList()`
+ * @return {!Array<!Uint8Array>}
+ */
+proto.blockchain.StakePool.prototype.getDaVerifiersList_asU8 = function() {
+  return /** @type {!Array<!Uint8Array>} */ (jspb.Message.bytesListAsU8(
+      this.getDaVerifiersList()));
+};
+
+
+/**
+ * @param {!(Array<!Uint8Array>|Array<string>)} value
  * @return {!proto.blockchain.StakePool} returns this
  */
 proto.blockchain.StakePool.prototype.setDaVerifiersList = function(value) {
@@ -2883,7 +3075,7 @@ proto.blockchain.StakePool.prototype.setDaVerifiersList = function(value) {
 
 
 /**
- * @param {string} value
+ * @param {!(string|Uint8Array)} value
  * @param {number=} opt_index
  * @return {!proto.blockchain.StakePool} returns this
  */
@@ -2920,16 +3112,40 @@ proto.blockchain.StakePool.prototype.setStateVerifierPool = function(value) {
 
 
 /**
- * repeated string state_verifiers = 4;
- * @return {!Array<string>}
+ * repeated bytes state_verifiers = 4;
+ * @return {!(Array<!Uint8Array>|Array<string>)}
  */
 proto.blockchain.StakePool.prototype.getStateVerifiersList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 4));
+  return /** @type {!(Array<!Uint8Array>|Array<string>)} */ (jspb.Message.getRepeatedField(this, 4));
 };
 
 
 /**
- * @param {!Array<string>} value
+ * repeated bytes state_verifiers = 4;
+ * This is a type-conversion wrapper around `getStateVerifiersList()`
+ * @return {!Array<string>}
+ */
+proto.blockchain.StakePool.prototype.getStateVerifiersList_asB64 = function() {
+  return /** @type {!Array<string>} */ (jspb.Message.bytesListAsB64(
+      this.getStateVerifiersList()));
+};
+
+
+/**
+ * repeated bytes state_verifiers = 4;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getStateVerifiersList()`
+ * @return {!Array<!Uint8Array>}
+ */
+proto.blockchain.StakePool.prototype.getStateVerifiersList_asU8 = function() {
+  return /** @type {!Array<!Uint8Array>} */ (jspb.Message.bytesListAsU8(
+      this.getStateVerifiersList()));
+};
+
+
+/**
+ * @param {!(Array<!Uint8Array>|Array<string>)} value
  * @return {!proto.blockchain.StakePool} returns this
  */
 proto.blockchain.StakePool.prototype.setStateVerifiersList = function(value) {
@@ -2938,7 +3154,7 @@ proto.blockchain.StakePool.prototype.setStateVerifiersList = function(value) {
 
 
 /**
- * @param {string} value
+ * @param {!(string|Uint8Array)} value
  * @param {number=} opt_index
  * @return {!proto.blockchain.StakePool} returns this
  */
@@ -2997,8 +3213,8 @@ proto.blockchain.DataChain.toObject = function(includeInstance, msg) {
   var f, obj = {
     claimsList: jspb.Message.toObjectList(msg.getClaimsList(),
     proto.blockchain.ComputeClaim.toObject, includeInstance),
-    rootClaimHash: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    headClaimHash: jspb.Message.getFieldWithDefault(msg, 3, "")
+    rootClaimHash: msg.getRootClaimHash_asB64(),
+    headClaimHash: msg.getHeadClaimHash_asB64()
   };
 
   if (includeInstance) {
@@ -3041,11 +3257,11 @@ proto.blockchain.DataChain.deserializeBinaryFromReader = function(msg, reader) {
       msg.addClaims(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setRootClaimHash(value);
       break;
     case 3:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setHeadClaimHash(value);
       break;
     default:
@@ -3085,16 +3301,16 @@ proto.blockchain.DataChain.serializeBinaryToWriter = function(message, writer) {
       proto.blockchain.ComputeClaim.serializeBinaryToWriter
     );
   }
-  f = message.getRootClaimHash();
+  f = message.getRootClaimHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       2,
       f
     );
   }
-  f = message.getHeadClaimHash();
+  f = message.getHeadClaimHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       3,
       f
     );
@@ -3141,38 +3357,86 @@ proto.blockchain.DataChain.prototype.clearClaimsList = function() {
 
 
 /**
- * optional string root_claim_hash = 2;
- * @return {string}
+ * optional bytes root_claim_hash = 2;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.DataChain.prototype.getRootClaimHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes root_claim_hash = 2;
+ * This is a type-conversion wrapper around `getRootClaimHash()`
+ * @return {string}
+ */
+proto.blockchain.DataChain.prototype.getRootClaimHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getRootClaimHash()));
+};
+
+
+/**
+ * optional bytes root_claim_hash = 2;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getRootClaimHash()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.DataChain.prototype.getRootClaimHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getRootClaimHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.DataChain} returns this
  */
 proto.blockchain.DataChain.prototype.setRootClaimHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3BytesField(this, 2, value);
 };
 
 
 /**
- * optional string head_claim_hash = 3;
- * @return {string}
+ * optional bytes head_claim_hash = 3;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.DataChain.prototype.getHeadClaimHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes head_claim_hash = 3;
+ * This is a type-conversion wrapper around `getHeadClaimHash()`
+ * @return {string}
+ */
+proto.blockchain.DataChain.prototype.getHeadClaimHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getHeadClaimHash()));
+};
+
+
+/**
+ * optional bytes head_claim_hash = 3;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getHeadClaimHash()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.DataChain.prototype.getHeadClaimHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getHeadClaimHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.DataChain} returns this
  */
 proto.blockchain.DataChain.prototype.setHeadClaimHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3BytesField(this, 3, value);
 };
 
 
@@ -3208,8 +3472,8 @@ proto.blockchain.ComputeClaim.prototype.toObject = function(opt_includeInstance)
  */
 proto.blockchain.ComputeClaim.toObject = function(includeInstance, msg) {
   var f, obj = {
-    claimer: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    prevClaimHash: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    claimer: msg.getClaimer_asB64(),
+    prevClaimHash: msg.getPrevClaimHash_asB64(),
     dataContract: (f = msg.getDataContract()) && proto.blockchain.ClaimDataRef.toObject(includeInstance, f),
     input: (f = msg.getInput()) && proto.blockchain.ClaimDataRef.toObject(includeInstance, f),
     output: (f = msg.getOutput()) && proto.blockchain.ClaimDataRef.toObject(includeInstance, f),
@@ -3251,11 +3515,11 @@ proto.blockchain.ComputeClaim.deserializeBinaryFromReader = function(msg, reader
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setClaimer(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setPrevClaimHash(value);
       break;
     case 3:
@@ -3306,16 +3570,16 @@ proto.blockchain.ComputeClaim.prototype.serializeBinary = function() {
  */
 proto.blockchain.ComputeClaim.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getClaimer();
+  f = message.getClaimer_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
   }
-  f = message.getPrevClaimHash();
+  f = message.getPrevClaimHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       2,
       f
     );
@@ -3355,38 +3619,86 @@ proto.blockchain.ComputeClaim.serializeBinaryToWriter = function(message, writer
 
 
 /**
- * optional string claimer = 1;
- * @return {string}
+ * optional bytes claimer = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.ComputeClaim.prototype.getClaimer = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes claimer = 1;
+ * This is a type-conversion wrapper around `getClaimer()`
+ * @return {string}
+ */
+proto.blockchain.ComputeClaim.prototype.getClaimer_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getClaimer()));
+};
+
+
+/**
+ * optional bytes claimer = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getClaimer()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.ComputeClaim.prototype.getClaimer_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getClaimer()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.ComputeClaim} returns this
  */
 proto.blockchain.ComputeClaim.prototype.setClaimer = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
 /**
- * optional string prev_claim_hash = 2;
- * @return {string}
+ * optional bytes prev_claim_hash = 2;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.ComputeClaim.prototype.getPrevClaimHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes prev_claim_hash = 2;
+ * This is a type-conversion wrapper around `getPrevClaimHash()`
+ * @return {string}
+ */
+proto.blockchain.ComputeClaim.prototype.getPrevClaimHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getPrevClaimHash()));
+};
+
+
+/**
+ * optional bytes prev_claim_hash = 2;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getPrevClaimHash()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.ComputeClaim.prototype.getPrevClaimHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getPrevClaimHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.ComputeClaim} returns this
  */
 proto.blockchain.ComputeClaim.prototype.setPrevClaimHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3BytesField(this, 2, value);
 };
 
 
@@ -3553,7 +3865,7 @@ proto.blockchain.ClaimDataRef.toObject = function(includeInstance, msg) {
   var f, obj = {
     cid: jspb.Message.getFieldWithDefault(msg, 1, ""),
     size: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    cartesimerkleroot: jspb.Message.getFieldWithDefault(msg, 3, "")
+    cartesimerkleroot: msg.getCartesimerkleroot_asB64()
   };
 
   if (includeInstance) {
@@ -3599,7 +3911,7 @@ proto.blockchain.ClaimDataRef.deserializeBinaryFromReader = function(msg, reader
       msg.setSize(value);
       break;
     case 3:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setCartesimerkleroot(value);
       break;
     default:
@@ -3645,9 +3957,9 @@ proto.blockchain.ClaimDataRef.serializeBinaryToWriter = function(message, writer
       f
     );
   }
-  f = message.getCartesimerkleroot();
+  f = message.getCartesimerkleroot_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       3,
       f
     );
@@ -3692,20 +4004,44 @@ proto.blockchain.ClaimDataRef.prototype.setSize = function(value) {
 
 
 /**
- * optional string cartesiMerkleRoot = 3;
- * @return {string}
+ * optional bytes cartesiMerkleRoot = 3;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.ClaimDataRef.prototype.getCartesimerkleroot = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes cartesiMerkleRoot = 3;
+ * This is a type-conversion wrapper around `getCartesimerkleroot()`
+ * @return {string}
+ */
+proto.blockchain.ClaimDataRef.prototype.getCartesimerkleroot_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getCartesimerkleroot()));
+};
+
+
+/**
+ * optional bytes cartesiMerkleRoot = 3;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getCartesimerkleroot()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.ClaimDataRef.prototype.getCartesimerkleroot_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getCartesimerkleroot()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.ClaimDataRef} returns this
  */
 proto.blockchain.ClaimDataRef.prototype.setCartesimerkleroot = function(value) {
-  return jspb.Message.setProto3StringField(this, 3, value);
+  return jspb.Message.setProto3BytesField(this, 3, value);
 };
 
 
@@ -3741,11 +4077,8 @@ proto.blockchain.DAInfo.prototype.toObject = function(opt_includeInstance) {
  */
 proto.blockchain.DAInfo.toObject = function(includeInstance, msg) {
   var f, obj = {
-    name: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    size: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    log2: jspb.Message.getFieldWithDefault(msg, 3, 0),
-    keccak256: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    cartesiMerkleRoot: jspb.Message.getFieldWithDefault(msg, 5, "")
+    size: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    cartesiMerkleRoot: msg.getCartesiMerkleRoot_asB64()
   };
 
   if (includeInstance) {
@@ -3783,23 +4116,11 @@ proto.blockchain.DAInfo.deserializeBinaryFromReader = function(msg, reader) {
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setName(value);
-      break;
-    case 2:
       var value = /** @type {number} */ (reader.readUint32());
       msg.setSize(value);
       break;
-    case 3:
-      var value = /** @type {number} */ (reader.readUint32());
-      msg.setLog2(value);
-      break;
-    case 4:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setKeccak256(value);
-      break;
-    case 5:
-      var value = /** @type {string} */ (reader.readString());
+    case 2:
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setCartesiMerkleRoot(value);
       break;
     default:
@@ -3831,68 +4152,29 @@ proto.blockchain.DAInfo.prototype.serializeBinary = function() {
  */
 proto.blockchain.DAInfo.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getName();
-  if (f.length > 0) {
-    writer.writeString(
+  f = message.getSize();
+  if (f !== 0) {
+    writer.writeUint32(
       1,
       f
     );
   }
-  f = message.getSize();
-  if (f !== 0) {
-    writer.writeUint32(
+  f = message.getCartesiMerkleRoot_asU8();
+  if (f.length > 0) {
+    writer.writeBytes(
       2,
       f
     );
   }
-  f = message.getLog2();
-  if (f !== 0) {
-    writer.writeUint32(
-      3,
-      f
-    );
-  }
-  f = message.getKeccak256();
-  if (f.length > 0) {
-    writer.writeString(
-      4,
-      f
-    );
-  }
-  f = message.getCartesiMerkleRoot();
-  if (f.length > 0) {
-    writer.writeString(
-      5,
-      f
-    );
-  }
 };
 
 
 /**
- * optional string name = 1;
- * @return {string}
- */
-proto.blockchain.DAInfo.prototype.getName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.blockchain.DAInfo} returns this
- */
-proto.blockchain.DAInfo.prototype.setName = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
-};
-
-
-/**
- * optional uint32 size = 2;
+ * optional uint32 size = 1;
  * @return {number}
  */
 proto.blockchain.DAInfo.prototype.getSize = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
 };
 
 
@@ -3901,61 +4183,49 @@ proto.blockchain.DAInfo.prototype.getSize = function() {
  * @return {!proto.blockchain.DAInfo} returns this
  */
 proto.blockchain.DAInfo.prototype.setSize = function(value) {
-  return jspb.Message.setProto3IntField(this, 2, value);
+  return jspb.Message.setProto3IntField(this, 1, value);
 };
 
 
 /**
- * optional uint32 log2 = 3;
- * @return {number}
- */
-proto.blockchain.DAInfo.prototype.getLog2 = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 3, 0));
-};
-
-
-/**
- * @param {number} value
- * @return {!proto.blockchain.DAInfo} returns this
- */
-proto.blockchain.DAInfo.prototype.setLog2 = function(value) {
-  return jspb.Message.setProto3IntField(this, 3, value);
-};
-
-
-/**
- * optional string keccak_256 = 4;
- * @return {string}
- */
-proto.blockchain.DAInfo.prototype.getKeccak256 = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.blockchain.DAInfo} returns this
- */
-proto.blockchain.DAInfo.prototype.setKeccak256 = function(value) {
-  return jspb.Message.setProto3StringField(this, 4, value);
-};
-
-
-/**
- * optional string cartesi_merkle_root = 5;
- * @return {string}
+ * optional bytes cartesi_merkle_root = 2;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.DAInfo.prototype.getCartesiMerkleRoot = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes cartesi_merkle_root = 2;
+ * This is a type-conversion wrapper around `getCartesiMerkleRoot()`
+ * @return {string}
+ */
+proto.blockchain.DAInfo.prototype.getCartesiMerkleRoot_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getCartesiMerkleRoot()));
+};
+
+
+/**
+ * optional bytes cartesi_merkle_root = 2;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getCartesiMerkleRoot()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.DAInfo.prototype.getCartesiMerkleRoot_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getCartesiMerkleRoot()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.DAInfo} returns this
  */
 proto.blockchain.DAInfo.prototype.setCartesiMerkleRoot = function(value) {
-  return jspb.Message.setProto3StringField(this, 5, value);
+  return jspb.Message.setProto3BytesField(this, 2, value);
 };
 
 
@@ -4396,8 +4666,8 @@ proto.blockchain.BlockProof.prototype.toObject = function(opt_includeInstance) {
  */
 proto.blockchain.BlockProof.toObject = function(includeInstance, msg) {
   var f, obj = {
-    txnBundleHash: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    txnBundleProposer: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    txnBundleHash: msg.getTxnBundleHash_asB64(),
+    txnBundleProposer: msg.getTxnBundleProposer_asB64(),
     randomnessProof: msg.getRandomnessProof_asB64(),
     daCheckResultsList: jspb.Message.toObjectList(msg.getDaCheckResultsList(),
     proto.blockchain.DACheckResult.toObject, includeInstance),
@@ -4442,11 +4712,11 @@ proto.blockchain.BlockProof.deserializeBinaryFromReader = function(msg, reader) 
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setTxnBundleHash(value);
       break;
     case 2:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setTxnBundleProposer(value);
       break;
     case 3:
@@ -4500,16 +4770,16 @@ proto.blockchain.BlockProof.prototype.serializeBinary = function() {
  */
 proto.blockchain.BlockProof.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getTxnBundleHash();
+  f = message.getTxnBundleHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
   }
-  f = message.getTxnBundleProposer();
+  f = message.getTxnBundleProposer_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       2,
       f
     );
@@ -4555,38 +4825,86 @@ proto.blockchain.BlockProof.serializeBinaryToWriter = function(message, writer) 
 
 
 /**
- * optional string txn_bundle_hash = 1;
- * @return {string}
+ * optional bytes txn_bundle_hash = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.BlockProof.prototype.getTxnBundleHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes txn_bundle_hash = 1;
+ * This is a type-conversion wrapper around `getTxnBundleHash()`
+ * @return {string}
+ */
+proto.blockchain.BlockProof.prototype.getTxnBundleHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getTxnBundleHash()));
+};
+
+
+/**
+ * optional bytes txn_bundle_hash = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getTxnBundleHash()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.BlockProof.prototype.getTxnBundleHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getTxnBundleHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.BlockProof} returns this
  */
 proto.blockchain.BlockProof.prototype.setTxnBundleHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
 /**
- * optional string txn_bundle_proposer = 2;
- * @return {string}
+ * optional bytes txn_bundle_proposer = 2;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.BlockProof.prototype.getTxnBundleProposer = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes txn_bundle_proposer = 2;
+ * This is a type-conversion wrapper around `getTxnBundleProposer()`
+ * @return {string}
+ */
+proto.blockchain.BlockProof.prototype.getTxnBundleProposer_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getTxnBundleProposer()));
+};
+
+
+/**
+ * optional bytes txn_bundle_proposer = 2;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getTxnBundleProposer()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.BlockProof.prototype.getTxnBundleProposer_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getTxnBundleProposer()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.BlockProof} returns this
  */
 proto.blockchain.BlockProof.prototype.setTxnBundleProposer = function(value) {
-  return jspb.Message.setProto3StringField(this, 2, value);
+  return jspb.Message.setProto3BytesField(this, 2, value);
 };
 
 
@@ -4831,10 +5149,10 @@ proto.blockchain.DACheckResult.prototype.toObject = function(opt_includeInstance
  */
 proto.blockchain.DACheckResult.toObject = function(includeInstance, msg) {
   var f, obj = {
-    txnBundleHash: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    txnBundleHash: msg.getTxnBundleHash_asB64(),
     randomnessProof: msg.getRandomnessProof_asB64(),
     signature: msg.getSignature_asB64(),
-    signer: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    signer: msg.getSigner_asB64(),
     claimsList: jspb.Message.toObjectList(msg.getClaimsList(),
     proto.blockchain.ClaimDACheckResult.toObject, includeInstance)
   };
@@ -4874,7 +5192,7 @@ proto.blockchain.DACheckResult.deserializeBinaryFromReader = function(msg, reade
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setTxnBundleHash(value);
       break;
     case 2:
@@ -4886,7 +5204,7 @@ proto.blockchain.DACheckResult.deserializeBinaryFromReader = function(msg, reade
       msg.setSignature(value);
       break;
     case 4:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setSigner(value);
       break;
     case 5:
@@ -4923,9 +5241,9 @@ proto.blockchain.DACheckResult.prototype.serializeBinary = function() {
  */
 proto.blockchain.DACheckResult.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getTxnBundleHash();
+  f = message.getTxnBundleHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -4944,9 +5262,9 @@ proto.blockchain.DACheckResult.serializeBinaryToWriter = function(message, write
       f
     );
   }
-  f = message.getSigner();
+  f = message.getSigner_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       4,
       f
     );
@@ -4963,20 +5281,44 @@ proto.blockchain.DACheckResult.serializeBinaryToWriter = function(message, write
 
 
 /**
- * optional string txn_bundle_hash = 1;
- * @return {string}
+ * optional bytes txn_bundle_hash = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.DACheckResult.prototype.getTxnBundleHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes txn_bundle_hash = 1;
+ * This is a type-conversion wrapper around `getTxnBundleHash()`
+ * @return {string}
+ */
+proto.blockchain.DACheckResult.prototype.getTxnBundleHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getTxnBundleHash()));
+};
+
+
+/**
+ * optional bytes txn_bundle_hash = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getTxnBundleHash()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.DACheckResult.prototype.getTxnBundleHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getTxnBundleHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.DACheckResult} returns this
  */
 proto.blockchain.DACheckResult.prototype.setTxnBundleHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -5065,20 +5407,44 @@ proto.blockchain.DACheckResult.prototype.setSignature = function(value) {
 
 
 /**
- * optional string signer = 4;
- * @return {string}
+ * optional bytes signer = 4;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.DACheckResult.prototype.getSigner = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes signer = 4;
+ * This is a type-conversion wrapper around `getSigner()`
+ * @return {string}
+ */
+proto.blockchain.DACheckResult.prototype.getSigner_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getSigner()));
+};
+
+
+/**
+ * optional bytes signer = 4;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getSigner()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.DACheckResult.prototype.getSigner_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getSigner()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.DACheckResult} returns this
  */
 proto.blockchain.DACheckResult.prototype.setSigner = function(value) {
-  return jspb.Message.setProto3StringField(this, 4, value);
+  return jspb.Message.setProto3BytesField(this, 4, value);
 };
 
 
@@ -5159,10 +5525,10 @@ proto.blockchain.StateCheckResult.prototype.toObject = function(opt_includeInsta
  */
 proto.blockchain.StateCheckResult.toObject = function(includeInstance, msg) {
   var f, obj = {
-    txnBundleHash: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    txnBundleHash: msg.getTxnBundleHash_asB64(),
     randomnessProof: msg.getRandomnessProof_asB64(),
     signature: msg.getSignature_asB64(),
-    signer: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    signer: msg.getSigner_asB64(),
     claimsList: jspb.Message.toObjectList(msg.getClaimsList(),
     proto.blockchain.ClaimStateCheckResult.toObject, includeInstance)
   };
@@ -5202,7 +5568,7 @@ proto.blockchain.StateCheckResult.deserializeBinaryFromReader = function(msg, re
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setTxnBundleHash(value);
       break;
     case 2:
@@ -5214,7 +5580,7 @@ proto.blockchain.StateCheckResult.deserializeBinaryFromReader = function(msg, re
       msg.setSignature(value);
       break;
     case 4:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setSigner(value);
       break;
     case 5:
@@ -5251,9 +5617,9 @@ proto.blockchain.StateCheckResult.prototype.serializeBinary = function() {
  */
 proto.blockchain.StateCheckResult.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getTxnBundleHash();
+  f = message.getTxnBundleHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -5272,9 +5638,9 @@ proto.blockchain.StateCheckResult.serializeBinaryToWriter = function(message, wr
       f
     );
   }
-  f = message.getSigner();
+  f = message.getSigner_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       4,
       f
     );
@@ -5291,20 +5657,44 @@ proto.blockchain.StateCheckResult.serializeBinaryToWriter = function(message, wr
 
 
 /**
- * optional string txn_bundle_hash = 1;
- * @return {string}
+ * optional bytes txn_bundle_hash = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.StateCheckResult.prototype.getTxnBundleHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes txn_bundle_hash = 1;
+ * This is a type-conversion wrapper around `getTxnBundleHash()`
+ * @return {string}
+ */
+proto.blockchain.StateCheckResult.prototype.getTxnBundleHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getTxnBundleHash()));
+};
+
+
+/**
+ * optional bytes txn_bundle_hash = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getTxnBundleHash()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.StateCheckResult.prototype.getTxnBundleHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getTxnBundleHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.StateCheckResult} returns this
  */
 proto.blockchain.StateCheckResult.prototype.setTxnBundleHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -5393,20 +5783,44 @@ proto.blockchain.StateCheckResult.prototype.setSignature = function(value) {
 
 
 /**
- * optional string signer = 4;
- * @return {string}
+ * optional bytes signer = 4;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.StateCheckResult.prototype.getSigner = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes signer = 4;
+ * This is a type-conversion wrapper around `getSigner()`
+ * @return {string}
+ */
+proto.blockchain.StateCheckResult.prototype.getSigner_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getSigner()));
+};
+
+
+/**
+ * optional bytes signer = 4;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getSigner()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.StateCheckResult.prototype.getSigner_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getSigner()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.StateCheckResult} returns this
  */
 proto.blockchain.StateCheckResult.prototype.setSigner = function(value) {
-  return jspb.Message.setProto3StringField(this, 4, value);
+  return jspb.Message.setProto3BytesField(this, 4, value);
 };
 
 
@@ -5480,7 +5894,7 @@ proto.blockchain.ClaimDACheckResult.prototype.toObject = function(opt_includeIns
  */
 proto.blockchain.ClaimDACheckResult.toObject = function(includeInstance, msg) {
   var f, obj = {
-    claimHash: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    claimHash: msg.getClaimHash_asB64(),
     dataAvailable: jspb.Message.getBooleanFieldWithDefault(msg, 2, false)
   };
 
@@ -5519,7 +5933,7 @@ proto.blockchain.ClaimDACheckResult.deserializeBinaryFromReader = function(msg, 
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setClaimHash(value);
       break;
     case 2:
@@ -5555,9 +5969,9 @@ proto.blockchain.ClaimDACheckResult.prototype.serializeBinary = function() {
  */
 proto.blockchain.ClaimDACheckResult.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getClaimHash();
+  f = message.getClaimHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -5573,20 +5987,44 @@ proto.blockchain.ClaimDACheckResult.serializeBinaryToWriter = function(message, 
 
 
 /**
- * optional string claim_hash = 1;
- * @return {string}
+ * optional bytes claim_hash = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.ClaimDACheckResult.prototype.getClaimHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes claim_hash = 1;
+ * This is a type-conversion wrapper around `getClaimHash()`
+ * @return {string}
+ */
+proto.blockchain.ClaimDACheckResult.prototype.getClaimHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getClaimHash()));
+};
+
+
+/**
+ * optional bytes claim_hash = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getClaimHash()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.ClaimDACheckResult.prototype.getClaimHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getClaimHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.ClaimDACheckResult} returns this
  */
 proto.blockchain.ClaimDACheckResult.prototype.setClaimHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -5640,7 +6078,7 @@ proto.blockchain.ClaimStateCheckResult.prototype.toObject = function(opt_include
  */
 proto.blockchain.ClaimStateCheckResult.toObject = function(includeInstance, msg) {
   var f, obj = {
-    claimHash: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    claimHash: msg.getClaimHash_asB64(),
     stateCorrect: jspb.Message.getBooleanFieldWithDefault(msg, 2, false)
   };
 
@@ -5679,7 +6117,7 @@ proto.blockchain.ClaimStateCheckResult.deserializeBinaryFromReader = function(ms
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setClaimHash(value);
       break;
     case 2:
@@ -5715,9 +6153,9 @@ proto.blockchain.ClaimStateCheckResult.prototype.serializeBinary = function() {
  */
 proto.blockchain.ClaimStateCheckResult.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getClaimHash();
+  f = message.getClaimHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -5733,20 +6171,44 @@ proto.blockchain.ClaimStateCheckResult.serializeBinaryToWriter = function(messag
 
 
 /**
- * optional string claim_hash = 1;
- * @return {string}
+ * optional bytes claim_hash = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.ClaimStateCheckResult.prototype.getClaimHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes claim_hash = 1;
+ * This is a type-conversion wrapper around `getClaimHash()`
+ * @return {string}
+ */
+proto.blockchain.ClaimStateCheckResult.prototype.getClaimHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getClaimHash()));
+};
+
+
+/**
+ * optional bytes claim_hash = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getClaimHash()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.ClaimStateCheckResult.prototype.getClaimHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getClaimHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.ClaimStateCheckResult} returns this
  */
 proto.blockchain.ClaimStateCheckResult.prototype.setClaimHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -5807,7 +6269,7 @@ proto.blockchain.TransactionBundle.prototype.toObject = function(opt_includeInst
  */
 proto.blockchain.TransactionBundle.toObject = function(includeInstance, msg) {
   var f, obj = {
-    headBlockHash: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    headBlockHash: msg.getHeadBlockHash_asB64(),
     transactionsList: jspb.Message.toObjectList(msg.getTransactionsList(),
     proto.blockchain.SignedTransaction.toObject, includeInstance)
   };
@@ -5847,7 +6309,7 @@ proto.blockchain.TransactionBundle.deserializeBinaryFromReader = function(msg, r
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setHeadBlockHash(value);
       break;
     case 2:
@@ -5884,9 +6346,9 @@ proto.blockchain.TransactionBundle.prototype.serializeBinary = function() {
  */
 proto.blockchain.TransactionBundle.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getHeadBlockHash();
+  f = message.getHeadBlockHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -5903,20 +6365,44 @@ proto.blockchain.TransactionBundle.serializeBinaryToWriter = function(message, w
 
 
 /**
- * optional string head_block_hash = 1;
- * @return {string}
+ * optional bytes head_block_hash = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.TransactionBundle.prototype.getHeadBlockHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes head_block_hash = 1;
+ * This is a type-conversion wrapper around `getHeadBlockHash()`
+ * @return {string}
+ */
+proto.blockchain.TransactionBundle.prototype.getHeadBlockHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getHeadBlockHash()));
+};
+
+
+/**
+ * optional bytes head_block_hash = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getHeadBlockHash()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.TransactionBundle.prototype.getHeadBlockHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getHeadBlockHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.TransactionBundle} returns this
  */
 proto.blockchain.TransactionBundle.prototype.setHeadBlockHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 

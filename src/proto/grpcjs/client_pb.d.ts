@@ -64,8 +64,10 @@ export class GenerateUpdateDataChainTxnRequest extends jspb.Message {
     setInputCid(value: string): GenerateUpdateDataChainTxnRequest;
     getOutputCid(): string;
     setOutputCid(value: string): GenerateUpdateDataChainTxnRequest;
-    getRootClaimHash(): string;
-    setRootClaimHash(value: string): GenerateUpdateDataChainTxnRequest;
+    getRootClaimHash(): Uint8Array | string;
+    getRootClaimHash_asU8(): Uint8Array;
+    getRootClaimHash_asB64(): string;
+    setRootClaimHash(value: Uint8Array | string): GenerateUpdateDataChainTxnRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GenerateUpdateDataChainTxnRequest.AsObject;
@@ -82,7 +84,7 @@ export namespace GenerateUpdateDataChainTxnRequest {
         dataContractCid: string,
         inputCid: string,
         outputCid: string,
-        rootClaimHash: string,
+        rootClaimHash: Uint8Array | string,
     }
 }
 

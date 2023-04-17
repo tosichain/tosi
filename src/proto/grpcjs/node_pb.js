@@ -495,7 +495,7 @@ proto.node.GetBlockRequest.prototype.toObject = function(opt_includeInstance) {
  */
 proto.node.GetBlockRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    blockHash: jspb.Message.getFieldWithDefault(msg, 1, "")
+    blockHash: msg.getBlockHash_asB64()
   };
 
   if (includeInstance) {
@@ -533,7 +533,7 @@ proto.node.GetBlockRequest.deserializeBinaryFromReader = function(msg, reader) {
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setBlockHash(value);
       break;
     default:
@@ -565,9 +565,9 @@ proto.node.GetBlockRequest.prototype.serializeBinary = function() {
  */
 proto.node.GetBlockRequest.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getBlockHash();
+  f = message.getBlockHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -576,20 +576,44 @@ proto.node.GetBlockRequest.serializeBinaryToWriter = function(message, writer) {
 
 
 /**
- * optional string block_hash = 1;
- * @return {string}
+ * optional bytes block_hash = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.node.GetBlockRequest.prototype.getBlockHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes block_hash = 1;
+ * This is a type-conversion wrapper around `getBlockHash()`
+ * @return {string}
+ */
+proto.node.GetBlockRequest.prototype.getBlockHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getBlockHash()));
+};
+
+
+/**
+ * optional bytes block_hash = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getBlockHash()`
+ * @return {!Uint8Array}
+ */
+proto.node.GetBlockRequest.prototype.getBlockHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getBlockHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.node.GetBlockRequest} returns this
  */
 proto.node.GetBlockRequest.prototype.setBlockHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -776,7 +800,7 @@ proto.node.GetAccountRequest.prototype.toObject = function(opt_includeInstance) 
  */
 proto.node.GetAccountRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    accountAddress: jspb.Message.getFieldWithDefault(msg, 1, "")
+    accountAddress: msg.getAccountAddress_asB64()
   };
 
   if (includeInstance) {
@@ -814,7 +838,7 @@ proto.node.GetAccountRequest.deserializeBinaryFromReader = function(msg, reader)
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setAccountAddress(value);
       break;
     default:
@@ -846,9 +870,9 @@ proto.node.GetAccountRequest.prototype.serializeBinary = function() {
  */
 proto.node.GetAccountRequest.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getAccountAddress();
+  f = message.getAccountAddress_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -857,20 +881,44 @@ proto.node.GetAccountRequest.serializeBinaryToWriter = function(message, writer)
 
 
 /**
- * optional string account_address = 1;
- * @return {string}
+ * optional bytes account_address = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.node.GetAccountRequest.prototype.getAccountAddress = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes account_address = 1;
+ * This is a type-conversion wrapper around `getAccountAddress()`
+ * @return {string}
+ */
+proto.node.GetAccountRequest.prototype.getAccountAddress_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getAccountAddress()));
+};
+
+
+/**
+ * optional bytes account_address = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getAccountAddress()`
+ * @return {!Uint8Array}
+ */
+proto.node.GetAccountRequest.prototype.getAccountAddress_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getAccountAddress()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.node.GetAccountRequest} returns this
  */
 proto.node.GetAccountRequest.prototype.setAccountAddress = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -1057,7 +1105,7 @@ proto.node.GetAccountTransactionsRequest.prototype.toObject = function(opt_inclu
  */
 proto.node.GetAccountTransactionsRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    accountAddress: jspb.Message.getFieldWithDefault(msg, 1, "")
+    accountAddress: msg.getAccountAddress_asB64()
   };
 
   if (includeInstance) {
@@ -1095,7 +1143,7 @@ proto.node.GetAccountTransactionsRequest.deserializeBinaryFromReader = function(
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setAccountAddress(value);
       break;
     default:
@@ -1127,9 +1175,9 @@ proto.node.GetAccountTransactionsRequest.prototype.serializeBinary = function() 
  */
 proto.node.GetAccountTransactionsRequest.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getAccountAddress();
+  f = message.getAccountAddress_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -1138,20 +1186,44 @@ proto.node.GetAccountTransactionsRequest.serializeBinaryToWriter = function(mess
 
 
 /**
- * optional string account_address = 1;
- * @return {string}
+ * optional bytes account_address = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.node.GetAccountTransactionsRequest.prototype.getAccountAddress = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes account_address = 1;
+ * This is a type-conversion wrapper around `getAccountAddress()`
+ * @return {string}
+ */
+proto.node.GetAccountTransactionsRequest.prototype.getAccountAddress_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getAccountAddress()));
+};
+
+
+/**
+ * optional bytes account_address = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getAccountAddress()`
+ * @return {!Uint8Array}
+ */
+proto.node.GetAccountTransactionsRequest.prototype.getAccountAddress_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getAccountAddress()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.node.GetAccountTransactionsRequest} returns this
  */
 proto.node.GetAccountTransactionsRequest.prototype.setAccountAddress = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -1637,7 +1709,7 @@ proto.node.GetDataChainRequest.prototype.toObject = function(opt_includeInstance
  */
 proto.node.GetDataChainRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    rootClaimHash: jspb.Message.getFieldWithDefault(msg, 1, "")
+    rootClaimHash: msg.getRootClaimHash_asB64()
   };
 
   if (includeInstance) {
@@ -1675,7 +1747,7 @@ proto.node.GetDataChainRequest.deserializeBinaryFromReader = function(msg, reade
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setRootClaimHash(value);
       break;
     default:
@@ -1707,9 +1779,9 @@ proto.node.GetDataChainRequest.prototype.serializeBinary = function() {
  */
 proto.node.GetDataChainRequest.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getRootClaimHash();
+  f = message.getRootClaimHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -1718,20 +1790,44 @@ proto.node.GetDataChainRequest.serializeBinaryToWriter = function(message, write
 
 
 /**
- * optional string root_claim_hash = 1;
- * @return {string}
+ * optional bytes root_claim_hash = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.node.GetDataChainRequest.prototype.getRootClaimHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes root_claim_hash = 1;
+ * This is a type-conversion wrapper around `getRootClaimHash()`
+ * @return {string}
+ */
+proto.node.GetDataChainRequest.prototype.getRootClaimHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getRootClaimHash()));
+};
+
+
+/**
+ * optional bytes root_claim_hash = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getRootClaimHash()`
+ * @return {!Uint8Array}
+ */
+proto.node.GetDataChainRequest.prototype.getRootClaimHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getRootClaimHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.node.GetDataChainRequest} returns this
  */
 proto.node.GetDataChainRequest.prototype.setRootClaimHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -2280,7 +2376,7 @@ proto.node.GetHeadBlockHashResponse.prototype.toObject = function(opt_includeIns
  */
 proto.node.GetHeadBlockHashResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    blockHash: jspb.Message.getFieldWithDefault(msg, 1, "")
+    blockHash: msg.getBlockHash_asB64()
   };
 
   if (includeInstance) {
@@ -2318,7 +2414,7 @@ proto.node.GetHeadBlockHashResponse.deserializeBinaryFromReader = function(msg, 
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setBlockHash(value);
       break;
     default:
@@ -2350,9 +2446,9 @@ proto.node.GetHeadBlockHashResponse.prototype.serializeBinary = function() {
  */
 proto.node.GetHeadBlockHashResponse.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getBlockHash();
+  f = message.getBlockHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -2361,20 +2457,44 @@ proto.node.GetHeadBlockHashResponse.serializeBinaryToWriter = function(message, 
 
 
 /**
- * optional string block_hash = 1;
- * @return {string}
+ * optional bytes block_hash = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.node.GetHeadBlockHashResponse.prototype.getBlockHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes block_hash = 1;
+ * This is a type-conversion wrapper around `getBlockHash()`
+ * @return {string}
+ */
+proto.node.GetHeadBlockHashResponse.prototype.getBlockHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getBlockHash()));
+};
+
+
+/**
+ * optional bytes block_hash = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getBlockHash()`
+ * @return {!Uint8Array}
+ */
+proto.node.GetHeadBlockHashResponse.prototype.getBlockHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getBlockHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.node.GetHeadBlockHashResponse} returns this
  */
 proto.node.GetHeadBlockHashResponse.prototype.setBlockHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -2511,7 +2631,7 @@ proto.node.GetBLSPublicKeyResponse.prototype.toObject = function(opt_includeInst
  */
 proto.node.GetBLSPublicKeyResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    publicKey: jspb.Message.getFieldWithDefault(msg, 1, "")
+    publicKey: msg.getPublicKey_asB64()
   };
 
   if (includeInstance) {
@@ -2549,7 +2669,7 @@ proto.node.GetBLSPublicKeyResponse.deserializeBinaryFromReader = function(msg, r
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setPublicKey(value);
       break;
     default:
@@ -2581,9 +2701,9 @@ proto.node.GetBLSPublicKeyResponse.prototype.serializeBinary = function() {
  */
 proto.node.GetBLSPublicKeyResponse.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getPublicKey();
+  f = message.getPublicKey_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -2592,20 +2712,44 @@ proto.node.GetBLSPublicKeyResponse.serializeBinaryToWriter = function(message, w
 
 
 /**
- * optional string public_key = 1;
- * @return {string}
+ * optional bytes public_key = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.node.GetBLSPublicKeyResponse.prototype.getPublicKey = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes public_key = 1;
+ * This is a type-conversion wrapper around `getPublicKey()`
+ * @return {string}
+ */
+proto.node.GetBLSPublicKeyResponse.prototype.getPublicKey_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getPublicKey()));
+};
+
+
+/**
+ * optional bytes public_key = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getPublicKey()`
+ * @return {!Uint8Array}
+ */
+proto.node.GetBLSPublicKeyResponse.prototype.getPublicKey_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getPublicKey()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.node.GetBLSPublicKeyResponse} returns this
  */
 proto.node.GetBLSPublicKeyResponse.prototype.setPublicKey = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 

@@ -36,7 +36,7 @@ message GenerateUpdateDataChainTxnRequest {
     string data_contract_cid = 1;
     string input_cid = 2;
     string output_cid = 3;
-    string root_claim_hash = 4;
+    bytes root_claim_hash = 4;
 }
 
 message GenerateUpdateDataChainTxnResponse {

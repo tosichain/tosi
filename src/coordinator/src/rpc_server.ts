@@ -51,17 +51,17 @@ import {
 import { CoordinatorNodeService, ICoordinatorNodeServer } from "../../proto/grpcjs/coordinator_grpc_pb";
 
 export interface RequestHandler {
-  getBlock(blockHash: string): Promise<Block | undefined>;
-  getAccount(address: string): Promise<Account | undefined>;
-  getAccountTransactions(address: string): Promise<Transaction[] | undefined>;
+  getBlock(blockHash: Uint8Array): Promise<Block | undefined>;
+  getAccount(address: Uint8Array): Promise<Account | undefined>;
+  getAccountTransactions(address: Uint8Array): Promise<Transaction[] | undefined>;
   getStakerList(stakeType: StakeType): Promise<Account[]>;
-  getDataChain(rootClaimHash: string): Promise<DataChain | undefined>;
+  getDataChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined>;
   getDataChainList(): Promise<DataChain[]>;
-  getHeadBblockHash(): Promise<string>;
-  getBLSPublicKey(): Promise<string>;
+  getHeadBblockHash(): Promise<Uint8Array>;
+  getBLSPublicKey(): Promise<Uint8Array>;
   getIPFSBootstrap(): Promise<string[]>;
   submitSignedTransaction(txn: SignedTransaction): Promise<void>;
-  getBlockMetadata(blockHash: string): Promise<BlockMetadata | undefined>;
+  getBlockMetadata(blockHash: Uint8Array): Promise<BlockMetadata | undefined>;
 }
 
 export interface CoordinatorRPCServerConfig {
@@ -100,7 +100,7 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
     call: ServerUnaryCall<GetBlockRequest, GetBlockResponse>,
     callback: sendUnaryData<GetBlockResponse>,
   ): void {
-    this.handler.getBlock(call.request.getBlockHash()).then((block) => {
+    this.handler.getBlock(call.request.getBlockHash() as Uint8Array).then((block) => {
       const resp = new GetBlockResponse();
       if (block) {
         resp.setBlock(blockToPB(block));
@@ -113,7 +113,7 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
     call: ServerUnaryCall<GetAccountRequest, GetAccountResponse>,
     callback: sendUnaryData<GetAccountResponse>,
   ): void {
-    this.handler.getAccount(call.request.getAccountAddress()).then((account) => {
+    this.handler.getAccount(call.request.getAccountAddress() as Uint8Array).then((account) => {
       const resp = new GetAccountResponse();
       if (account) {
         resp.setAccount(accountToPB(account));
@@ -126,7 +126,7 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
     call: ServerUnaryCall<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
     callback: sendUnaryData<GetAccountTransactionsResponse>,
   ): void {
-    this.handler.getAccountTransactions(call.request.getAccountAddress()).then((txns) => {
+    this.handler.getAccountTransactions(call.request.getAccountAddress() as Uint8Array).then((txns) => {
       const resp = new GetAccountTransactionsResponse();
       if (txns) {
         const pbTxns = txns.map((txn) => transactionToPB(txn));
@@ -151,7 +151,7 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
     call: ServerUnaryCall<GetDataChainRequest, GetDataChainResponse>,
     callback: sendUnaryData<GetDataChainResponse>,
   ): void {
-    this.handler.getDataChain(call.request.getRootClaimHash()).then((chain) => {
+    this.handler.getDataChain(call.request.getRootClaimHash() as Uint8Array).then((chain) => {
       const resp = new GetDataChainResponse();
       if (chain) {
         resp.setDataChain(dataChainToPB(chain));
@@ -218,7 +218,7 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
     call: ServerUnaryCall<GetBlockMetadataRequest, GetBlockMetadataResponse>,
     callback: sendUnaryData<GetBlockMetadataResponse>,
   ): void {
-    this.handler.getBlockMetadata(call.request.getBlockHash()).then((meta) => {
+    this.handler.getBlockMetadata(call.request.getBlockHash() as Uint8Array).then((meta) => {
       const resp = new GetBlockMetadataResponse();
       if (meta) {
         resp.setBlockMetadata(blockMetadataToPB(meta));

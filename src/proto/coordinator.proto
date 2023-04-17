@@ -29,7 +29,7 @@ message SubmitSignedTransactionResponse {
 
 
 message GetBlockMetadataRequest {
-    string block_hash = 1;
+    bytes block_hash = 1;
 }
 
 message GetBlockMetadataResponse {

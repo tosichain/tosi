@@ -1,13 +1,15 @@
+import winston from "winston";
+
 import { Transaction } from "../../blockchain/types";
+import { bytesFromHex } from "../../blockchain/util";
 import { signTransaction } from "../../blockchain/block";
 import { CoordinatorRPC } from "../../coordinator/src/rpc";
-import winston from "winston";
 
 let log: winston.Logger;
 
 async function init() {
   // Get the minter private key from the environment variable.
-  const sendPrivKey = process.env.SENDER_PRIV_KEY;
+  const sendPrivKey = bytesFromHex(process.env.SENDER_PRIV_KEY as string);
   if (!sendPrivKey) {
     console.error("SENDER_PRIV_KEY environment variable is not set.");
     process.exit(1);
@@ -28,7 +30,7 @@ async function init() {
   const amount = BigInt(amountStr);
 
   // Parse the account public key from the command line arguments.
-  const mintReceiver = process.argv[3];
+  const mintReceiver = bytesFromHex(process.argv[3]);
   if (!mintReceiver) {
     console.error("Receiver public key not provided.");
     process.exit(1);

@@ -5,7 +5,7 @@ import "blockchain.proto";
 package node;
 
 message GetBlockRequest {
-    string block_hash = 1;
+    bytes block_hash = 1;
 }
 
 message GetBlockResponse {
@@ -13,7 +13,7 @@ message GetBlockResponse {
 }
 
 message GetAccountRequest {
-    string account_address = 1;
+    bytes account_address = 1;
 }
 
 message GetAccountResponse {
@@ -21,7 +21,7 @@ message GetAccountResponse {
 }
 
 message GetAccountTransactionsRequest {
-    string account_address = 1;
+    bytes account_address = 1;
 }
 
 message GetAccountTransactionsResponse {
@@ -37,7 +37,7 @@ message GetStakerListResponse {
 }
 
 message GetDataChainRequest {
-    string root_claim_hash = 1;
+    bytes root_claim_hash = 1;
 }
 
 message GetDataChainResponse {
@@ -55,14 +55,14 @@ message GetHeadBlockHashRequest {
 }
 
 message GetHeadBlockHashResponse {
-    string block_hash = 1;
+    bytes block_hash = 1;
 }
 
 message GetBLSPublicKeyRequest {
 }
 
 message GetBLSPublicKeyResponse {
-    string public_key = 1;
+    bytes public_key = 1;
 }
 
 message GetIPFSBootstrapRequest {

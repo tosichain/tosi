@@ -5,7 +5,13 @@ import { encodeCBOR, decodeCBOR } from "../../util";
 
 import { Account, ComputeClaim, DACheckResult, SignedTransaction, TransactionBundle } from "../../blockchain/types";
 import { verifyDACheckResultsAggergatedSignature, verifyDACheckResultSignature } from "../../blockchain/block_proof";
-import { hashComputeClaim, stringifySignedTransaction, hashTransactionBundle } from "../../blockchain/util";
+import {
+  bytesEqual,
+  bytesToHex,
+  hashComputeClaim,
+  stringifySignedTransaction,
+  hashTransactionBundle,
+} from "../../blockchain/util";
 import {
   IPFS_PUB_SUB_DA_VERIFICATION,
   IPFS_MESSAGE_DA_VERIFICATION_REQUEST,
@@ -54,7 +60,7 @@ export class DAVerificationManager {
     this.checkState = {
       request: {
         code: IPFS_MESSAGE_DA_VERIFICATION_REQUEST,
-        txnBundleHash: "",
+        txnBundleHash: new Uint8Array(),
         claims: [],
         randomnessProof: new Uint8Array(),
       },
@@ -92,7 +98,7 @@ export class DAVerificationManager {
         txnsWithoutClaim.push(txn);
       }
       if (claimHash) {
-        claimToTxn[claimHash] = txn;
+        claimToTxn[bytesToHex(claimHash)] = txn;
       }
     }
     if (requestClaims.length == 0) {
@@ -158,11 +164,12 @@ export class DAVerificationManager {
     // Collect "DA votes" for every claim.
     const claimDA: Record<string, boolean[]> = {};
     for (const claim of this.checkState.request.claims) {
-      claimDA[hashComputeClaim(claim)] = [];
+      const claimHash = hashComputeClaim(claim);
+      claimDA[bytesToHex(claimHash)] = [];
     }
     for (const response of Object.values(this.checkState.responses)) {
       for (const claimResult of response.result.claims) {
-        claimDA[claimResult.claimHash].push(claimResult.dataAvailable);
+        claimDA[bytesToHex(claimResult.claimHash)].push(claimResult.dataAvailable);
       }
     }
 
@@ -229,16 +236,16 @@ export class DAVerificationManager {
     await dasProgress;
   }
 
-  private setupDASRequestTimeout(txnBundleHash: string): void {
+  private setupDASRequestTimeout(txnBundleHash: Uint8Array): void {
     setTimeout(() => {
       // Next transaction bundle is already being processed.
-      if (txnBundleHash != this.checkState.request.txnBundleHash) {
+      if (!bytesEqual(txnBundleHash, this.checkState.request.txnBundleHash)) {
         return;
       }
       // Current transaction bundle haven't received enough responses.
       const responseCount = Object.keys(this.checkState.responses).length;
       if (responseCount < this.checkState.commitee.length) {
-        this.log.info(`did not receive enough responses for ${txnBundleHash}`);
+        this.log.info(`did not receive enough responses for ${bytesToHex(txnBundleHash)}`);
         this.checkState.reject(
           new Error("DA verification timeout - no response for " + this.config.RequestTimeout + "ms"),
         );
@@ -248,17 +255,19 @@ export class DAVerificationManager {
     }, this.config.RequestTimeout);
   }
 
-  private async broadcastDASRequest(txnBundleHash: string) {
-    this.log.info(`starting broadcast of DA verification request for transaction bundle ${txnBundleHash}`);
+  private async broadcastDASRequest(txnBundleHash: Uint8Array) {
+    this.log.info(`starting broadcast of DA verification request for transaction bundle ${bytesToHex(txnBundleHash)}`);
 
     while (true) {
-      if (txnBundleHash != this.checkState.request.txnBundleHash) {
-        this.log.info(`stopping broadcast of DA verification request for transaction bundle ${txnBundleHash}`);
+      if (!bytesEqual(txnBundleHash, this.checkState.request.txnBundleHash)) {
+        this.log.info(
+          `stopping broadcast of DA verification request for transaction bundle ${bytesToHex(txnBundleHash)}`,
+        );
         return;
       }
 
       // Send reqeust via IPFS pub-sub.
-      this.log.info(`publishing DA verification request for transaction bundle ${txnBundleHash}`);
+      this.log.info(`publishing DA verification request for transaction bundle ${bytesToHex(txnBundleHash)}`);
       this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_DA_VERIFICATION, encodeCBOR(this.checkState.request));
 
       await new Promise((resolve, _) => {
@@ -270,7 +279,7 @@ export class DAVerificationManager {
   private resetDAState(): void {
     this.checkState.request = {
       code: IPFS_MESSAGE_DA_VERIFICATION_REQUEST,
-      txnBundleHash: "",
+      txnBundleHash: new Uint8Array(),
       claims: [],
       randomnessProof: new Uint8Array(),
     };
@@ -327,24 +336,25 @@ export class DAVerificationManager {
 
     // Check that response is for current transaction bundle (check txnBundleHash)
     // TODO: should we check randomness proof here as well?
-    if (msg.result.txnBundleHash != this.checkState.request.txnBundleHash) {
+    if (!bytesEqual(msg.result.txnBundleHash, this.checkState.request.txnBundleHash)) {
       this.log.error("DA verification request transaction bundle hash does not match");
       return;
     }
 
     // Check if sender is part of committee.
-    const inCommittee = this.checkState.commitee.find((s) => s.address == msg.result.signer);
+    const inCommittee = this.checkState.commitee.find((s) => bytesEqual(s.address, msg.result.signer));
     if (!inCommittee) {
       this.log.error("DA verification response signer does not belong to current DA committee sample");
       return;
     }
 
     // Check if member already sent response.
-    if (this.checkState.responses[msg.result.signer] != undefined) {
+    const signerAddrHex = bytesToHex(msg.result.signer);
+    if (this.checkState.responses[signerAddrHex] != undefined) {
       this.log.error("DA committee member already sent response for current transaction bundle");
       return;
     }
-    this.checkState.responses[msg.result.signer] = msg;
+    this.checkState.responses[signerAddrHex] = msg;
 
     // If not enough responses received wait for more responses.
     const responseCount = Object.keys(this.checkState.responses).length;

@@ -8,8 +8,10 @@ import * as jspb from "google-protobuf";
 import * as blockchain_pb from "./blockchain_pb";
 
 export class GetBlockRequest extends jspb.Message { 
-    getBlockHash(): string;
-    setBlockHash(value: string): GetBlockRequest;
+    getBlockHash(): Uint8Array | string;
+    getBlockHash_asU8(): Uint8Array;
+    getBlockHash_asB64(): string;
+    setBlockHash(value: Uint8Array | string): GetBlockRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GetBlockRequest.AsObject;
@@ -23,7 +25,7 @@ export class GetBlockRequest extends jspb.Message {
 
 export namespace GetBlockRequest {
     export type AsObject = {
-        blockHash: string,
+        blockHash: Uint8Array | string,
     }
 }
 
@@ -51,8 +53,10 @@ export namespace GetBlockResponse {
 }
 
 export class GetAccountRequest extends jspb.Message { 
-    getAccountAddress(): string;
-    setAccountAddress(value: string): GetAccountRequest;
+    getAccountAddress(): Uint8Array | string;
+    getAccountAddress_asU8(): Uint8Array;
+    getAccountAddress_asB64(): string;
+    setAccountAddress(value: Uint8Array | string): GetAccountRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GetAccountRequest.AsObject;
@@ -66,7 +70,7 @@ export class GetAccountRequest extends jspb.Message {
 
 export namespace GetAccountRequest {
     export type AsObject = {
-        accountAddress: string,
+        accountAddress: Uint8Array | string,
     }
 }
 
@@ -94,8 +98,10 @@ export namespace GetAccountResponse {
 }
 
 export class GetAccountTransactionsRequest extends jspb.Message { 
-    getAccountAddress(): string;
-    setAccountAddress(value: string): GetAccountTransactionsRequest;
+    getAccountAddress(): Uint8Array | string;
+    getAccountAddress_asU8(): Uint8Array;
+    getAccountAddress_asB64(): string;
+    setAccountAddress(value: Uint8Array | string): GetAccountTransactionsRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GetAccountTransactionsRequest.AsObject;
@@ -109,7 +115,7 @@ export class GetAccountTransactionsRequest extends jspb.Message {
 
 export namespace GetAccountTransactionsRequest {
     export type AsObject = {
-        accountAddress: string,
+        accountAddress: Uint8Array | string,
     }
 }
 
@@ -178,8 +184,10 @@ export namespace GetStakerListResponse {
 }
 
 export class GetDataChainRequest extends jspb.Message { 
-    getRootClaimHash(): string;
-    setRootClaimHash(value: string): GetDataChainRequest;
+    getRootClaimHash(): Uint8Array | string;
+    getRootClaimHash_asU8(): Uint8Array;
+    getRootClaimHash_asB64(): string;
+    setRootClaimHash(value: Uint8Array | string): GetDataChainRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GetDataChainRequest.AsObject;
@@ -193,7 +201,7 @@ export class GetDataChainRequest extends jspb.Message {
 
 export namespace GetDataChainRequest {
     export type AsObject = {
-        rootClaimHash: string,
+        rootClaimHash: Uint8Array | string,
     }
 }
 
@@ -277,8 +285,10 @@ export namespace GetHeadBlockHashRequest {
 }
 
 export class GetHeadBlockHashResponse extends jspb.Message { 
-    getBlockHash(): string;
-    setBlockHash(value: string): GetHeadBlockHashResponse;
+    getBlockHash(): Uint8Array | string;
+    getBlockHash_asU8(): Uint8Array;
+    getBlockHash_asB64(): string;
+    setBlockHash(value: Uint8Array | string): GetHeadBlockHashResponse;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GetHeadBlockHashResponse.AsObject;
@@ -292,7 +302,7 @@ export class GetHeadBlockHashResponse extends jspb.Message {
 
 export namespace GetHeadBlockHashResponse {
     export type AsObject = {
-        blockHash: string,
+        blockHash: Uint8Array | string,
     }
 }
 
@@ -314,8 +324,10 @@ export namespace GetBLSPublicKeyRequest {
 }
 
 export class GetBLSPublicKeyResponse extends jspb.Message { 
-    getPublicKey(): string;
-    setPublicKey(value: string): GetBLSPublicKeyResponse;
+    getPublicKey(): Uint8Array | string;
+    getPublicKey_asU8(): Uint8Array;
+    getPublicKey_asB64(): string;
+    setPublicKey(value: Uint8Array | string): GetBLSPublicKeyResponse;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GetBLSPublicKeyResponse.AsObject;
@@ -329,7 +341,7 @@ export class GetBLSPublicKeyResponse extends jspb.Message {
 
 export namespace GetBLSPublicKeyResponse {
     export type AsObject = {
-        publicKey: string,
+        publicKey: Uint8Array | string,
     }
 }
 

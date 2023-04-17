@@ -54,7 +54,7 @@ import {
   ClaimStateCheckResult,
   StateCheckResult,
 } from "./types";
-import { hashComputeClaim } from "./util";
+import { bytesToHex, hashComputeClaim } from "./util";
 
 // SignedTransaction
 
@@ -71,8 +71,8 @@ export function signedTransactionFromPB(pb: PBSignedTransaction): SignedTransact
     throw new Error("PB SignedTransaction - missing txn");
   }
   return {
-    from: pb.getFrom(),
-    signature: pb.getSignature(),
+    from: pb.getFrom() as Uint8Array,
+    signature: pb.getSignature() as Uint8Array,
     txn: transactionFromPB(pb.getTxn() as PBTransaction),
   };
 }
@@ -146,7 +146,7 @@ export function mintTokenToPB(txn: MintToken): PBMintToken {
 
 export function mintTokenFromPB(pb: PBMintToken): MintToken {
   return {
-    receiver: pb.getReceiver(),
+    receiver: pb.getReceiver() as Uint8Array,
     amount: BigInt(pb.getAmount()),
   };
 }
@@ -159,7 +159,7 @@ export function transferTokenToPB(txn: TransferToken): PBTransferToken {
 
 export function transferTokenFromPB(pb: PBTransferToken): TransferToken {
   return {
-    receiver: pb.getReceiver(),
+    receiver: pb.getReceiver() as Uint8Array,
     amount: BigInt(pb.getAmount()),
   };
 }
@@ -242,7 +242,7 @@ export function updateDataChainToPB(txn: UpdateDataChain): PBUpdateDataChain {
 export function updateDataChainFromPB(pb: PBUpdateDataChain): UpdateDataChain {
   const claim = computeClaimFromPB(pb.getClaim() as PBComputeClaim);
   return {
-    rootClaimHash: pb.getRootClaimHash(),
+    rootClaimHash: pb.getRootClaimHash() as Uint8Array,
     claim: claim,
   };
 }
@@ -263,16 +263,18 @@ export function worldStateToPB(state: WorldState): PBWorldState {
 export function worldStateFromPB(pb: PBWorldState): WorldState {
   const accounts: Record<string, Account> = {};
   for (const account of pb.getAccountsList()) {
-    accounts[account.getAddress()] = accountFromPB(account);
+    const addrHex = bytesToHex(account.getAddress() as Uint8Array);
+    accounts[addrHex] = accountFromPB(account);
   }
   const chains: Record<string, DataChain> = {};
   for (const chain of pb.getDataChainsList()) {
-    chains[chain.getRootClaimHash()] = dataChainFromPB(chain);
+    const hashHex = bytesToHex(chain.getRootClaimHash() as Uint8Array);
+    chains[hashHex] = dataChainFromPB(chain);
   }
   return {
     accounts: accounts,
     stakePool: stakePoolFromPB(pb.getStakePool() as PBStakePool),
-    minter: pb.getMinter(),
+    minter: pb.getMinter() as Uint8Array,
     dataChains: chains,
   };
 }
@@ -299,7 +301,7 @@ export function accountToPB(account: Account): PBAccount {
 
 export function accountFromPB(pb: PBAccount): Account {
   return {
-    address: pb.getAddress(),
+    address: pb.getAddress() as Uint8Array,
     nonce: pb.getNonce(),
     balance: BigInt(pb.getBalance()),
     daVerifierStake: BigInt(pb.getDaVerifierStake()),
@@ -329,9 +331,9 @@ export function stakePoolToPB(pool: StakePool): PBStakePool {
 export function stakePoolFromPB(pb: PBStakePool): StakePool {
   return {
     daVerifierPool: BigInt(pb.getDaVerifierPool()),
-    daVerifiers: pb.getDaVerifiersList(),
+    daVerifiers: pb.getDaVerifiersList() as Uint8Array[],
     stateVerifierPool: BigInt(pb.getStateVerifierPool()),
-    stateVerifiers: pb.getStateVerifiersList(),
+    stateVerifiers: pb.getStateVerifiersList() as Uint8Array[],
   };
 }
 
@@ -349,12 +351,13 @@ export function dataChainFromPB(pb: PBDataChain): DataChain {
   const claims: Record<string, ComputeClaim> = {};
   for (const pbClaim of pb.getClaimsList()) {
     const claim = computeClaimFromPB(pbClaim);
-    claims[hashComputeClaim(claim)] = claim;
+    const claimHashHex = bytesToHex(hashComputeClaim(claim));
+    claims[claimHashHex] = claim;
   }
   return {
     claims: claims,
-    rootClaimHash: pb.getRootClaimHash(),
-    headClaimHash: pb.getHeadClaimHash(),
+    rootClaimHash: pb.getRootClaimHash() as Uint8Array,
+    headClaimHash: pb.getHeadClaimHash() as Uint8Array,
   };
 }
 
@@ -385,8 +388,8 @@ export function computeClaimFromPB(pb: PBComputeClaim): ComputeClaim {
   const input = claimDataRefFromPB(inputPB);
   const output = claimDataRefFromPB(outputPB);
   return {
-    claimer: pb.getClaimer(),
-    prevClaimHash: pb.getPrevClaimHash(),
+    claimer: pb.getClaimer() as Uint8Array,
+    prevClaimHash: pb.getPrevClaimHash() as Uint8Array,
     dataContract: dataContract,
     input: input,
     output: output,
@@ -406,12 +409,7 @@ export function deserializeComputeClaim(rawClaim: Uint8Array): ComputeClaim {
 // DAInfo
 
 export function daInfoToPB(info: DAInfo): PBDAInfo {
-  return new PBDAInfo()
-    .setName(info.name)
-    .setSize(info.size)
-    .setLog2(info.log2)
-    .setKeccak256(info.keccak256)
-    .setCartesiMerkleRoot(info.cartesiMerkleRoot);
+  return new PBDAInfo().setSize(info.size).setCartesiMerkleRoot(info.cartesiMerkleRoot);
 }
 
 export function claimDataRefToPB(info: ClaimDataRef): PBClaimDataRef {
@@ -422,30 +420,26 @@ export function claimDataRefFromPB(pb: PBClaimDataRef): ClaimDataRef {
   return {
     cid: pb.getCid(),
     size: pb.getSize(),
-    cartesiMerkleRoot: pb.getCartesimerkleroot(),
+    cartesiMerkleRoot: pb.getCartesimerkleroot() as Uint8Array,
   };
 }
 
 export function daInfoFromPB(pb: PBDAInfo): DAInfo {
   return {
-    name: pb.getName(),
     size: pb.getSize(),
-    log2: pb.getLog2(),
-    keccak256: pb.getKeccak256(),
-    cartesiMerkleRoot: pb.getCartesiMerkleRoot(),
+    cartesiMerkleRoot: pb.getCartesiMerkleRoot() as Uint8Array,
   };
 }
 
 // Block
 
 export function blockToPB(block: Block): PBBlock {
-  const prevBlockHash = Uint8Array.from(Buffer.from(block.prevBlockHash, "hex"));
   const accountsMerkle = block.accountsMerkle.getLeaves().map((b: Iterable<number>) => new Uint8Array(b));
   const txns = block.transactions.map((txn) => signedTransactionToPB(txn));
   const proof = blockProofToPB(block.proof);
   return new PBBlock()
     .setVersion(block.version)
-    .setPrevBlockHash(prevBlockHash)
+    .setPrevBlockHash(block.prevBlockHash)
     .setAccountsMerkleList(accountsMerkle)
     .setTransactionsList(txns)
     .setProof(proof)
@@ -453,13 +447,12 @@ export function blockToPB(block: Block): PBBlock {
 }
 
 export function blockFromPB(pb: PBBlock): Block {
-  const prevBlockHash = Buffer.from(pb.getPrevBlockHash()).toString("hex");
   const accountsMerkle = new MerkleTree(pb.getAccountsMerkleList(), keccak256, { sort: true });
   const txns = pb.getTransactionsList().map((txn) => signedTransactionFromPB(txn));
   const proof = blockProofFromPB(pb.getProof() as PBBlockProof);
   return {
     version: pb.getVersion(),
-    prevBlockHash: prevBlockHash,
+    prevBlockHash: pb.getPrevBlockHash() as Uint8Array,
     accountsMerkle: accountsMerkle,
     transactions: txns,
     proof: proof,
@@ -497,8 +490,8 @@ export function blockProofFromPB(pb: PBBlockProof): BlockProof {
   const stateCheckResults = pb.getStateCheckResultsList().map((result) => stateCheckResultFromPB(result));
 
   return {
-    txnBundleHash: pb.getTxnBundleHash(),
-    txnBundleProposer: pb.getTxnBundleProposer(),
+    txnBundleHash: pb.getTxnBundleHash() as Uint8Array,
+    txnBundleProposer: pb.getTxnBundleProposer() as Uint8Array,
     randomnessProof: pb.getRandomnessProof() as Uint8Array,
     DACheckResults: daCheckResults,
     aggDACheckResultSignature: pb.getAggDaCheckResultSignature() as Uint8Array,
@@ -522,10 +515,10 @@ export function daCheckResultToPB(result: DACheckResult): PBDACheckResult {
 export function daCheckResultFromPB(pb: PBDACheckResult): DACheckResult {
   const claimResults = pb.getClaimsList().map((result) => claimDACheckResultFromPB(result));
   return {
-    txnBundleHash: pb.getTxnBundleHash(),
+    txnBundleHash: pb.getTxnBundleHash() as Uint8Array,
     randomnessProof: pb.getRandomnessProof() as Uint8Array,
     signature: pb.getSignature() as Uint8Array,
-    signer: pb.getSigner(),
+    signer: pb.getSigner() as Uint8Array,
     claims: claimResults,
   };
 }
@@ -538,7 +531,7 @@ export function claimDACheckResultToPB(result: ClaimDACheckResult): PBClaimDAChe
 
 export function claimDACheckResultFromPB(pb: PBClaimDACheckResult): ClaimDACheckResult {
   return {
-    claimHash: pb.getClaimHash(),
+    claimHash: pb.getClaimHash() as Uint8Array,
     dataAvailable: pb.getDataAvailable(),
   };
 }
@@ -567,10 +560,10 @@ export function stateCheckResultToPB(result: StateCheckResult): PBStateCheckResu
 export function stateCheckResultFromPB(pb: PBStateCheckResult): StateCheckResult {
   const claimResults = pb.getClaimsList().map((result) => claimStateCheckResultFromPB(result));
   return {
-    txnBundleHash: pb.getTxnBundleHash(),
+    txnBundleHash: pb.getTxnBundleHash() as Uint8Array,
     randomnessProof: pb.getRandomnessProof() as Uint8Array,
     signature: pb.getSignature() as Uint8Array,
-    signer: pb.getSigner(),
+    signer: pb.getSigner() as Uint8Array,
     claims: claimResults,
   };
 }
@@ -583,7 +576,7 @@ export function claimStateCheckResultToPB(result: ClaimStateCheckResult): PBClai
 
 export function claimStateCheckResultFromPB(pb: PBClaimStateCheckResult): ClaimStateCheckResult {
   return {
-    claimHash: pb.getClaimHash(),
+    claimHash: pb.getClaimHash() as Uint8Array,
     stateCorrect: pb.getStateCorrect(),
   };
 }
@@ -607,7 +600,7 @@ export function transactionBundleToPB(bundle: TransactionBundle): PBTransactionB
 export function transactionBundleFromPB(pb: PBTransactionBundle): TransactionBundle {
   const txns = pb.getTransactionsList().map((txn) => signedTransactionFromPB(txn));
   return {
-    headBlockHash: pb.getHeadBlockHash(),
+    headBlockHash: pb.getHeadBlockHash() as Uint8Array,
     transactions: txns,
   };
 }

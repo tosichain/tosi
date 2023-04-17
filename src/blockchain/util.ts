@@ -22,8 +22,21 @@ import {
   serializeTransactionBundle,
 } from "./serde";
 
+export function bytesEqual(bytes1: Uint8Array, bytes2: Uint8Array): boolean {
+  return Buffer.from(bytes1).compare(bytes2) == 0;
+}
+
+export function bytesToHex(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString("hex");
+}
+
+export function bytesFromHex(hex: string): Uint8Array {
+  return Buffer.from(hex, "hex");
+}
+
 export function createInitialStateFromEnv(): WorldState {
-  const minterPubKey = process.env.TOSI_MINTER_PUBKEY as string;
+  const minterAddrHex = process.env.TOSI_MINTER_PUBKEY as string;
+  const minterAddr = bytesFromHex(minterAddrHex);
 
   const state: WorldState = {
     accounts: {},
@@ -33,78 +46,65 @@ export function createInitialStateFromEnv(): WorldState {
       stateVerifierPool: 0n,
       stateVerifiers: [],
     },
-    minter: minterPubKey,
+    minter: minterAddr,
     dataChains: {},
   };
-  state.accounts[minterPubKey] = createAccount(minterPubKey, 0n, 0n, 0n);
+  state.accounts[minterAddrHex] = createAccount(minterAddr, 0n, 0n, 0n);
 
   return state;
 }
 
-export function hashSignedTransaction(txn: SignedTransaction): string {
+export function hashSignedTransaction(txn: SignedTransaction): Uint8Array {
   const rawTxn = serializeSignedTransaction(txn);
-  const txnHash = keccak256(Buffer.from(rawTxn));
-  return Buffer.from(keccak256(txnHash)).toString("hex");
+  return keccak256(Buffer.from(rawTxn));
 }
 
-export function hashTransaction(txn: Transaction): string {
+export function hashTransaction(txn: Transaction): Uint8Array {
   const rawTxn = serializeTransaction(txn);
-  const txnHash = keccak256(Buffer.from(rawTxn));
-  return Buffer.from(keccak256(txnHash)).toString("hex");
+  return keccak256(Buffer.from(rawTxn));
 }
 
-export function hashBlock(block: Block): string {
+export function hashBlock(block: Block): Uint8Array {
   const rawBlock = serializeBlock(block);
-  const blockHash = keccak256(Buffer.from(rawBlock));
-  return Buffer.from(blockHash).toString("hex");
+  return keccak256(Buffer.from(rawBlock));
 }
 
-export function hashComputeClaim(claim: ComputeClaim): string {
+export function hashComputeClaim(claim: ComputeClaim): Uint8Array {
   const rawClaim = serializeComputeClaim(claim);
-  const claimHash = keccak256(Buffer.from(rawClaim));
-  return Buffer.from(claimHash).toString("hex");
+  return keccak256(Buffer.from(rawClaim));
 }
 
-export function hashTransactionBundle(txnBundle: TransactionBundle): string {
-  const s = serializeTransactionBundle(txnBundle);
-  const hash = keccak256(Buffer.from(s));
-  return Buffer.from(hash).toString("hex");
+export function hashTransactionBundle(txnBundle: TransactionBundle): Uint8Array {
+  const rawBundle = serializeTransactionBundle(txnBundle);
+  return keccak256(Buffer.from(rawBundle));
 }
 
 export function stringifyTransaction(txn: Transaction): string {
-  return JSONbigint.stringify(txn);
+  return stringifyHelper(txn);
 }
 
 export function stringifySignedTransaction(txn: SignedTransaction): string {
-  return JSONbigint.stringify(txn);
+  return stringifyHelper(txn);
 }
 
 export function stringifyAccount(account: Account): string {
-  return JSONbigint.stringify(account);
-}
-
-export function parseAccount(accountStr: string): Account {
-  const account = JSONbigint.parse(accountStr) as Account;
-  return {
-    ...account,
-    balance: BigInt(account.balance),
-    daVerifierStake: BigInt(account.daVerifierStake),
-    stateVerifierStake: BigInt(account.stateVerifierStake),
-  };
-}
-
-export function stringifyAccounts(accounts: Account[]): string {
-  return JSONbigint.stringify(accounts);
+  return stringifyHelper(account);
 }
 
 export function stringifyStakePool(pool: StakePool): string {
-  return JSONbigint.stringify(pool);
+  return stringifyHelper(pool);
 }
 
 export function stringifyDataChain(chain: DataChain): string {
-  return JSONbigint.stringify(chain);
+  return stringifyHelper(chain);
 }
 
 export function stringifyComputeClaim(claim: ComputeClaim): string {
-  return JSONbigint.stringify(claim);
+  return stringifyHelper(claim);
+}
+
+function stringifyHelper(object: any): string {
+  return JSONbigint.stringify(object, (key: string, value: any): any => {
+    return value instanceof Uint8Array ? bytesToHex(value) : value;
+  });
 }

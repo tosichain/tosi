@@ -5,6 +5,7 @@ import { CID } from "ipfs-http-client";
 import { IPFS } from "../../node/ipfs";
 
 import { DAInfo } from "../../blockchain/types";
+import { bytesFromHex } from "../../blockchain/util";
 
 export async function createDAInfo(
   ipfs: IPFS,
@@ -22,7 +23,7 @@ export async function createDAInfo(
   }
   return {
     size: Number(result.size),
-    cartesiMerkleRoot: result.cartesi_merkle_root,
+    cartesiMerkleRoot: bytesFromHex(result.cartesi_merkle_root),
   } as DAInfo;
 }
 

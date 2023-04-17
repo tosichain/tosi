@@ -7,10 +7,14 @@
 import * as jspb from "google-protobuf";
 
 export class SignedTransaction extends jspb.Message { 
-    getFrom(): string;
-    setFrom(value: string): SignedTransaction;
-    getSignature(): string;
-    setSignature(value: string): SignedTransaction;
+    getFrom(): Uint8Array | string;
+    getFrom_asU8(): Uint8Array;
+    getFrom_asB64(): string;
+    setFrom(value: Uint8Array | string): SignedTransaction;
+    getSignature(): Uint8Array | string;
+    getSignature_asU8(): Uint8Array;
+    getSignature_asB64(): string;
+    setSignature(value: Uint8Array | string): SignedTransaction;
 
     hasTxn(): boolean;
     clearTxn(): void;
@@ -29,8 +33,8 @@ export class SignedTransaction extends jspb.Message {
 
 export namespace SignedTransaction {
     export type AsObject = {
-        from: string,
-        signature: string,
+        from: Uint8Array | string,
+        signature: Uint8Array | string,
         txn?: Transaction.AsObject,
     }
 }
@@ -92,8 +96,10 @@ export namespace Transaction {
 }
 
 export class MintToken extends jspb.Message { 
-    getReceiver(): string;
-    setReceiver(value: string): MintToken;
+    getReceiver(): Uint8Array | string;
+    getReceiver_asU8(): Uint8Array;
+    getReceiver_asB64(): string;
+    setReceiver(value: Uint8Array | string): MintToken;
     getAmount(): string;
     setAmount(value: string): MintToken;
 
@@ -109,14 +115,16 @@ export class MintToken extends jspb.Message {
 
 export namespace MintToken {
     export type AsObject = {
-        receiver: string,
+        receiver: Uint8Array | string,
         amount: string,
     }
 }
 
 export class TransferToken extends jspb.Message { 
-    getReceiver(): string;
-    setReceiver(value: string): TransferToken;
+    getReceiver(): Uint8Array | string;
+    getReceiver_asU8(): Uint8Array;
+    getReceiver_asB64(): string;
+    setReceiver(value: Uint8Array | string): TransferToken;
     getAmount(): string;
     setAmount(value: string): TransferToken;
 
@@ -132,7 +140,7 @@ export class TransferToken extends jspb.Message {
 
 export namespace TransferToken {
     export type AsObject = {
-        receiver: string,
+        receiver: Uint8Array | string,
         amount: string,
     }
 }
@@ -207,8 +215,10 @@ export namespace CreateDataChain {
 }
 
 export class UpdateDataChain extends jspb.Message { 
-    getRootClaimHash(): string;
-    setRootClaimHash(value: string): UpdateDataChain;
+    getRootClaimHash(): Uint8Array | string;
+    getRootClaimHash_asU8(): Uint8Array;
+    getRootClaimHash_asB64(): string;
+    setRootClaimHash(value: Uint8Array | string): UpdateDataChain;
 
     hasClaim(): boolean;
     clearClaim(): void;
@@ -227,7 +237,7 @@ export class UpdateDataChain extends jspb.Message {
 
 export namespace UpdateDataChain {
     export type AsObject = {
-        rootClaimHash: string,
+        rootClaimHash: Uint8Array | string,
         claim?: ComputeClaim.AsObject,
     }
 }
@@ -242,8 +252,10 @@ export class WorldState extends jspb.Message {
     clearStakePool(): void;
     getStakePool(): StakePool | undefined;
     setStakePool(value?: StakePool): WorldState;
-    getMinter(): string;
-    setMinter(value: string): WorldState;
+    getMinter(): Uint8Array | string;
+    getMinter_asU8(): Uint8Array;
+    getMinter_asB64(): string;
+    setMinter(value: Uint8Array | string): WorldState;
     clearDataChainsList(): void;
     getDataChainsList(): Array<DataChain>;
     setDataChainsList(value: Array<DataChain>): WorldState;
@@ -263,14 +275,16 @@ export namespace WorldState {
     export type AsObject = {
         accountsList: Array<Account.AsObject>,
         stakePool?: StakePool.AsObject,
-        minter: string,
+        minter: Uint8Array | string,
         dataChainsList: Array<DataChain.AsObject>,
     }
 }
 
 export class Account extends jspb.Message { 
-    getAddress(): string;
-    setAddress(value: string): Account;
+    getAddress(): Uint8Array | string;
+    getAddress_asU8(): Uint8Array;
+    getAddress_asB64(): string;
+    setAddress(value: Uint8Array | string): Account;
     getNonce(): number;
     setNonce(value: number): Account;
     getBalance(): string;
@@ -292,7 +306,7 @@ export class Account extends jspb.Message {
 
 export namespace Account {
     export type AsObject = {
-        address: string,
+        address: Uint8Array | string,
         nonce: number,
         balance: string,
         daVerifierStake: string,
@@ -304,15 +318,19 @@ export class StakePool extends jspb.Message {
     getDaVerifierPool(): string;
     setDaVerifierPool(value: string): StakePool;
     clearDaVerifiersList(): void;
-    getDaVerifiersList(): Array<string>;
-    setDaVerifiersList(value: Array<string>): StakePool;
-    addDaVerifiers(value: string, index?: number): string;
+    getDaVerifiersList(): Array<Uint8Array | string>;
+    getDaVerifiersList_asU8(): Array<Uint8Array>;
+    getDaVerifiersList_asB64(): Array<string>;
+    setDaVerifiersList(value: Array<Uint8Array | string>): StakePool;
+    addDaVerifiers(value: Uint8Array | string, index?: number): Uint8Array | string;
     getStateVerifierPool(): string;
     setStateVerifierPool(value: string): StakePool;
     clearStateVerifiersList(): void;
-    getStateVerifiersList(): Array<string>;
-    setStateVerifiersList(value: Array<string>): StakePool;
-    addStateVerifiers(value: string, index?: number): string;
+    getStateVerifiersList(): Array<Uint8Array | string>;
+    getStateVerifiersList_asU8(): Array<Uint8Array>;
+    getStateVerifiersList_asB64(): Array<string>;
+    setStateVerifiersList(value: Array<Uint8Array | string>): StakePool;
+    addStateVerifiers(value: Uint8Array | string, index?: number): Uint8Array | string;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): StakePool.AsObject;
@@ -327,9 +345,9 @@ export class StakePool extends jspb.Message {
 export namespace StakePool {
     export type AsObject = {
         daVerifierPool: string,
-        daVerifiersList: Array<string>,
+        daVerifiersList: Array<Uint8Array | string>,
         stateVerifierPool: string,
-        stateVerifiersList: Array<string>,
+        stateVerifiersList: Array<Uint8Array | string>,
     }
 }
 
@@ -338,10 +356,14 @@ export class DataChain extends jspb.Message {
     getClaimsList(): Array<ComputeClaim>;
     setClaimsList(value: Array<ComputeClaim>): DataChain;
     addClaims(value?: ComputeClaim, index?: number): ComputeClaim;
-    getRootClaimHash(): string;
-    setRootClaimHash(value: string): DataChain;
-    getHeadClaimHash(): string;
-    setHeadClaimHash(value: string): DataChain;
+    getRootClaimHash(): Uint8Array | string;
+    getRootClaimHash_asU8(): Uint8Array;
+    getRootClaimHash_asB64(): string;
+    setRootClaimHash(value: Uint8Array | string): DataChain;
+    getHeadClaimHash(): Uint8Array | string;
+    getHeadClaimHash_asU8(): Uint8Array;
+    getHeadClaimHash_asB64(): string;
+    setHeadClaimHash(value: Uint8Array | string): DataChain;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): DataChain.AsObject;
@@ -356,16 +378,20 @@ export class DataChain extends jspb.Message {
 export namespace DataChain {
     export type AsObject = {
         claimsList: Array<ComputeClaim.AsObject>,
-        rootClaimHash: string,
-        headClaimHash: string,
+        rootClaimHash: Uint8Array | string,
+        headClaimHash: Uint8Array | string,
     }
 }
 
 export class ComputeClaim extends jspb.Message { 
-    getClaimer(): string;
-    setClaimer(value: string): ComputeClaim;
-    getPrevClaimHash(): string;
-    setPrevClaimHash(value: string): ComputeClaim;
+    getClaimer(): Uint8Array | string;
+    getClaimer_asU8(): Uint8Array;
+    getClaimer_asB64(): string;
+    setClaimer(value: Uint8Array | string): ComputeClaim;
+    getPrevClaimHash(): Uint8Array | string;
+    getPrevClaimHash_asU8(): Uint8Array;
+    getPrevClaimHash_asB64(): string;
+    setPrevClaimHash(value: Uint8Array | string): ComputeClaim;
 
     hasDataContract(): boolean;
     clearDataContract(): void;
@@ -396,8 +422,8 @@ export class ComputeClaim extends jspb.Message {
 
 export namespace ComputeClaim {
     export type AsObject = {
-        claimer: string,
-        prevClaimHash: string,
+        claimer: Uint8Array | string,
+        prevClaimHash: Uint8Array | string,
         dataContract?: ClaimDataRef.AsObject,
         input?: ClaimDataRef.AsObject,
         output?: ClaimDataRef.AsObject,
@@ -410,8 +436,10 @@ export class ClaimDataRef extends jspb.Message {
     setCid(value: string): ClaimDataRef;
     getSize(): number;
     setSize(value: number): ClaimDataRef;
-    getCartesimerkleroot(): string;
-    setCartesimerkleroot(value: string): ClaimDataRef;
+    getCartesimerkleroot(): Uint8Array | string;
+    getCartesimerkleroot_asU8(): Uint8Array;
+    getCartesimerkleroot_asB64(): string;
+    setCartesimerkleroot(value: Uint8Array | string): ClaimDataRef;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ClaimDataRef.AsObject;
@@ -427,21 +455,17 @@ export namespace ClaimDataRef {
     export type AsObject = {
         cid: string,
         size: number,
-        cartesimerkleroot: string,
+        cartesimerkleroot: Uint8Array | string,
     }
 }
 
 export class DAInfo extends jspb.Message { 
-    getName(): string;
-    setName(value: string): DAInfo;
     getSize(): number;
     setSize(value: number): DAInfo;
-    getLog2(): number;
-    setLog2(value: number): DAInfo;
-    getKeccak256(): string;
-    setKeccak256(value: string): DAInfo;
-    getCartesiMerkleRoot(): string;
-    setCartesiMerkleRoot(value: string): DAInfo;
+    getCartesiMerkleRoot(): Uint8Array | string;
+    getCartesiMerkleRoot_asU8(): Uint8Array;
+    getCartesiMerkleRoot_asB64(): string;
+    setCartesiMerkleRoot(value: Uint8Array | string): DAInfo;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): DAInfo.AsObject;
@@ -455,11 +479,8 @@ export class DAInfo extends jspb.Message {
 
 export namespace DAInfo {
     export type AsObject = {
-        name: string,
         size: number,
-        log2: number,
-        keccak256: string,
-        cartesiMerkleRoot: string,
+        cartesiMerkleRoot: Uint8Array | string,
     }
 }
 
@@ -510,10 +531,14 @@ export namespace Block {
 }
 
 export class BlockProof extends jspb.Message { 
-    getTxnBundleHash(): string;
-    setTxnBundleHash(value: string): BlockProof;
-    getTxnBundleProposer(): string;
-    setTxnBundleProposer(value: string): BlockProof;
+    getTxnBundleHash(): Uint8Array | string;
+    getTxnBundleHash_asU8(): Uint8Array;
+    getTxnBundleHash_asB64(): string;
+    setTxnBundleHash(value: Uint8Array | string): BlockProof;
+    getTxnBundleProposer(): Uint8Array | string;
+    getTxnBundleProposer_asU8(): Uint8Array;
+    getTxnBundleProposer_asB64(): string;
+    setTxnBundleProposer(value: Uint8Array | string): BlockProof;
     getRandomnessProof(): Uint8Array | string;
     getRandomnessProof_asU8(): Uint8Array;
     getRandomnessProof_asB64(): string;
@@ -547,8 +572,8 @@ export class BlockProof extends jspb.Message {
 
 export namespace BlockProof {
     export type AsObject = {
-        txnBundleHash: string,
-        txnBundleProposer: string,
+        txnBundleHash: Uint8Array | string,
+        txnBundleProposer: Uint8Array | string,
         randomnessProof: Uint8Array | string,
         daCheckResultsList: Array<DACheckResult.AsObject>,
         aggDaCheckResultSignature: Uint8Array | string,
@@ -558,8 +583,10 @@ export namespace BlockProof {
 }
 
 export class DACheckResult extends jspb.Message { 
-    getTxnBundleHash(): string;
-    setTxnBundleHash(value: string): DACheckResult;
+    getTxnBundleHash(): Uint8Array | string;
+    getTxnBundleHash_asU8(): Uint8Array;
+    getTxnBundleHash_asB64(): string;
+    setTxnBundleHash(value: Uint8Array | string): DACheckResult;
     getRandomnessProof(): Uint8Array | string;
     getRandomnessProof_asU8(): Uint8Array;
     getRandomnessProof_asB64(): string;
@@ -568,8 +595,10 @@ export class DACheckResult extends jspb.Message {
     getSignature_asU8(): Uint8Array;
     getSignature_asB64(): string;
     setSignature(value: Uint8Array | string): DACheckResult;
-    getSigner(): string;
-    setSigner(value: string): DACheckResult;
+    getSigner(): Uint8Array | string;
+    getSigner_asU8(): Uint8Array;
+    getSigner_asB64(): string;
+    setSigner(value: Uint8Array | string): DACheckResult;
     clearClaimsList(): void;
     getClaimsList(): Array<ClaimDACheckResult>;
     setClaimsList(value: Array<ClaimDACheckResult>): DACheckResult;
@@ -587,17 +616,19 @@ export class DACheckResult extends jspb.Message {
 
 export namespace DACheckResult {
     export type AsObject = {
-        txnBundleHash: string,
+        txnBundleHash: Uint8Array | string,
         randomnessProof: Uint8Array | string,
         signature: Uint8Array | string,
-        signer: string,
+        signer: Uint8Array | string,
         claimsList: Array<ClaimDACheckResult.AsObject>,
     }
 }
 
 export class StateCheckResult extends jspb.Message { 
-    getTxnBundleHash(): string;
-    setTxnBundleHash(value: string): StateCheckResult;
+    getTxnBundleHash(): Uint8Array | string;
+    getTxnBundleHash_asU8(): Uint8Array;
+    getTxnBundleHash_asB64(): string;
+    setTxnBundleHash(value: Uint8Array | string): StateCheckResult;
     getRandomnessProof(): Uint8Array | string;
     getRandomnessProof_asU8(): Uint8Array;
     getRandomnessProof_asB64(): string;
@@ -606,8 +637,10 @@ export class StateCheckResult extends jspb.Message {
     getSignature_asU8(): Uint8Array;
     getSignature_asB64(): string;
     setSignature(value: Uint8Array | string): StateCheckResult;
-    getSigner(): string;
-    setSigner(value: string): StateCheckResult;
+    getSigner(): Uint8Array | string;
+    getSigner_asU8(): Uint8Array;
+    getSigner_asB64(): string;
+    setSigner(value: Uint8Array | string): StateCheckResult;
     clearClaimsList(): void;
     getClaimsList(): Array<ClaimStateCheckResult>;
     setClaimsList(value: Array<ClaimStateCheckResult>): StateCheckResult;
@@ -625,17 +658,19 @@ export class StateCheckResult extends jspb.Message {
 
 export namespace StateCheckResult {
     export type AsObject = {
-        txnBundleHash: string,
+        txnBundleHash: Uint8Array | string,
         randomnessProof: Uint8Array | string,
         signature: Uint8Array | string,
-        signer: string,
+        signer: Uint8Array | string,
         claimsList: Array<ClaimStateCheckResult.AsObject>,
     }
 }
 
 export class ClaimDACheckResult extends jspb.Message { 
-    getClaimHash(): string;
-    setClaimHash(value: string): ClaimDACheckResult;
+    getClaimHash(): Uint8Array | string;
+    getClaimHash_asU8(): Uint8Array;
+    getClaimHash_asB64(): string;
+    setClaimHash(value: Uint8Array | string): ClaimDACheckResult;
     getDataAvailable(): boolean;
     setDataAvailable(value: boolean): ClaimDACheckResult;
 
@@ -651,14 +686,16 @@ export class ClaimDACheckResult extends jspb.Message {
 
 export namespace ClaimDACheckResult {
     export type AsObject = {
-        claimHash: string,
+        claimHash: Uint8Array | string,
         dataAvailable: boolean,
     }
 }
 
 export class ClaimStateCheckResult extends jspb.Message { 
-    getClaimHash(): string;
-    setClaimHash(value: string): ClaimStateCheckResult;
+    getClaimHash(): Uint8Array | string;
+    getClaimHash_asU8(): Uint8Array;
+    getClaimHash_asB64(): string;
+    setClaimHash(value: Uint8Array | string): ClaimStateCheckResult;
     getStateCorrect(): boolean;
     setStateCorrect(value: boolean): ClaimStateCheckResult;
 
@@ -674,14 +711,16 @@ export class ClaimStateCheckResult extends jspb.Message {
 
 export namespace ClaimStateCheckResult {
     export type AsObject = {
-        claimHash: string,
+        claimHash: Uint8Array | string,
         stateCorrect: boolean,
     }
 }
 
 export class TransactionBundle extends jspb.Message { 
-    getHeadBlockHash(): string;
-    setHeadBlockHash(value: string): TransactionBundle;
+    getHeadBlockHash(): Uint8Array | string;
+    getHeadBlockHash_asU8(): Uint8Array;
+    getHeadBlockHash_asB64(): string;
+    setHeadBlockHash(value: Uint8Array | string): TransactionBundle;
     clearTransactionsList(): void;
     getTransactionsList(): Array<SignedTransaction>;
     setTransactionsList(value: Array<SignedTransaction>): TransactionBundle;
@@ -699,7 +738,7 @@ export class TransactionBundle extends jspb.Message {
 
 export namespace TransactionBundle {
     export type AsObject = {
-        headBlockHash: string,
+        headBlockHash: Uint8Array | string,
         transactionsList: Array<SignedTransaction.AsObject>,
     }
 }
