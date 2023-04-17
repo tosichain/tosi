@@ -17,7 +17,7 @@ import { signDACheckResult } from "../../blockchain/block_proof";
 import { getSeedFromBlockRandomnessProof } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { BlockchainStorage } from "../../blockchain/storage";
-import { hashComputeClaim, stringifyAccounts, stringifyComputeClaim } from "../../blockchain/util";
+import { bytesEqual, bytesToHex, bytesFromHex, hashComputeClaim, stringifyComputeClaim } from "../../blockchain/util";
 import {
   IPFS_PUB_SUB_DA_VERIFICATION,
   IPFS_MESSAGE_DA_VERIFICATION_REQUEST,
@@ -30,16 +30,17 @@ import {
   stringifyDAVerificationResponse,
 } from "../../p2p/util";
 import { createDAInfo, execTask, prepopulate } from "./util";
+import { hexToBytes } from "@noble/bls12-381/lib/math";
 
 export interface DAVerifierConfig {
   DACheckTimeout: number;
 }
 
 export class DAVerifier {
-  private readonly blsSecKey: string;
-  private readonly blsPubKey: string;
+  private readonly blsSecKey: Uint8Array;
+  private readonly blsPubKey: Uint8Array;
 
-  private readonly coordinatorPubKey: string;
+  private readonly coordinatorPubKey: Uint8Array;
 
   private readonly daCommitteeSampleSize: number;
 
@@ -54,8 +55,8 @@ export class DAVerifier {
   private daInfoCache: Record<string, DAInfo> = {};
 
   constructor(
-    blsSecKey: string,
-    cooridnatorPubKey: string,
+    blsSecKey: Uint8Array,
+    cooridnatorPubKey: Uint8Array,
     daCommitteeSampleSize: number,
     config: DAVerifierConfig,
     log: winston.Logger,
@@ -63,7 +64,7 @@ export class DAVerifier {
     blockchain: BlockchainStorage,
   ) {
     this.blsSecKey = blsSecKey;
-    this.blsPubKey = Buffer.from(BLS.getPublicKey(this.blsSecKey)).toString("hex");
+    this.blsPubKey = Buffer.from(BLS.getPublicKey(this.blsSecKey));
 
     this.coordinatorPubKey = cooridnatorPubKey;
 
@@ -152,7 +153,7 @@ export class DAVerifier {
       randSeed,
     );
 
-    const inCommittee = committee.find((s) => s.address == this.blsPubKey) != undefined;
+    const inCommittee = committee.find((s) => bytesEqual(s.address, this.blsPubKey)) != undefined;
     if (!inCommittee) {
       this.log.info("can not process DA verification request - not in current DA committee sample");
       return false;
@@ -163,21 +164,22 @@ export class DAVerifier {
 
   private async checkClaimDA(claim: ComputeClaim): Promise<ClaimDACheckResult> {
     const claimHash = hashComputeClaim(claim);
-    this.log.info(`checking DA for claim ${claimHash} - ${stringifyComputeClaim(claim)}`);
+    this.log.info(`checking DA for claim ${bytesToHex(claimHash)} - ${stringifyComputeClaim(claim)}`);
 
     // TODO: this check is actually redundant, but we, probably, need to query previous claim in future.
     // For non-root claim previous claim must exist in local storage.
 
-    const prevClaim = claim.prevClaimHash != "" ? await this.blockchain.getComputeClaim(claim.prevClaimHash) : null;
+    const prevClaim =
+      claim.prevClaimHash.length != 0 ? await this.blockchain.getComputeClaim(claim.prevClaimHash) : null;
 
-    if (!prevClaim && claim.prevClaimHash != "") {
+    if (!prevClaim && claim.prevClaimHash.length != 0) {
       throw new Error(`previous claim ${claim.prevClaimHash} does not exist`);
     }
 
     const EMPTY_OUTPUT_DATA_REF = {
       cid: "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354",
       size: 100,
-      cartesiMerkleRoot: "de611e620dee2c51aec860dbcab29b08a7fe80686bf02c5a1f19ac0c2ff3fe0a", // tree log size 31 / 2gb
+      cartesiMerkleRoot: bytesFromHex("de611e620dee2c51aec860dbcab29b08a7fe80686bf02c5a1f19ac0c2ff3fe0a"), // tree log size 31 / 2gb
     } as ClaimDataRef;
 
     // start checks in parallel
@@ -195,30 +197,30 @@ export class DAVerifier {
     const outputInfo = await outputDataPromise;
 
     function compareDAInfo(d: DAInfo, c: ClaimDataRef) {
-      return d.cartesiMerkleRoot == c.cartesiMerkleRoot && d.size == c.size;
+      return bytesEqual(d.cartesiMerkleRoot, c.cartesiMerkleRoot) && d.size == c.size;
     }
 
     if (!functionInfo || !compareDAInfo(functionInfo, claim.dataContract)) {
       this.log.error(
-        `function data for claim ${claimHash} doesn't match - ${JSON.stringify(functionInfo)} ${JSON.stringify(
-          claim.dataContract,
-        )}`,
+        `function data for claim ${bytesToHex(claimHash)} doesn't match - ${JSON.stringify(
+          functionInfo,
+        )} ${JSON.stringify(claim.dataContract)}`,
       );
       return { claimHash: claimHash, dataAvailable: false };
     }
 
     if (!prevOutputInfo || !compareDAInfo(prevOutputInfo, prevClaimDataRef)) {
-      this.log.error(`prev output info data for claim ${claimHash} doesn't match`);
+      this.log.error(`prev output info data for claim ${bytesToHex(claimHash)} doesn't match`);
       return { claimHash: claimHash, dataAvailable: false };
     }
 
     if (!inputInfo || !compareDAInfo(inputInfo, claim.input)) {
-      this.log.error(`input info data for claim ${claimHash} doesn't match`);
+      this.log.error(`input info data for claim ${bytesToHex(claimHash)} doesn't match`);
       return { claimHash: claimHash, dataAvailable: false };
     }
 
     if (!outputInfo || !compareDAInfo(outputInfo, claim.output)) {
-      this.log.error(`output info data for claim ${claimHash} doesn't match`);
+      this.log.error(`output info data for claim ${bytesToHex(claimHash)} doesn't match`);
       return { claimHash: claimHash, dataAvailable: false };
     }
     return { claimHash: claimHash, dataAvailable: true };

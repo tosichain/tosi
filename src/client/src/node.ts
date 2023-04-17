@@ -5,6 +5,7 @@ import * as BLS from "@noble/bls12-381";
 
 import { IPFS } from "../../node/ipfs";
 import { Transaction, Account, DAInfo, Block, DataChain, StakeType } from "../../blockchain/types";
+import { bytesEqual } from "../../blockchain/util";
 import { CoordinatorRPCConfig, CoordinatorRPC } from "../../coordinator/src/rpc";
 import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/storage";
 import { signTransaction } from "../../blockchain/block";
@@ -22,8 +23,8 @@ export interface ClientNodeConfig {
   storage: BlockchainStorageConfig;
   blokchainSync: BlockchainClientSyncConfig;
   rpc: ClientNodeRPCServerConfig;
-  blsSecKey: string;
-  coordinatorPubKey: string;
+  blsSecKey: Uint8Array;
+  coordinatorPubKey: Uint8Array;
   DACommitteeSampleSize: number; // TODO: must be sealed in blockchain.
   stateCommitteeSampleSize: number; // TODO: must be sealed in blockchain.
   roles: {
@@ -44,12 +45,12 @@ export interface UpdateDatachainParameters {
   inputCID: CID;
   outputCID: CID;
   // Existing chain info.
-  rootClaimHash: string;
+  rootClaimHash: Uint8Array;
 }
 
 export class ClientNode {
   private readonly config: ClientNodeConfig;
-  private readonly blsPubKey: string;
+  private readonly blsPubKey: Uint8Array;
 
   private readonly log: winston.Logger;
 
@@ -66,7 +67,7 @@ export class ClientNode {
 
   constructor(config: ClientNodeConfig, log: winston.Logger) {
     this.config = config;
-    this.blsPubKey = Buffer.from(BLS.getPublicKey(this.config.blsSecKey)).toString("hex");
+    this.blsPubKey = BLS.getPublicKey(this.config.blsSecKey);
 
     this.log = log;
 
@@ -147,15 +148,15 @@ export class ClientNode {
 
   // RPC methods.
 
-  public async getBlock(blockHash: string): Promise<Block | undefined> {
+  public async getBlock(blockHash: Uint8Array): Promise<Block | undefined> {
     return await this.storage.getBlock(blockHash);
   }
 
-  public async getAccount(address: string): Promise<Account | undefined> {
+  public async getAccount(address: Uint8Array): Promise<Account | undefined> {
     return await this.storage.getAccount(address);
   }
 
-  public async getAccountTransactions(address: string): Promise<Transaction[] | undefined> {
+  public async getAccountTransactions(address: Uint8Array): Promise<Transaction[] | undefined> {
     if (!(await this.storage.getAccount(address))) {
       return undefined;
     }
@@ -168,12 +169,12 @@ export class ClientNode {
         break;
       }
       block.transactions.forEach((transaction) => {
-        if (transaction.from == address) {
+        if (bytesEqual(transaction.from, address)) {
           transactions.push(transaction.txn);
         }
       });
       lastBlockHash = block.prevBlockHash;
-      if (lastBlockHash == "") {
+      if (lastBlockHash.length == 0) {
         break;
       }
     }
@@ -184,7 +185,7 @@ export class ClientNode {
   public async getStakerList(stakeType: StakeType): Promise<Account[]> {
     const stakePool = await this.storage.getStakePool();
 
-    let stakerPubKeys: string[];
+    let stakerPubKeys: Uint8Array[];
     switch (stakeType) {
       case StakeType.DAVerifier:
         stakerPubKeys = stakePool.daVerifiers;
@@ -209,7 +210,7 @@ export class ClientNode {
     return stakers;
   }
 
-  public async getDataChain(rootClaimHash: string): Promise<DataChain | undefined> {
+  public async getDataChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined> {
     return await this.storage.getComputeChain(rootClaimHash);
   }
 
@@ -217,11 +218,11 @@ export class ClientNode {
     return await this.storage.getDataChainList();
   }
 
-  public async getHeadBblockHash(): Promise<string> {
+  public async getHeadBblockHash(): Promise<Uint8Array> {
     return await this.storage.getHeadBlockHash();
   }
 
-  public async getBLSPublicKey(): Promise<string> {
+  public async getBLSPublicKey(): Promise<Uint8Array> {
     return this.blsPubKey;
   }
 
@@ -247,7 +248,7 @@ export class ClientNode {
       createChain: {
         rootClaim: {
           claimer: this.blsPubKey,
-          prevClaimHash: "",
+          prevClaimHash: new Uint8Array(),
           dataContract: { cid: params.dataContractCID.toString(), ...functionInfo },
           input: { cid: params.inputCID.toString(), ...inputInfo },
           output: { cid: params.outputCID.toString(), ...outputInfo },
@@ -323,16 +324,4 @@ export class ClientNode {
   public async getSyncStatus(): Promise<boolean> {
     return await this.blockchainSync.isSynced();
   }
-
-  //!!!
-  /*
-  public async getLatestBlockHash() {
-    return await this.blockchainSync.latestHash();
-  }
-
-  public async getLatestLocalHash() {
-    const latestLocalHash = await this.storage.getHeadBlockHash();
-    return "0x" + latestLocalHash;
-  }
-  */
 }

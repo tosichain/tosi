@@ -46,16 +46,17 @@ import {
 } from "../../proto/grpcjs/client_pb";
 import { ClientNodeService, IClientNodeServer } from "../../proto/grpcjs/client_grpc_pb";
 import { CreateDatachainParameters, UpdateDatachainParameters } from "./node";
+import { stringifyTransaction } from "../../blockchain/util";
 
 export interface RequestHandler {
-  getBlock(blockHash: string): Promise<Block | undefined>;
-  getAccount(address: string): Promise<Account | undefined>;
-  getAccountTransactions(address: string): Promise<Transaction[] | undefined>;
+  getBlock(blockHash: Uint8Array): Promise<Block | undefined>;
+  getAccount(address: Uint8Array): Promise<Account | undefined>;
+  getAccountTransactions(address: Uint8Array): Promise<Transaction[] | undefined>;
   getStakerList(stakeType: StakeType): Promise<Account[]>;
-  getDataChain(rootClaimHash: string): Promise<DataChain | undefined>;
+  getDataChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined>;
   getDataChainList(): Promise<DataChain[]>;
-  getHeadBblockHash(): Promise<string>;
-  getBLSPublicKey(): Promise<string>;
+  getHeadBblockHash(): Promise<Uint8Array>;
+  getBLSPublicKey(): Promise<Uint8Array>;
   getIPFSBootstrap(): Promise<string[]>;
   generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction>;
   generateUpdateDatachainTxn(params: UpdateDatachainParameters): Promise<Transaction>;
@@ -99,7 +100,7 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     call: ServerUnaryCall<GetBlockRequest, GetBlockResponse>,
     callback: sendUnaryData<GetBlockResponse>,
   ): void {
-    this.handler.getBlock(call.request.getBlockHash()).then((block) => {
+    this.handler.getBlock(call.request.getBlockHash() as Uint8Array).then((block) => {
       const resp = new GetBlockResponse();
       if (block) {
         resp.setBlock(blockToPB(block));
@@ -112,7 +113,7 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     call: ServerUnaryCall<GetAccountRequest, GetAccountResponse>,
     callback: sendUnaryData<GetAccountResponse>,
   ): void {
-    this.handler.getAccount(call.request.getAccountAddress()).then((account) => {
+    this.handler.getAccount(call.request.getAccountAddress() as Uint8Array).then((account) => {
       const resp = new GetAccountResponse();
       if (account) {
         resp.setAccount(accountToPB(account));
@@ -125,7 +126,7 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     call: ServerUnaryCall<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
     callback: sendUnaryData<GetAccountTransactionsResponse>,
   ): void {
-    this.handler.getAccountTransactions(call.request.getAccountAddress()).then((txns) => {
+    this.handler.getAccountTransactions(call.request.getAccountAddress() as Uint8Array).then((txns) => {
       const resp = new GetAccountTransactionsResponse();
       if (txns) {
         const pbTxns = txns.map((txn) => transactionToPB(txn));
@@ -150,7 +151,7 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     call: ServerUnaryCall<GetDataChainRequest, GetDataChainResponse>,
     callback: sendUnaryData<GetDataChainResponse>,
   ): void {
-    this.handler.getDataChain(call.request.getRootClaimHash()).then((chain) => {
+    this.handler.getDataChain(call.request.getRootClaimHash() as Uint8Array).then((chain) => {
       const resp = new GetDataChainResponse();
       if (chain) {
         resp.setDataChain(dataChainToPB(chain));
@@ -226,7 +227,7 @@ export class ClientNodeRPCServer implements IClientNodeServer {
       dataContractCID: CID.parse(call.request.getDataContractCid()),
       inputCID: CID.parse(call.request.getInputCid()),
       outputCID: CID.parse(call.request.getOutputCid()),
-      rootClaimHash: call.request.getRootClaimHash(),
+      rootClaimHash: call.request.getRootClaimHash() as Uint8Array,
     };
     this.handler.generateUpdateDatachainTxn(params).then((txn) => {
       const pbTxn = transactionToPB(txn);

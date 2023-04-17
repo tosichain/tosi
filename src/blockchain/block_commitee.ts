@@ -3,7 +3,6 @@ import Gen from "random-seed";
 
 import { Account, StakeType } from "./types";
 import { BlockchainStorage } from "./storage";
-import { stringifyAccounts } from "./util";
 
 import { STAKE_AMOUNT_TO_NUMBER_DENOMINATOR } from "./constant";
 
@@ -15,7 +14,7 @@ export async function getVerificationCommitteeSample(
 ): Promise<Account[]> {
   const stakePool = await blockchain.getStakePool();
 
-  let stakerAddresses: string[] = [];
+  let stakerAddresses: Uint8Array[] = [];
   switch (committeeType) {
     case StakeType.DAVerifier:
       stakerAddresses = stakePool.daVerifiers;

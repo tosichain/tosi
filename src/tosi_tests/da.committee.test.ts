@@ -10,7 +10,7 @@ import { CID } from "ipfs-http-client";
 chai.use(chaiAsPromised);
 
 import { Transaction, ComputeClaim, StakeType } from "../blockchain/types";
-import { stringifyAccount } from "../blockchain/util";
+import { bytesToHex, bytesFromHex, stringifyAccount } from "../blockchain/util";
 import { signTransaction } from "../blockchain/block";
 import { CoordinatorRPC } from "../coordinator/src/rpc";
 import { ClientRPC } from "../client/src/rpc";
@@ -24,20 +24,20 @@ const EMPTY_16KB_CID = "bafkreicp462zv5w6hntfwz3yrtbptgesvobh56xdurttikz3wtr3zds
 
 const INVALID_TXN_WAIT_PERIOD = 25000; // 25 seconds
 
-const minterPrivKey = Buffer.from("2d1c0d704322c0386cc7bead93298a48ee22325e967567ebe4dbcd4a2f4482f1").toString();
-const minterPubKey = Buffer.from(BLS.getPublicKey(minterPrivKey)).toString("hex");
+const minterPrivKey = Buffer.from("2d1c0d704322c0386cc7bead93298a48ee22325e967567ebe4dbcd4a2f4482f1", "hex");
+const minterPubKey = BLS.getPublicKey(minterPrivKey);
 
-const clientPrivKey = Buffer.from("4d5a78da4f26be1d69593b19fac383abe5344668ae5671b1e6a8d72c1507f509").toString();
-const clientPubKey = Buffer.from(BLS.getPublicKey(clientPrivKey)).toString("hex");
+const clientPrivKey = Buffer.from("4d5a78da4f26be1d69593b19fac383abe5344668ae5671b1e6a8d72c1507f509", "hex");
+const clientPubKey = BLS.getPublicKey(clientPrivKey);
 
-const daVerifier1PrivKey = Buffer.from("22b8a5c1e4f51b1cade56c80edc963fe05e93192a08e77a1fe38f50b8f7d9f01").toString();
-const daVerifier1PubKey = Buffer.from(BLS.getPublicKey(daVerifier1PrivKey)).toString("hex");
+const daVerifier1PrivKey = Buffer.from("22b8a5c1e4f51b1cade56c80edc963fe05e93192a08e77a1fe38f50b8f7d9f01", "hex");
+const daVerifier1PubKey = BLS.getPublicKey(daVerifier1PrivKey);
 
-const daVerifier2PrivKey = Buffer.from("18513804a1a2d3af9ca16829535a5ceea4218e508109f10466a453eb8ba8751f").toString();
-const daVerifier2PubKey = Buffer.from(BLS.getPublicKey(daVerifier2PrivKey)).toString("hex");
+const daVerifier2PrivKey = Buffer.from("18513804a1a2d3af9ca16829535a5ceea4218e508109f10466a453eb8ba8751f", "hex");
+const daVerifier2PubKey = BLS.getPublicKey(daVerifier2PrivKey);
 
-const daVerifier3PrivKey = Buffer.from("34a4db75366744ce1aef1702a981dac83bede3c90e8777dfb47d1992d557da7e").toString();
-const daVerifier3PubKey = Buffer.from(BLS.getPublicKey(daVerifier3PrivKey)).toString("hex");
+const daVerifier3PrivKey = Buffer.from("34a4db75366744ce1aef1702a981dac83bede3c90e8777dfb47d1992d557da7e", "hex");
+const daVerifier3PubKey = BLS.getPublicKey(daVerifier3PrivKey);
 
 let log: winston.Logger;
 let coordinator: CoordinatorRPC;
@@ -46,7 +46,6 @@ let daVerifier1: ClientRPC;
 let daVerifier2: ClientRPC;
 let daVerifier3: ClientRPC;
 let ipfs: IPFS;
-let lastHeadBlockHash: string;
 
 before(async () => {
   log = winston.createLogger({
@@ -79,8 +78,6 @@ before(async () => {
     serverAddr: "127.0.0.1:30004",
   });
 
-  lastHeadBlockHash = await coordinator.getHeadBlockHash();
-
   ipfs = new IPFS({ host: "127.0.0.1", port: 50011 }, log);
   await ipfs.up(log);
 
@@ -99,7 +96,7 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     let coordinatorCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
       log.debug(`querying account ${accPubKey} at coordinator node`);
-      const account = await coordinator.getAccount(accPubKey);
+      const account = await coordinator.getAccount(bytesFromHex(accPubKey));
 
       if (!account) {
         log.debug(`account ${accPubKey} does not exist at coordinator node`);
@@ -125,7 +122,7 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     for (const accPubKey of Object.keys(accountNonce)) {
       log.debug(`querying account ${accPubKey} at at all client nodes`);
 
-      const accountQuery = clients.map((c) => c.getAccount(accPubKey));
+      const accountQuery = clients.map((c) => c.getAccount(bytesFromHex(accPubKey)));
       const accounts = await Promise.all(accountQuery);
 
       if (!accounts.every((a) => a != undefined)) {
@@ -188,7 +185,7 @@ async function setupDACommittee() {
   await coordinator.submitSignedTransaction(await signTransaction(txn4, minterPrivKey));
 
   let accountNonces: Record<string, number> = {};
-  accountNonces[minterPubKey] = 3;
+  accountNonces[bytesToHex(minterPubKey)] = 3;
   await waitForAccountNonce(accountNonces);
 
   log.info("DA verifiers put tokens at stake");
@@ -216,9 +213,9 @@ async function setupDACommittee() {
   });
 
   accountNonces = {};
-  accountNonces[daVerifier1PubKey] = 0;
-  accountNonces[daVerifier2PubKey] = 0;
-  accountNonces[daVerifier3PubKey] = 0;
+  accountNonces[bytesToHex(daVerifier1PubKey)] = 0;
+  accountNonces[bytesToHex(daVerifier2PubKey)] = 0;
+  accountNonces[bytesToHex(daVerifier3PubKey)] = 0;
 
   await waitForAccountNonce(accountNonces);
 
@@ -244,9 +241,9 @@ async function setupDACommittee() {
     nonce: 0,
   });
   accountNonces = {};
-  accountNonces[daVerifier1PubKey] = 1;
-  accountNonces[daVerifier2PubKey] = 1;
-  accountNonces[daVerifier3PubKey] = 1;
+  accountNonces[bytesToHex(daVerifier1PubKey)] = 1;
+  accountNonces[bytesToHex(daVerifier2PubKey)] = 1;
+  accountNonces[bytesToHex(daVerifier3PubKey)] = 1;
   await waitForAccountNonce(accountNonces);
 }
 
@@ -256,11 +253,11 @@ async function getDummyData(): Promise<CID> {
   return (await ipfs.getIPFS().add(data, { cidVersion: 1 })).cid;
 }
 
-async function verifyHeadClaim(rootClaimHash: string, headClaim: ComputeClaim | undefined): Promise<void> {
+async function verifyHeadClaim(rootClaimHash: Uint8Array, headClaim: ComputeClaim | undefined): Promise<void> {
   const chain = await client.getDataChain(rootClaimHash);
   if (headClaim) {
     expect(chain).not.to.be.undefined;
-    const headClaimInChain = chain?.claims[chain?.headClaimHash];
+    const headClaimInChain = chain?.claims[bytesToHex(chain?.headClaimHash)];
     expect(headClaimInChain?.dataContract.cid).to.be.eq(headClaim.dataContract.cid.toString());
     expect(headClaimInChain?.input.cid).to.be.eq(headClaim.input.cid.toString());
     expect(headClaimInChain?.output.cid).to.be.eq(headClaim.output.cid.toString());
@@ -270,9 +267,9 @@ async function verifyHeadClaim(rootClaimHash: string, headClaim: ComputeClaim | 
 }
 
 let rootClaim: ComputeClaim;
-let rootClaimHash: string;
+let rootClaimHash: Uint8Array;
 let headClaim: ComputeClaim;
-let headClaimHash: string;
+let headClaimHash: Uint8Array;
 
 describe("DA verification is performed correctly", function () {
   it("client creates new compute chain with intentionally broken function", async () => {
@@ -315,7 +312,7 @@ describe("DA verification is performed correctly", function () {
     await client.submitTransaction(txn);
 
     const accountNonces: Record<string, number> = {};
-    accountNonces[clientPubKey] = 0;
+    accountNonces[bytesToHex(clientPubKey)] = 0;
     await waitForAccountNonce(accountNonces);
 
     await verifyHeadClaim(rootClaimHash, txn.createChain.rootClaim);
@@ -338,7 +335,7 @@ describe("DA verification is performed correctly", function () {
     await client.submitTransaction(txn);
 
     const accountNonces: Record<string, number> = {};
-    accountNonces[clientPubKey] = 1;
+    accountNonces[bytesToHex(clientPubKey)] = 1;
     await waitForAccountNonce(accountNonces);
 
     await verifyHeadClaim(rootClaimHash, headClaim);
@@ -416,21 +413,6 @@ describe("DA verification is performed correctly", function () {
 
     await verifyHeadClaim(invalidRootClaimHash, undefined);
   });
-
-  // TODO:
-  /*
-  it("DA checker from commitee sample goes offline", async () => {
-  })
-
-  it("adversary from commitee sample tries to fake data availability", async () => {
-  })
-
-  it("adversary not from committee sample tries to fake data availability", async () => {
-  })
-
-  it("adversary not from committee sample tries to forge signature", async () => {
-  })
-  */
 });
 
 describe("invalid CreateDatachain and UpdateDatachian transactions are rejected", function () {

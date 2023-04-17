@@ -5,6 +5,7 @@ import { encodeCBOR } from "../util";
 
 import { Block, DACheckResult, ClaimDACheckResult, StakeType, ClaimStateCheckResult, StateCheckResult } from "./types";
 import { serializeClaimDACheckResult, serializeClaimStateCheckResult } from "./serde";
+import { bytesEqual } from "./util";
 import { BlockchainStorage } from "./storage";
 import { fetchDrandBeaconInfo, getSeedFromBlockRandomnessProof, verifyBlockRandomnessProof } from "./block_randomness";
 import { getVerificationCommitteeSample } from "./block_commitee";
@@ -20,8 +21,8 @@ export async function verifyBlockProof(
   // Verify randomness proof.
   const beaconInfo = await fetchDrandBeaconInfo();
   const randProofValid = await verifyBlockRandomnessProof(
-    Uint8Array.from(Buffer.from(proof.txnBundleHash, "hex")),
-    Uint8Array.from(Buffer.from(proof.txnBundleProposer, "hex")),
+    proof.txnBundleHash,
+    proof.txnBundleProposer,
     proof.randomnessProof,
     beaconInfo,
     block.time,
@@ -51,7 +52,7 @@ export async function verifyBlockProof(
     randSeed,
   );
   for (const staker of daCommittee) {
-    if (!proof.DACheckResults.find((daResult) => daResult.signer == staker.address)) {
+    if (!proof.DACheckResults.find((daResult) => bytesEqual(daResult.signer, staker.address))) {
       return false;
     }
   }
@@ -79,7 +80,7 @@ export async function verifyBlockProof(
     randSeed,
   );
   for (const staker of stateCommittee) {
-    if (!proof.stateCheckResults.find((stateResult) => stateResult.signer == staker.address)) {
+    if (!proof.stateCheckResults.find((stateResult) => bytesEqual(stateResult.signer, staker.address))) {
       return false;
     }
   }
@@ -102,7 +103,7 @@ export async function verifyBlockProof(
   return true;
 }
 
-export async function signDACheckResult(result: DACheckResult, signerSecKey: string): Promise<DACheckResult> {
+export async function signDACheckResult(result: DACheckResult, signerSecKey: Uint8Array): Promise<DACheckResult> {
   const hash = createDACheckResultHashForSigning(result.txnBundleHash, result.randomnessProof, result.claims);
   const signedResult: DACheckResult = {
     ...result,
@@ -112,41 +113,43 @@ export async function signDACheckResult(result: DACheckResult, signerSecKey: str
 }
 
 export async function verifyDACheckResultSignature(
-  txnBundleHash: string,
+  txnBundleHash: Uint8Array,
   randomnessProof: Uint8Array,
   claimResults: ClaimDACheckResult[],
   signature: Uint8Array,
-  signer: string,
+  signer: Uint8Array,
 ): Promise<boolean> {
   const hash = createDACheckResultHashForSigning(txnBundleHash, randomnessProof, claimResults);
   return await BLS.verify(signature, hash, signer);
 }
 
 export async function verifyDACheckResultsAggergatedSignature(
-  txnBundleHash: string,
+  txnBundleHash: Uint8Array,
   randomnessProof: Uint8Array,
   claimResults: ClaimDACheckResult[],
   results: DACheckResult[],
-  signers: string[],
+  signers: Uint8Array[],
 ): Promise<[boolean, Uint8Array]> {
-  const aggPub = Buffer.from(BLS.aggregatePublicKeys(signers)).toString("hex");
+  const aggPub = Buffer.from(BLS.aggregatePublicKeys(signers));
   const aggSig = BLS.aggregateSignatures(results.map((result) => result.signature));
   const aggSigValid = await verifyDACheckResultSignature(txnBundleHash, randomnessProof, claimResults, aggSig, aggPub);
   return [aggSigValid, aggSig];
 }
 
 function createStateCheckResultHashForSigning(
-  txnBundleHash: string,
+  txnBundleHash: Uint8Array,
   randomnessProof: Uint8Array,
   claimResults: ClaimStateCheckResult[],
-): string {
+): Uint8Array {
   const rawClaimResults = claimResults.map(serializeClaimStateCheckResult);
   const sigMaterial = encodeCBOR([txnBundleHash, randomnessProof, rawClaimResults]);
-  const hash = crypto.createHash("sha256").update(sigMaterial).digest();
-  return hash.toString("hex");
+  return crypto.createHash("sha256").update(sigMaterial).digest();
 }
 
-export async function signStateCheckResult(result: StateCheckResult, signerSecKey: string): Promise<StateCheckResult> {
+export async function signStateCheckResult(
+  result: StateCheckResult,
+  signerSecKey: Uint8Array,
+): Promise<StateCheckResult> {
   const hash = createStateCheckResultHashForSigning(result.txnBundleHash, result.randomnessProof, result.claims);
   const signedResult: StateCheckResult = {
     ...result,
@@ -156,24 +159,24 @@ export async function signStateCheckResult(result: StateCheckResult, signerSecKe
 }
 
 export async function verifyStateCheckResultSignature(
-  txnBundleHash: string,
+  txnBundleHash: Uint8Array,
   randomnessProof: Uint8Array,
   claimResults: ClaimStateCheckResult[],
   signature: Uint8Array,
-  signer: string,
+  signer: Uint8Array,
 ): Promise<boolean> {
   const hash = createStateCheckResultHashForSigning(txnBundleHash, randomnessProof, claimResults);
   return await BLS.verify(signature, hash, signer);
 }
 
 export async function verifyStateCheckResultsAggergatedSignature(
-  txnBundleHash: string,
+  txnBundleHash: Uint8Array,
   randomnessProof: Uint8Array,
   claimResults: ClaimStateCheckResult[],
   results: StateCheckResult[],
-  signers: string[],
+  signers: Uint8Array[],
 ): Promise<[boolean, Uint8Array]> {
-  const aggPub = Buffer.from(BLS.aggregatePublicKeys(signers)).toString("hex");
+  const aggPub = Buffer.from(BLS.aggregatePublicKeys(signers));
   const aggSig = BLS.aggregateSignatures(results.map((result) => result.signature));
   const aggSigValid = await verifyStateCheckResultSignature(
     txnBundleHash,
@@ -186,12 +189,11 @@ export async function verifyStateCheckResultsAggergatedSignature(
 }
 
 function createDACheckResultHashForSigning(
-  txnBundleHash: string,
+  txnBundleHash: Uint8Array,
   randomnessProof: Uint8Array,
   claimResults: ClaimDACheckResult[],
-): string {
+): Uint8Array {
   const rawClaimResults = claimResults.map(serializeClaimDACheckResult);
   const sigMaterial = encodeCBOR([txnBundleHash, randomnessProof, rawClaimResults]);
-  const hash = crypto.createHash("sha256").update(sigMaterial).digest();
-  return hash.toString("hex");
+  return crypto.createHash("sha256").update(sigMaterial).digest();
 }

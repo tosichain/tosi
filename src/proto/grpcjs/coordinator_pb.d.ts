@@ -49,8 +49,10 @@ export namespace SubmitSignedTransactionResponse {
 }
 
 export class GetBlockMetadataRequest extends jspb.Message { 
-    getBlockHash(): string;
-    setBlockHash(value: string): GetBlockMetadataRequest;
+    getBlockHash(): Uint8Array | string;
+    getBlockHash_asU8(): Uint8Array;
+    getBlockHash_asB64(): string;
+    setBlockHash(value: Uint8Array | string): GetBlockMetadataRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GetBlockMetadataRequest.AsObject;
@@ -64,7 +66,7 @@ export class GetBlockMetadataRequest extends jspb.Message {
 
 export namespace GetBlockMetadataRequest {
     export type AsObject = {
-        blockHash: string,
+        blockHash: Uint8Array | string,
     }
 }
 

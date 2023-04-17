@@ -30,14 +30,14 @@ export async function fetchDrandBeaconInfo(): Promise<DrandBeaconInfo> {
 }
 
 export async function createBlockRandomnessProof(
-  txnBundleHash: string,
-  bundleProposerSecKey: string,
+  txnBundleHash: Uint8Array,
+  bundleProposerSecKey: Uint8Array,
   beacon: DrandBeacon,
 ): Promise<Uint8Array> {
   const beaconSigAndClaim = crypto
     .createHash("sha256")
     .update(Buffer.from(beacon.signature, "hex"))
-    .update(Buffer.from(txnBundleHash, "hex"))
+    .update(txnBundleHash)
     .digest();
   const blsSig = await BLS.sign(beaconSigAndClaim, bundleProposerSecKey);
   const proof = [

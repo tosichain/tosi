@@ -3,8 +3,8 @@ syntax = "proto3";
 package blockchain;
 
 message SignedTransaction {
-    string from = 1;
-    string signature = 2;
+    bytes from = 1;
+    bytes signature = 2;
     Transaction txn = 3;
 }
 
@@ -19,12 +19,12 @@ message Transaction {
 }
 
 message MintToken {
-    string receiver = 1;
+    bytes receiver = 1;
     uint64 amount = 2 [jstype = JS_STRING];
 }
 
 message TransferToken {
-    string receiver = 1;
+    bytes receiver = 1;
     uint64 amount = 2 [jstype = JS_STRING];
 }
 
@@ -48,19 +48,19 @@ message CreateDataChain {
 }
 
 message UpdateDataChain {
-    string root_claim_hash = 1;
+    bytes root_claim_hash = 1;
     ComputeClaim claim = 2;
 }
 
 message WorldState {
     repeated Account accounts = 1;
     StakePool stake_pool = 2;
-    string minter = 3;
+    bytes minter = 3;
     repeated DataChain data_chains = 4;
 }
 
 message Account {
-    string address = 1;
+    bytes address = 1;
     int32 nonce = 2;
     uint64 balance = 3 [jstype = JS_STRING];
     uint64 da_verifier_stake = 4 [jstype = JS_STRING];
@@ -69,20 +69,20 @@ message Account {
 
 message StakePool {
     uint64 da_verifier_pool = 1 [jstype = JS_STRING];
-    repeated string da_verifiers = 2;
+    repeated bytes da_verifiers = 2;
     uint64 state_verifier_pool = 3 [jstype = JS_STRING];
-    repeated string state_verifiers = 4;
+    repeated bytes state_verifiers = 4;
 }
 
 message DataChain {
     repeated ComputeClaim claims = 1;
-    string root_claim_hash = 2;
-    string head_claim_hash = 3;
+    bytes root_claim_hash = 2;
+    bytes head_claim_hash = 3;
 }
 
 message ComputeClaim {
-    string claimer = 1;
-    string prev_claim_hash = 2;
+    bytes claimer = 1;
+    bytes prev_claim_hash = 2;
     ClaimDataRef data_contract = 3;
     ClaimDataRef input = 4;
     ClaimDataRef output = 5;
@@ -92,15 +92,12 @@ message ComputeClaim {
 message ClaimDataRef {
     string cid = 1;
     uint64 size = 2;
-    string cartesiMerkleRoot = 3;
+    bytes cartesiMerkleRoot = 3;
 }
 
 message DAInfo {
-    string name = 1;
-    uint32 size = 2;
-    uint32 log2 = 3;
-    string keccak_256 = 4;
-    string cartesi_merkle_root = 5;
+    uint32 size = 1;
+    bytes cartesi_merkle_root = 2;
 }
 
 message Block {
@@ -113,8 +110,8 @@ message Block {
 }
 
 message BlockProof {
-    string txn_bundle_hash = 1;
-    string txn_bundle_proposer = 2;
+    bytes txn_bundle_hash = 1;
+    bytes txn_bundle_proposer = 2;
     bytes randomness_proof = 3;
     repeated DACheckResult da_check_results = 4;
     bytes agg_da_check_result_signature = 5;
@@ -123,33 +120,33 @@ message BlockProof {
 }
 
 message DACheckResult {
-    string txn_bundle_hash = 1;
+    bytes txn_bundle_hash = 1;
     bytes randomness_proof = 2;
     bytes signature = 3;
-    string signer = 4;
+    bytes signer = 4;
     repeated ClaimDACheckResult claims = 5;
 }
 
 message StateCheckResult {
-    string txn_bundle_hash = 1;
+    bytes txn_bundle_hash = 1;
     bytes randomness_proof = 2;
     bytes signature = 3;
-    string signer = 4;
+    bytes signer = 4;
     repeated ClaimStateCheckResult claims = 5;
 }
 
 message ClaimDACheckResult {
-    string claim_hash = 1;
+    bytes claim_hash = 1;
     bool data_available = 2;
 }
 
 message ClaimStateCheckResult {
-    string claim_hash = 1;
+    bytes claim_hash = 1;
     bool state_correct = 2;
 }
 
 message TransactionBundle {
-    string head_block_hash = 1;
+    bytes head_block_hash = 1;
     repeated SignedTransaction transactions = 2;
 }
 

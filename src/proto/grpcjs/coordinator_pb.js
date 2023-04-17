@@ -397,7 +397,7 @@ proto.client.GetBlockMetadataRequest.prototype.toObject = function(opt_includeIn
  */
 proto.client.GetBlockMetadataRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    blockHash: jspb.Message.getFieldWithDefault(msg, 1, "")
+    blockHash: msg.getBlockHash_asB64()
   };
 
   if (includeInstance) {
@@ -435,7 +435,7 @@ proto.client.GetBlockMetadataRequest.deserializeBinaryFromReader = function(msg,
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setBlockHash(value);
       break;
     default:
@@ -467,9 +467,9 @@ proto.client.GetBlockMetadataRequest.prototype.serializeBinary = function() {
  */
 proto.client.GetBlockMetadataRequest.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getBlockHash();
+  f = message.getBlockHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -478,20 +478,44 @@ proto.client.GetBlockMetadataRequest.serializeBinaryToWriter = function(message,
 
 
 /**
- * optional string block_hash = 1;
- * @return {string}
+ * optional bytes block_hash = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.client.GetBlockMetadataRequest.prototype.getBlockHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes block_hash = 1;
+ * This is a type-conversion wrapper around `getBlockHash()`
+ * @return {string}
+ */
+proto.client.GetBlockMetadataRequest.prototype.getBlockHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getBlockHash()));
+};
+
+
+/**
+ * optional bytes block_hash = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getBlockHash()`
+ * @return {!Uint8Array}
+ */
+proto.client.GetBlockMetadataRequest.prototype.getBlockHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getBlockHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.client.GetBlockMetadataRequest} returns this
  */
 proto.client.GetBlockMetadataRequest.prototype.setBlockHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 

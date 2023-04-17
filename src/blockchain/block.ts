@@ -5,7 +5,7 @@ import * as BLS from "@noble/bls12-381";
 import { SignedTransaction, Transaction, WorldState, Block, BlockProof } from "./types";
 import { applyTransaction } from "./transaction";
 import { serializeAccount } from "./serde";
-import { hashBlock, hashTransaction } from "./util";
+import { bytesToHex, bytesFromHex, hashBlock, hashTransaction } from "./util";
 
 export async function mintNextBlock(
   state: WorldState,
@@ -52,34 +52,35 @@ export async function mintNextBlock(
 
 export function accountsMerkleTree(state: WorldState): MerkleTree {
   const accountsData = Object.keys(state.accounts).map((accountKey) => {
-    return accountToMerkleLeaf(state, accountKey);
+    return accountToMerkleLeaf(state, bytesFromHex(accountKey));
   });
   return new MerkleTree(accountsData, keccak256, { sort: true });
 }
 
-export function accountToMerkleLeaf(state: WorldState, accountKey: string): Uint8Array {
-  const account = state.accounts[accountKey];
+export function accountToMerkleLeaf(state: WorldState, accountAddr: Uint8Array): Uint8Array {
+  const accountAddrHex = bytesToHex(accountAddr);
+  const account = state.accounts[accountAddrHex];
   if (!account) {
     throw new Error("account does not exist");
   }
-  const serialized = serializeAccount(state.accounts[accountKey]);
+  const serialized = serializeAccount(state.accounts[accountAddrHex]);
   return keccak256(Buffer.from(serialized));
 }
 
-export function accountsMerkeProof(state: WorldState, accountKey: string): [string, string, string[]] {
-  const leaf = accountToMerkleLeaf(state, accountKey);
+export function accountsMerkeProof(state: WorldState, accountAddr: Uint8Array): [Uint8Array, Uint8Array, Uint8Array[]] {
+  const leaf = accountToMerkleLeaf(state, accountAddr);
   const tree = accountsMerkleTree(state);
-  return [tree.getHexRoot(), Buffer.from(leaf).toString("hex"), tree.getHexProof(Buffer.from(leaf))];
+  return [tree.getRoot(), leaf, tree.getProof(Buffer.from(leaf))];
 }
 
-export async function signTransaction(txn: Transaction, privKey: string): Promise<SignedTransaction> {
+export async function signTransaction(txn: Transaction, privKey: Uint8Array): Promise<SignedTransaction> {
   const txnHash = hashTransaction(txn);
   const txnSig = await BLS.sign(txnHash, privKey);
   const pubKey = BLS.getPublicKey(privKey);
 
   const signedTxn: SignedTransaction = {
-    from: Buffer.from(pubKey).toString("hex"),
-    signature: Buffer.from(txnSig).toString("hex"),
+    from: pubKey,
+    signature: txnSig,
     txn: txn,
   };
 

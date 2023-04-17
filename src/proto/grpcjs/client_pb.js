@@ -577,7 +577,7 @@ proto.client.GenerateUpdateDataChainTxnRequest.toObject = function(includeInstan
     dataContractCid: jspb.Message.getFieldWithDefault(msg, 1, ""),
     inputCid: jspb.Message.getFieldWithDefault(msg, 2, ""),
     outputCid: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    rootClaimHash: jspb.Message.getFieldWithDefault(msg, 4, "")
+    rootClaimHash: msg.getRootClaimHash_asB64()
   };
 
   if (includeInstance) {
@@ -627,7 +627,7 @@ proto.client.GenerateUpdateDataChainTxnRequest.deserializeBinaryFromReader = fun
       msg.setOutputCid(value);
       break;
     case 4:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setRootClaimHash(value);
       break;
     default:
@@ -680,9 +680,9 @@ proto.client.GenerateUpdateDataChainTxnRequest.serializeBinaryToWriter = functio
       f
     );
   }
-  f = message.getRootClaimHash();
+  f = message.getRootClaimHash_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       4,
       f
     );
@@ -745,20 +745,44 @@ proto.client.GenerateUpdateDataChainTxnRequest.prototype.setOutputCid = function
 
 
 /**
- * optional string root_claim_hash = 4;
- * @return {string}
+ * optional bytes root_claim_hash = 4;
+ * @return {!(string|Uint8Array)}
  */
 proto.client.GenerateUpdateDataChainTxnRequest.prototype.getRootClaimHash = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes root_claim_hash = 4;
+ * This is a type-conversion wrapper around `getRootClaimHash()`
+ * @return {string}
+ */
+proto.client.GenerateUpdateDataChainTxnRequest.prototype.getRootClaimHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getRootClaimHash()));
+};
+
+
+/**
+ * optional bytes root_claim_hash = 4;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getRootClaimHash()`
+ * @return {!Uint8Array}
+ */
+proto.client.GenerateUpdateDataChainTxnRequest.prototype.getRootClaimHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getRootClaimHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.client.GenerateUpdateDataChainTxnRequest} returns this
  */
 proto.client.GenerateUpdateDataChainTxnRequest.prototype.setRootClaimHash = function(value) {
-  return jspb.Message.setProto3StringField(this, 4, value);
+  return jspb.Message.setProto3BytesField(this, 4, value);
 };
 
 

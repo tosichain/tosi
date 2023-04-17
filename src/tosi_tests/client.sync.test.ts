@@ -9,22 +9,22 @@ import * as BLS from "@noble/bls12-381";
 chai.use(chaiAsPromised);
 
 import { Transaction, Account, StakeType } from "../blockchain/types";
-import { stringifyAccount } from "../blockchain/util";
+import { bytesEqual, bytesToHex, bytesFromHex, stringifyAccount } from "../blockchain/util";
 import { signTransaction } from "../blockchain/block";
 import { serializeBlock } from "../blockchain/serde";
 import { CoordinatorRPC } from "../coordinator/src/rpc";
 import { ClientRPC } from "../client/src/rpc";
 
-const INAVLID_TXN_WAIT_PERIOD = 20000; // 20 seconds
+const INAVLID_TXN_WAIT_PERIOD = 10000; // 10 seconds (it depends on block period, specified in docker compose)
 
-const minterlPrivKey = Buffer.from("2d1c0d704322c0386cc7bead93298a48ee22325e967567ebe4dbcd4a2f4482f1").toString();
-const minterPubKey = Buffer.from(BLS.getPublicKey(minterlPrivKey)).toString("hex");
+const minterlPrivKey = Buffer.from("2d1c0d704322c0386cc7bead93298a48ee22325e967567ebe4dbcd4a2f4482f1", "hex");
+const minterPubKey = BLS.getPublicKey(minterlPrivKey);
 
-const accOnePrivKey = Buffer.from(BLS.utils.randomPrivateKey()).toString("hex");
-const accOnePubKey = Buffer.from(BLS.getPublicKey(accOnePrivKey)).toString("hex");
+const accOnePrivKey = Buffer.from(BLS.utils.randomPrivateKey());
+const accOnePubKey = Buffer.from(BLS.getPublicKey(accOnePrivKey));
 
-const accTwoPrivKey = Buffer.from(BLS.utils.randomPrivateKey()).toString("hex");
-const accTwoPubKey = Buffer.from(BLS.getPublicKey(accTwoPrivKey)).toString("hex");
+const accTwoPrivKey = Buffer.from(BLS.utils.randomPrivateKey());
+const accTwoPubKey = Buffer.from(BLS.getPublicKey(accTwoPrivKey));
 
 let log: winston.Logger;
 let coordinator: CoordinatorRPC;
@@ -64,7 +64,7 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     let coordinatorCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
       log.debug(`querying account ${accPubKey} at coordinator node`);
-      const account = await coordinator.getAccount(accPubKey);
+      const account = await coordinator.getAccount(bytesFromHex(accPubKey));
 
       if (!account) {
         log.debug(`account ${accPubKey} does not exist at coordinator node`);
@@ -88,7 +88,7 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     let clientCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
       log.debug(`querying account ${accPubKey} at client node`);
-      const account = await client.getAccount(accPubKey);
+      const account = await client.getAccount(bytesFromHex(accPubKey));
 
       if (!account) {
         log.debug(`account ${accPubKey} does not exist at client node`);
@@ -122,8 +122,10 @@ async function checkHeadBlock(): Promise<void> {
     throw new Error("coordinatorBlock is undefined");
   }
   const clientBlockHash = await client.getHeadBlockHash();
-  if (clientBlockHash !== blockHash) {
-    throw new Error(`client block hash ${clientBlockHash} != coordinator block hash ${blockHash}`);
+  if (!bytesEqual(clientBlockHash, blockHash)) {
+    throw new Error(
+      `client block hash ${bytesToHex(clientBlockHash)} != coordinator block hash ${bytesToHex(blockHash)}`,
+    );
   }
 
   // Get head block from client node.
@@ -147,7 +149,7 @@ async function checkAccounts(accounts: Account[]): Promise<void> {
       throw new Error("account not found at coordinator node");
     }
 
-    expect(coordinatorAcc.address).to.be.eq(acc.address);
+    expect(bytesEqual(coordinatorAcc.address, acc.address)).to.be.true;
     expect(coordinatorAcc.nonce).to.be.eq(acc.nonce);
     expect(coordinatorAcc.balance).to.be.eq(acc.balance);
     expect(coordinatorAcc.daVerifierStake).to.be.eq(acc.daVerifierStake);
@@ -158,7 +160,7 @@ async function checkAccounts(accounts: Account[]): Promise<void> {
       throw new Error("account not found at client node");
     }
 
-    expect(clientAcc.address).to.be.eq(acc.address);
+    expect(bytesEqual(clientAcc.address, acc.address)).to.be.true;
     expect(clientAcc.nonce).to.be.eq(acc.nonce);
     expect(clientAcc.balance).to.be.eq(acc.balance);
     expect(clientAcc.daVerifierStake).to.be.eq(acc.daVerifierStake);
@@ -166,7 +168,7 @@ async function checkAccounts(accounts: Account[]): Promise<void> {
   }
 }
 
-async function checkDAVerifiers(verifiersPubKeys: string[]): Promise<void> {
+async function checkDAVerifiers(verifiersPubKeys: Uint8Array[]): Promise<void> {
   const coordinatorVerifiers = await coordinator.getStakerList(StakeType.DAVerifier);
   const clientVerifiers = await client.getStakerList(StakeType.DAVerifier);
 
@@ -174,14 +176,14 @@ async function checkDAVerifiers(verifiersPubKeys: string[]): Promise<void> {
   expect(clientVerifiers.length).to.be.equal(verifiersPubKeys.length);
 
   for (const pubKey of verifiersPubKeys) {
-    const coordinatorVerifier = coordinatorVerifiers.find((acc) => acc.address == pubKey);
+    const coordinatorVerifier = coordinatorVerifiers.find((acc) => bytesEqual(acc.address, pubKey));
     expect(coordinatorVerifier).to.be.not.undefined;
-    const clientVerifier = clientVerifiers.find((acc) => acc.address == pubKey);
+    const clientVerifier = clientVerifiers.find((acc) => bytesEqual(acc.address, pubKey));
     expect(clientVerifier).to.be.not.undefined;
   }
 }
 
-async function checkStateVerifiers(verifiersPubKeys: string[]): Promise<void> {
+async function checkStateVerifiers(verifiersPubKeys: Uint8Array[]): Promise<void> {
   const coordinatorVerifiers = await coordinator.getStakerList(StakeType.StateVerifier);
   const clientVerifiers = await client.getStakerList(StakeType.StateVerifier);
 
@@ -189,9 +191,9 @@ async function checkStateVerifiers(verifiersPubKeys: string[]): Promise<void> {
   expect(clientVerifiers.length).to.be.equal(verifiersPubKeys.length);
 
   for (const pubKey of verifiersPubKeys) {
-    const coordinatorVerifier = coordinatorVerifiers.find((acc) => acc.address == pubKey);
+    const coordinatorVerifier = coordinatorVerifiers.find((acc) => bytesEqual(acc.address, pubKey));
     expect(coordinatorVerifier).to.be.not.undefined;
-    const clientVerifier = clientVerifiers.find((acc) => acc.address == pubKey);
+    const clientVerifier = clientVerifiers.find((acc) => bytesEqual(acc.address, pubKey));
     expect(clientVerifier).to.be.not.undefined;
   }
 }
@@ -229,7 +231,7 @@ describe("client node correctly replays MintToken transactions", function () {
     await coordinator.submitSignedTransaction(await signTransaction(txn3, accOnePrivKey));
 
     const accountNonces: Record<string, number> = {};
-    accountNonces[minterPubKey] = 1;
+    accountNonces[bytesToHex(minterPubKey)] = 1;
     await waitForAccountNonce(accountNonces);
 
     await checkHeadBlock();
@@ -285,7 +287,7 @@ describe("client node correctly replays MintToken transactions", function () {
     await coordinator.submitSignedTransaction(await signTransaction(txn3, accOnePrivKey));
 
     const accountNonces: Record<string, number> = {};
-    accountNonces[minterPubKey] = 3;
+    accountNonces[bytesToHex(minterPubKey)] = 3;
     await waitForAccountNonce(accountNonces);
 
     await checkHeadBlock();
@@ -373,8 +375,8 @@ describe("client node correctly replays TransferToken transactions", function ()
     await coordinator.submitSignedTransaction(await signTransaction(txn6, accTwoPrivKey));
 
     const accountNonces: Record<string, number> = {};
-    accountNonces[accOnePubKey] = 1;
-    accountNonces[accTwoPubKey] = 1;
+    accountNonces[bytesToHex(accOnePubKey)] = 1;
+    accountNonces[bytesToHex(accTwoPubKey)] = 1;
     await waitForAccountNonce(accountNonces);
 
     await checkHeadBlock();
@@ -432,8 +434,8 @@ describe("client node correctly replays StakeToken transactions", function () {
     await coordinator.submitSignedTransaction(await signTransaction(txn3, accTwoPrivKey));
 
     const accountNonces: Record<string, number> = {};
-    accountNonces[accOnePubKey] = 2;
-    accountNonces[accTwoPubKey] = 2;
+    accountNonces[bytesToHex(accOnePubKey)] = 2;
+    accountNonces[bytesToHex(accTwoPubKey)] = 2;
     await waitForAccountNonce(accountNonces);
 
     await checkHeadBlock();
@@ -491,8 +493,8 @@ describe("client node correctly replays StakeToken transactions", function () {
     await coordinator.submitSignedTransaction(await signTransaction(txn3, accTwoPrivKey));
 
     const accountNonces: Record<string, number> = {};
-    accountNonces[accOnePubKey] = 3;
-    accountNonces[accTwoPubKey] = 3;
+    accountNonces[bytesToHex(accOnePubKey)] = 3;
+    accountNonces[bytesToHex(accTwoPubKey)] = 3;
     await waitForAccountNonce(accountNonces);
 
     await checkHeadBlock();
@@ -552,8 +554,8 @@ describe("client node correctly replays UnstakeToken transactions", function () 
     await coordinator.submitSignedTransaction(await signTransaction(txn3, accTwoPrivKey));
 
     const accountNonces: Record<string, number> = {};
-    accountNonces[accOnePubKey] = 4;
-    accountNonces[accTwoPubKey] = 4;
+    accountNonces[bytesToHex(accOnePubKey)] = 4;
+    accountNonces[bytesToHex(accTwoPubKey)] = 4;
     await waitForAccountNonce(accountNonces);
 
     await checkHeadBlock();
@@ -611,12 +613,12 @@ describe("client node correctly replays UnstakeToken transactions", function () 
     await coordinator.submitSignedTransaction(await signTransaction(txn3, accTwoPrivKey));
 
     const accountNonces: Record<string, number> = {};
-    accountNonces[accOnePubKey] = 5;
-    accountNonces[accTwoPubKey] = 5;
+    accountNonces[bytesToHex(accOnePubKey)] = 5;
+    accountNonces[bytesToHex(accTwoPubKey)] = 5;
     await waitForAccountNonce(accountNonces);
 
     await checkHeadBlock();
-
+    5;
     const accounts: Account[] = [
       {
         address: accOnePubKey,

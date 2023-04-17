@@ -4,7 +4,7 @@ export type IPFSPubSubMessage = { from: string; seqno: Uint8Array; data: Uint8Ar
 
 export interface DAVerificationRequestMessage {
   code: string;
-  txnBundleHash: string;
+  txnBundleHash: Uint8Array;
   claims: ComputeClaim[];
   randomnessProof: Uint8Array;
 }
@@ -16,7 +16,7 @@ export interface DAVerificationResponseMessage {
 
 export interface StateVerificationRequestMessage {
   code: string;
-  txnBundleHash: string;
+  txnBundleHash: Uint8Array;
   claims: ComputeClaim[];
   randomnessProof: Uint8Array;
 }

@@ -1,12 +1,8 @@
 import MerkleTree from "merkletreejs";
 
-// TODO:
-// "hex" means hex-encoded byte data.
-// Must be chnage to UInt8Array.
-
 export interface SignedTransaction {
-  from: string; // hex
-  signature: string; // hex
+  from: Uint8Array;
+  signature: Uint8Array;
   txn: Transaction;
 }
 
@@ -21,12 +17,12 @@ export interface Transaction {
 }
 
 export interface MintToken {
-  readonly receiver: string; // hex
+  readonly receiver: Uint8Array;
   readonly amount: bigint;
 }
 
 export interface TransferToken {
-  readonly receiver: string; // hex
+  readonly receiver: Uint8Array;
   readonly amount: bigint;
 }
 
@@ -50,19 +46,19 @@ export interface CreateDataChain {
 }
 
 export interface UpdateDataChain {
-  readonly rootClaimHash: string; // hex
+  readonly rootClaimHash: Uint8Array;
   readonly claim: ComputeClaim;
 }
 
 export interface WorldState {
-  readonly accounts: Record<string /*hex*/, Account>;
+  readonly accounts: Record<string, Account>; // acounts by hex encoded address
   readonly stakePool: StakePool;
-  readonly minter: string; // hex
-  readonly dataChains: Record<string, DataChain>;
+  readonly minter: Uint8Array; // account address
+  readonly dataChains: Record<string, DataChain>; // data chains by hex encoded hash of root claim
 }
 
 export interface Account {
-  readonly address: string; // hex, BLS public key
+  readonly address: Uint8Array; // BLS public key
   readonly nonce: number;
   readonly balance: bigint;
   readonly daVerifierStake: bigint;
@@ -71,20 +67,15 @@ export interface Account {
 
 export interface StakePool {
   readonly daVerifierPool: bigint;
-  readonly daVerifiers: string[]; // hex
+  readonly daVerifiers: Uint8Array[]; // account addresses
   readonly stateVerifierPool: bigint;
-  readonly stateVerifiers: string[]; // hex
+  readonly stateVerifiers: Uint8Array[]; // account addresses
 }
 
 export interface DataChain {
-  claims: Record<string, ComputeClaim>;
-  rootClaimHash: string; // hex
-  headClaimHash: string; // hex
-}
-
-export interface DAInfo {
-  size: number;
-  cartesiMerkleRoot: string; // hex
+  claims: Record<string, ComputeClaim>; // compute claims by hex encoded hash
+  rootClaimHash: Uint8Array;
+  headClaimHash: Uint8Array;
 }
 
 // ComputeClaim defines result of execution of risc-v program on particular input.
@@ -94,16 +85,10 @@ export interface DAInfo {
 // 2. Output is always computed offchain, hence a bunch of proofs, proving correctness
 //    of offhchain computation, is neccessary. (see BlockProof)
 
-export interface ClaimDataRef {
-  readonly cid: string;
-  readonly size: number;
-  readonly cartesiMerkleRoot: string; // hex
-}
-
 export interface ComputeClaim {
-  readonly claimer: string; // hex
+  readonly claimer: Uint8Array;
   // Claims are "chained" akin to blocks in blockchain.
-  readonly prevClaimHash: string; // hex
+  readonly prevClaimHash: Uint8Array;
   // References to data, stored in IPFS.
   readonly dataContract: ClaimDataRef; // Data "contract" environment.
   readonly input: ClaimDataRef; // Computation input.
@@ -113,17 +98,20 @@ export interface ComputeClaim {
   readonly maxCartesiCycles: bigint;
 }
 
+export interface ClaimDataRef {
+  readonly cid: string;
+  readonly size: number;
+  readonly cartesiMerkleRoot: Uint8Array;
+}
+
 export interface DAInfo {
-  name: string;
   size: number;
-  log2: number;
-  keccak256: string; // hex
-  cartesiMerkleRoot: string; // hex
+  cartesiMerkleRoot: Uint8Array;
 }
 
 export interface Block {
   readonly version: number;
-  readonly prevBlockHash: string; // hex
+  readonly prevBlockHash: Uint8Array;
   readonly accountsMerkle: MerkleTree;
   readonly transactions: SignedTransaction[];
   readonly proof: BlockProof;
@@ -131,8 +119,8 @@ export interface Block {
 }
 
 export interface BlockProof {
-  readonly txnBundleHash: string; // hex
-  readonly txnBundleProposer: string; // hex
+  readonly txnBundleHash: Uint8Array;
+  readonly txnBundleProposer: Uint8Array;
   readonly randomnessProof: Uint8Array;
   readonly DACheckResults: DACheckResult[];
   readonly aggDACheckResultSignature: Uint8Array;
@@ -141,33 +129,33 @@ export interface BlockProof {
 }
 
 export interface DACheckResult {
-  readonly txnBundleHash: string; // hex
+  readonly txnBundleHash: Uint8Array;
   readonly randomnessProof: Uint8Array;
   readonly signature: Uint8Array;
-  readonly signer: string; // hex
+  readonly signer: Uint8Array;
   readonly claims: ClaimDACheckResult[];
 }
 
 export interface StateCheckResult {
-  readonly txnBundleHash: string; // hex
+  readonly txnBundleHash: Uint8Array;
   readonly randomnessProof: Uint8Array;
   readonly signature: Uint8Array;
-  readonly signer: string; // hex
+  readonly signer: Uint8Array;
   readonly claims: ClaimStateCheckResult[];
 }
 
 export interface ClaimDACheckResult {
-  readonly claimHash: string; // hex
+  readonly claimHash: Uint8Array;
   readonly dataAvailable: boolean;
 }
 
 export interface ClaimStateCheckResult {
-  readonly claimHash: string; // hex
+  readonly claimHash: Uint8Array;
   readonly stateCorrect: boolean;
 }
 
 export interface TransactionBundle {
-  headBlockHash: string;
+  headBlockHash: Uint8Array;
   transactions: SignedTransaction[];
 }
 

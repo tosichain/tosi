@@ -1,7 +1,8 @@
-import JSONbigint from "json-bigint";
 import winston from "winston";
 import { IPFS } from "../node/ipfs";
+import JSONbigint from "json-bigint";
 
+import { bytesToHex } from "../blockchain/util";
 import {
   IPFSPubSubMessage,
   DAVerificationRequestMessage,
@@ -9,8 +10,6 @@ import {
   StateVerificationResponseMessage,
   StateVerificationRequestMessage,
 } from "./types";
-
-const JSONBigIntNative = JSONbigint({ useNativeBigInt: true });
 
 export async function keepConnectedToSwarm(
   swarmPrefix: string,
@@ -36,7 +35,7 @@ export async function keepConnectedToSwarm(
 }
 
 export function stringifyPubSubMessage(msg: IPFSPubSubMessage): string {
-  return JSONBigIntNative.stringify({
+  return stringifyHelper({
     from: msg.from,
     topicIDs: msg.topicIDs,
   });
@@ -47,7 +46,7 @@ export function stringifyDAVerificationRequest(msg: DAVerificationRequestMessage
     ...msg,
     randomnessProof: Buffer.from(msg.randomnessProof).toString("hex"),
   };
-  return JSONbigint.stringify(obj);
+  return stringifyHelper(obj);
 }
 
 export function stringifyDAVerificationResponse(msg: DAVerificationResponseMessage): string {
@@ -61,7 +60,7 @@ export function stringifyDAVerificationResponse(msg: DAVerificationResponseMessa
       claims: msg.result.claims,
     },
   };
-  return JSON.stringify(obj);
+  return stringifyHelper(obj);
 }
 
 export function stringifyStateVerificationRequest(msg: StateVerificationRequestMessage): string {
@@ -83,5 +82,11 @@ export function stringifyStateVerificationResponse(msg: StateVerificationRespons
       claims: msg.result.claims,
     },
   };
-  return JSON.stringify(obj);
+  return stringifyHelper(obj);
+}
+
+function stringifyHelper(object: any): string {
+  return JSONbigint.stringify(object, (key: string, value: any): any => {
+    return value instanceof Uint8Array ? bytesToHex(value) : value;
+  });
 }

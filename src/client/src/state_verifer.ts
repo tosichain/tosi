@@ -9,7 +9,7 @@ import { signStateCheckResult } from "../../blockchain/block_proof";
 import { getSeedFromBlockRandomnessProof } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { BlockchainStorage } from "../../blockchain/storage";
-import { hashComputeClaim, stringifyComputeClaim } from "../../blockchain/util";
+import { bytesEqual, bytesToHex, bytesFromHex, hashComputeClaim, stringifyComputeClaim } from "../../blockchain/util";
 import {
   IPFS_PUB_SUB_STATE_VERIFICATION,
   IPFS_MESSAGE_STATE_VERIFICATION_REQUEST,
@@ -28,10 +28,10 @@ export interface StateVerifierConfig {
 }
 
 export class StateVerifier {
-  private readonly blsSecKey: string;
-  private readonly blsPubKey: string;
+  private readonly blsSecKey: Uint8Array;
+  private readonly blsPubKey: Uint8Array;
 
-  private readonly coordinatorPubKey: string;
+  private readonly coordinatorPubKey: Uint8Array;
 
   private readonly stateCommitteeSampleSize: number;
 
@@ -44,8 +44,8 @@ export class StateVerifier {
   private readonly blockchain: BlockchainStorage;
 
   constructor(
-    blsSecKey: string,
-    cooridnatorPubKey: string,
+    blsSecKey: Uint8Array,
+    cooridnatorPubKey: Uint8Array,
     stateCommitteeSampleSize: number,
     config: StateVerifierConfig,
     log: winston.Logger,
@@ -53,7 +53,7 @@ export class StateVerifier {
     blockchain: BlockchainStorage,
   ) {
     this.blsSecKey = blsSecKey;
-    this.blsPubKey = Buffer.from(BLS.getPublicKey(this.blsSecKey)).toString("hex");
+    this.blsPubKey = BLS.getPublicKey(this.blsSecKey);
 
     this.coordinatorPubKey = cooridnatorPubKey;
 
@@ -80,7 +80,7 @@ export class StateVerifier {
       this.log.info("received IPFS pubsub message " + stringifyPubSubMessage(msg));
 
       // Ignore our own messages.
-      if (msg.from === this.ipfs.id) {
+      if (msg.from == this.ipfs.id) {
         this.log.info("ignoring message from myself");
         return;
       }
@@ -91,7 +91,7 @@ export class StateVerifier {
       }
 
       const decoded = decodeCBOR(msg.data);
-      if (decoded && decoded.code && decoded.code === IPFS_MESSAGE_STATE_VERIFICATION_RESPONSE) {
+      if (decoded && decoded.code && decoded.code == IPFS_MESSAGE_STATE_VERIFICATION_RESPONSE) {
         this.log.info(`ignoring state verification response message`);
       } else if (decoded && decoded.code && decoded.code == IPFS_MESSAGE_STATE_VERIFICATION_REQUEST) {
         await this.handleStateVerificationRequest(decoded as StateVerificationRequestMessage);
@@ -142,7 +142,7 @@ export class StateVerifier {
       randSeed,
     );
 
-    const inCommittee = committee.find((s) => s.address == this.blsPubKey) != undefined;
+    const inCommittee = committee.find((s) => bytesEqual(s.address, this.blsPubKey)) != undefined;
     if (!inCommittee) {
       this.log.info("can not process State verification request - not in current State committee sample");
       return false;
@@ -153,21 +153,22 @@ export class StateVerifier {
 
   private async checkClaimState(claim: ComputeClaim): Promise<ClaimStateCheckResult> {
     const claimHash = hashComputeClaim(claim);
-    this.log.info(`checking State for claim ${claimHash} - ${stringifyComputeClaim(claim)}`);
+    this.log.info(`checking State for claim ${bytesToHex(claimHash)} - ${stringifyComputeClaim(claim)}`);
 
     // TODO: this check is actually redundant, but we, probably, need to query previous claim in future.
     // For non-root claim previous claim must exist in local storage.
 
-    const prevClaim = claim.prevClaimHash != "" ? await this.blockchain.getComputeClaim(claim.prevClaimHash) : null;
+    const prevClaim =
+      claim.prevClaimHash.length != 0 ? await this.blockchain.getComputeClaim(claim.prevClaimHash) : null;
 
-    if (!prevClaim && claim.prevClaimHash != "") {
+    if (!prevClaim && claim.prevClaimHash.length != 0) {
       throw new Error(`previous claim ${claim.prevClaimHash} does not exist`);
     }
 
     const EMPTY_OUTPUT_DATA_REF = {
       cid: "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354",
       size: 100,
-      cartesiMerkleRoot: "de611e620dee2c51aec860dbcab29b08a7fe80686bf02c5a1f19ac0c2ff3fe0a", // tree log size 31 / 2gb
+      cartesiMerkleRoot: bytesFromHex("de611e620dee2c51aec860dbcab29b08a7fe80686bf02c5a1f19ac0c2ff3fe0a"), // tree log size 31 / 2gb
     } as ClaimDataRef;
 
     // start checks in parallel
@@ -181,10 +182,10 @@ export class StateVerifier {
         CID.parse(claim.input.cid),
       );
       if (result.output && result.output.outputCID && result.output.outputCID == claim.output.cid) {
-        this.log.info(`all good, returning claim ${claimHash} with checking compute`);
+        this.log.info(`all good, returning claim ${bytesToHex(claimHash)} with checking compute`);
         return { claimHash: claimHash, stateCorrect: true };
       } else {
-        this.log.error(`compute check for claim ${claimHash} doesn't match`);
+        this.log.error(`compute check for claim ${bytesToHex(claimHash)} doesn't match`);
         return { claimHash: claimHash, stateCorrect: false };
       }
     } catch (err) {

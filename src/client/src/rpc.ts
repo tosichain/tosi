@@ -44,7 +44,7 @@ export class ClientRPC {
     this.grpc = new ClientNodeClient(config.serverAddr, credentials.createInsecure());
   }
 
-  public async getBlock(blockHash: string): Promise<Block | undefined> {
+  public async getBlock(blockHash: Uint8Array): Promise<Block | undefined> {
     const req = new GetBlockRequest().setBlockHash(blockHash);
     return new Promise<Block | undefined>((resolve, reject) => {
       this.grpc.getBlock(req, (err, resp) => {
@@ -57,7 +57,7 @@ export class ClientRPC {
     });
   }
 
-  public async getAccount(address: string): Promise<Account | undefined> {
+  public async getAccount(address: Uint8Array): Promise<Account | undefined> {
     const req = new GetAccountRequest().setAccountAddress(address);
     return new Promise<Account | undefined>((resolve, reject) => {
       this.grpc.getAccount(req, (err, resp) => {
@@ -70,7 +70,7 @@ export class ClientRPC {
     });
   }
 
-  public async getAccountTransactions(address: string): Promise<Transaction[] | undefined> {
+  public async getAccountTransactions(address: Uint8Array): Promise<Transaction[] | undefined> {
     const req = new GetAccountTransactionsRequest().setAccountAddress(address);
     return new Promise<Transaction[] | undefined>((resolve, reject) => {
       this.grpc.getAccountTransactions(req, (err, resp) => {
@@ -101,7 +101,7 @@ export class ClientRPC {
     });
   }
 
-  public async getDataChain(rootClaimHash: string): Promise<DataChain | undefined> {
+  public async getDataChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined> {
     const req = new GetDataChainRequest().setRootClaimHash(rootClaimHash);
     return new Promise<DataChain | undefined>((resolve, reject) => {
       this.grpc.getDataChain(req, (err, resp) => {
@@ -127,26 +127,26 @@ export class ClientRPC {
     });
   }
 
-  public async getHeadBlockHash(): Promise<string> {
+  public async getHeadBlockHash(): Promise<Uint8Array> {
     const req = new GetHeadBlockHashRequest();
-    return new Promise<string>((resolve, reject) => {
+    return new Promise<Uint8Array>((resolve, reject) => {
       this.grpc.getHeadBlockHash(req, (err, resp) => {
         if (err) {
           return reject(err);
         }
-        resolve(resp.getBlockHash());
+        resolve(resp.getBlockHash() as Uint8Array);
       });
     });
   }
 
-  public async getBLSPublicKey(): Promise<string> {
+  public async getBLSPublicKey(): Promise<Uint8Array> {
     const req = new GetBLSPublicKeyRequest();
-    return new Promise<string>((resolve, reject) => {
+    return new Promise<Uint8Array>((resolve, reject) => {
       this.grpc.getBLSPublicKey(req, (err, resp) => {
         if (err) {
           return reject(err);
         }
-        resolve(resp.getPublicKey());
+        resolve(resp.getPublicKey() as Uint8Array);
       });
     });
   }

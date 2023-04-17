@@ -12,11 +12,13 @@ import {
   StakeType,
 } from "./types";
 
-import { hashComputeClaim } from "./util";
+import { bytesEqual, bytesToHex, hashComputeClaim } from "./util";
 
-export function applyTransaction(state: WorldState, txFrom: string, tx: Transaction): void {
+export function applyTransaction(state: WorldState, txFrom: Uint8Array, tx: Transaction): void {
+  const txFromHex = bytesToHex(txFrom);
+
   // Check sender account.
-  const sender = state.accounts[txFrom];
+  const sender = state.accounts[txFromHex];
   if (!sender) {
     throw new Error("sender account does not exist");
   }
@@ -33,12 +35,12 @@ export function applyTransaction(state: WorldState, txFrom: string, tx: Transact
   }
 
   // MintToken can create receiver account.
-  let createdAccount = undefined;
+  let createdAccountAddr = undefined;
 
   try {
     if (tx.mint) {
       if (applyMintTokenTxn(state, txFrom, tx.mint)) {
-        createdAccount = tx.mint.receiver;
+        createdAccountAddr = tx.mint.receiver;
       }
     } else if (tx.transfer) {
       applyTransferTokenTxn(state, txFrom, tx.transfer);
@@ -54,22 +56,23 @@ export function applyTransaction(state: WorldState, txFrom: string, tx: Transact
       throw new Error("unknown transaction type");
     }
 
-    // Update nonce of sender account, after tsn has been successfully applied.
-    const senderAfterTxn = state.accounts[txFrom];
-    state.accounts[txFrom] = {
+    // Update nonce of sender account, after txn has been successfully applied.
+    const senderAfterTxn = state.accounts[txFromHex];
+    state.accounts[txFromHex] = {
       ...senderAfterTxn,
       nonce: tx.nonce,
     };
   } catch (err) {
-    if (createdAccount) {
-      delete state.accounts[createdAccount];
+    if (createdAccountAddr) {
+      const createdAccountAddrHex = bytesToHex(createdAccountAddr);
+      delete state.accounts[createdAccountAddrHex];
     }
     throw err;
   }
 }
 
-export function applyMintTokenTxn(state: WorldState, txFrom: string, tx: MintToken): boolean {
-  if (txFrom != state.minter) {
+export function applyMintTokenTxn(state: WorldState, txFrom: Uint8Array, tx: MintToken): boolean {
+  if (!bytesEqual(txFrom, state.minter)) {
     throw new Error("only minter is allowed to mint tokens");
   }
   if (BigInt(tx.amount) <= 0n) {
@@ -77,15 +80,16 @@ export function applyMintTokenTxn(state: WorldState, txFrom: string, tx: MintTok
   }
 
   // Create receiver account if neccessary.
-  let receiver = state.accounts[tx.receiver];
+  const receiverAddrHex = bytesToHex(tx.receiver);
+  let receiver = state.accounts[receiverAddrHex];
   let receiverCreated = false;
   if (!receiver) {
-    state.accounts[tx.receiver] = createAccount(tx.receiver, 0n, 0n, 0n);
-    receiver = state.accounts[tx.receiver];
+    state.accounts[receiverAddrHex] = createAccount(tx.receiver, 0n, 0n, 0n);
+    receiver = state.accounts[receiverAddrHex];
     receiverCreated = true;
   }
 
-  state.accounts[tx.receiver] = {
+  state.accounts[receiverAddrHex] = {
     ...receiver,
     balance: BigInt(receiver.balance) + BigInt(tx.amount),
   };
@@ -93,14 +97,17 @@ export function applyMintTokenTxn(state: WorldState, txFrom: string, tx: MintTok
   return receiverCreated;
 }
 
-export function applyTransferTokenTxn(state: WorldState, txFrom: string, tx: TransferToken): void {
-  const sender = state.accounts[txFrom];
-  const receiver = state.accounts[tx.receiver];
+export function applyTransferTokenTxn(state: WorldState, txFrom: Uint8Array, tx: TransferToken): void {
+  const txFromHex = bytesToHex(txFrom);
+  const txReceiverHex = bytesToHex(tx.receiver);
+
+  const sender = state.accounts[txFromHex];
+  const receiver = state.accounts[txReceiverHex];
 
   if (!receiver) {
     throw new Error("receiver account does not exist");
   }
-  if (tx.receiver == state.minter) {
+  if (bytesEqual(tx.receiver, state.minter)) {
     throw new Error("transfer to minter account is forbidden");
   }
   if (BigInt(tx.amount) <= 0n) {
@@ -110,18 +117,18 @@ export function applyTransferTokenTxn(state: WorldState, txFrom: string, tx: Tra
     throw new Error("insufficient amount of token to transfer");
   }
 
-  state.accounts[txFrom] = {
+  state.accounts[txFromHex] = {
     ...sender,
     balance: BigInt(sender.balance) - BigInt(tx.amount),
   };
-  state.accounts[tx.receiver] = {
+  state.accounts[txReceiverHex] = {
     ...receiver,
     balance: BigInt(receiver.balance) + BigInt(tx.amount),
   };
 }
 
-export function applyStakeTokenTxn(state: WorldState, txFrom: string, tx: StakeToken): void {
-  const staker = state.accounts[txFrom];
+export function applyStakeTokenTxn(state: WorldState, txFrom: Uint8Array, tx: StakeToken): void {
+  const staker = state.accounts[bytesToHex(txFrom)];
 
   if (BigInt(tx.amount) <= 0n) {
     throw new Error("invalid amount of token to stake");
@@ -139,8 +146,14 @@ export function applyStakeTokenTxn(state: WorldState, txFrom: string, tx: StakeT
   }
 }
 
-function applyDAVerifierStakeTokenTxn(state: WorldState, stakerAddr: string, staker: Account, amount: bigint): void {
-  state.accounts[stakerAddr] = {
+function applyDAVerifierStakeTokenTxn(
+  state: WorldState,
+  stakerAddr: Uint8Array,
+  staker: Account,
+  amount: bigint,
+): void {
+  const stakerAddrHex = bytesToHex(stakerAddr);
+  state.accounts[stakerAddrHex] = {
     ...staker,
     balance: BigInt(staker.balance) - BigInt(amount),
     daVerifierStake: BigInt(staker.daVerifierStake) + BigInt(amount),
@@ -153,13 +166,19 @@ function applyDAVerifierStakeTokenTxn(state: WorldState, stakerAddr: string, sta
     },
   };
 
-  if (!state.stakePool.daVerifiers.find((addr) => addr == stakerAddr)) {
+  if (!state.stakePool.daVerifiers.find((addr) => bytesEqual(addr, stakerAddr))) {
     state.stakePool.daVerifiers.push(stakerAddr);
   }
 }
 
-function applyStateVerifierStakeTokenTxn(state: WorldState, stakerAddr: string, staker: Account, amount: bigint): void {
-  state.accounts[stakerAddr] = {
+function applyStateVerifierStakeTokenTxn(
+  state: WorldState,
+  stakerAddr: Uint8Array,
+  staker: Account,
+  amount: bigint,
+): void {
+  const stakerAddrHex = bytesToHex(stakerAddr);
+  state.accounts[stakerAddrHex] = {
     ...staker,
     balance: BigInt(staker.balance) - BigInt(amount),
     stateVerifierStake: BigInt(staker.stateVerifierStake) + BigInt(amount),
@@ -172,13 +191,13 @@ function applyStateVerifierStakeTokenTxn(state: WorldState, stakerAddr: string, 
     },
   };
 
-  if (!state.stakePool.stateVerifiers.find((addr) => addr == stakerAddr)) {
+  if (!state.stakePool.stateVerifiers.find((addr) => bytesEqual(addr, stakerAddr))) {
     state.stakePool.stateVerifiers.push(stakerAddr);
   }
 }
 
-export function applyUnstakeTokenTxn(state: WorldState, txFrom: string, tx: UnstakeToken): void {
-  const staker = state.accounts[txFrom];
+export function applyUnstakeTokenTxn(state: WorldState, txFrom: Uint8Array, tx: UnstakeToken): void {
+  const staker = state.accounts[bytesToHex(txFrom)];
 
   if (BigInt(tx.amount) <= 0n) {
     throw new Error("invalid amount of token to unstake");
@@ -193,12 +212,18 @@ export function applyUnstakeTokenTxn(state: WorldState, txFrom: string, tx: Unst
   }
 }
 
-function applyDAVerifierUnstakeTokenTxn(state: WorldState, stakerAddr: string, staker: Account, amount: bigint): void {
+function applyDAVerifierUnstakeTokenTxn(
+  state: WorldState,
+  stakerAddr: Uint8Array,
+  staker: Account,
+  amount: bigint,
+): void {
   if (BigInt(amount) > BigInt(staker.daVerifierStake)) {
     throw new Error("insufficient amount of token to unstake");
   }
 
-  state.accounts[stakerAddr] = {
+  const stakerAddrHex = bytesToHex(stakerAddr);
+  state.accounts[stakerAddrHex] = {
     ...staker,
     balance: BigInt(staker.balance) + BigInt(amount),
     daVerifierStake: BigInt(staker.daVerifierStake) - BigInt(amount),
@@ -211,15 +236,15 @@ function applyDAVerifierUnstakeTokenTxn(state: WorldState, stakerAddr: string, s
     },
   };
 
-  if (state.accounts[stakerAddr].daVerifierStake == 0n) {
-    const index = state.stakePool.daVerifiers.findIndex((addr) => addr == stakerAddr);
+  if (state.accounts[stakerAddrHex].daVerifierStake == 0n) {
+    const index = state.stakePool.daVerifiers.findIndex((addr) => bytesEqual(addr, stakerAddr));
     state.stakePool.daVerifiers.splice(index, 1);
   }
 }
 
 function applyStateVerifierUnstakeTokenTxn(
   state: WorldState,
-  stakerAddr: string,
+  stakerAddr: Uint8Array,
   staker: Account,
   amount: bigint,
 ): void {
@@ -227,7 +252,8 @@ function applyStateVerifierUnstakeTokenTxn(
     throw new Error("insufficient amount of token to unstake");
   }
 
-  state.accounts[stakerAddr] = {
+  const stakerAddrHex = bytesToHex(stakerAddr);
+  state.accounts[stakerAddrHex] = {
     ...staker,
     balance: BigInt(staker.balance) + BigInt(amount),
     stateVerifierStake: BigInt(staker.stateVerifierStake) - BigInt(amount),
@@ -240,23 +266,24 @@ function applyStateVerifierUnstakeTokenTxn(
     },
   };
 
-  if (state.accounts[stakerAddr].stateVerifierStake == 0n) {
-    const index = state.stakePool.stateVerifiers.findIndex((addr) => addr == stakerAddr);
+  if (state.accounts[stakerAddrHex].stateVerifierStake == 0n) {
+    const index = state.stakePool.stateVerifiers.findIndex((addr) => bytesEqual(addr, stakerAddr));
     state.stakePool.stateVerifiers.splice(index, 1);
   }
 }
 
-export function applyAddComputeChainTxn(state: WorldState, txFrom: string, txn: CreateDataChain): void {
-  const claimer = txn.rootClaim.claimer;
+export function applyAddComputeChainTxn(state: WorldState, txFrom: Uint8Array, txn: CreateDataChain): void {
+  const calimerAddrHex = bytesToHex(txn.rootClaim.claimer);
   const rootClaimHash = hashComputeClaim(txn.rootClaim);
+  const rootClaimHashHex = bytesToHex(rootClaimHash);
 
-  if (state.accounts[claimer] == undefined) {
+  if (state.accounts[calimerAddrHex] == undefined) {
     throw new Error("claimer account does not exist");
   }
-  if (txFrom != txn.rootClaim.claimer) {
+  if (!bytesEqual(txFrom, txn.rootClaim.claimer)) {
     throw new Error("only claimer of root claim can create new chain");
   }
-  if (state.dataChains[rootClaimHash] != undefined) {
+  if (state.dataChains[rootClaimHashHex] != undefined) {
     throw new Error("chain with the same root claim already exists");
   }
 
@@ -265,42 +292,47 @@ export function applyAddComputeChainTxn(state: WorldState, txFrom: string, txn: 
     rootClaimHash: rootClaimHash,
     headClaimHash: rootClaimHash,
   };
-  chain.claims[rootClaimHash] = txn.rootClaim;
-  state.dataChains[rootClaimHash] = chain;
+  chain.claims[rootClaimHashHex] = txn.rootClaim;
+  state.dataChains[rootClaimHashHex] = chain;
 }
 
-export function applyAddComputeClaimTxn(state: WorldState, txFrom: string, txn: UpdateDataChain): void {
-  const claimer = txn.claim.claimer;
-  const chain = state.dataChains[txn.rootClaimHash];
+export function applyAddComputeClaimTxn(state: WorldState, txFrom: Uint8Array, txn: UpdateDataChain): void {
+  const claimerAddrHex = bytesToHex(txn.claim.claimer);
+  const rootClaimHashHex = bytesToHex(txn.rootClaimHash);
+  const chain = state.dataChains[rootClaimHashHex];
 
-  if (state.accounts[claimer] == undefined) {
+  if (state.accounts[claimerAddrHex] == undefined) {
     throw new Error("claimer account does not exist");
   }
-  if (txFrom != txn.claim.claimer) {
+  if (!bytesEqual(txFrom, txn.claim.claimer)) {
     throw new Error("only claimer of claim can can add it to existing chain");
   }
   if (chain == undefined) {
     throw new Error("compute chain does not exist");
   }
-  if (chain.headClaimHash != txn.claim.prevClaimHash) {
+  if (!bytesEqual(chain.headClaimHash, txn.claim.prevClaimHash)) {
     throw new Error("prevCID of new claim does not match CID of last claim of chain");
   }
 
   if (
-    chain.claims[txn.rootClaimHash].dataContract.cid !== txn.claim.dataContract.cid ||
-    chain.claims[txn.rootClaimHash].dataContract.cartesiMerkleRoot !== txn.claim.dataContract.cartesiMerkleRoot ||
-    chain.claims[txn.rootClaimHash].dataContract.size !== txn.claim.dataContract.size
+    chain.claims[rootClaimHashHex].dataContract.cid != txn.claim.dataContract.cid ||
+    !bytesEqual(
+      chain.claims[rootClaimHashHex].dataContract.cartesiMerkleRoot,
+      txn.claim.dataContract.cartesiMerkleRoot,
+    ) ||
+    chain.claims[rootClaimHashHex].dataContract.size != txn.claim.dataContract.size
   ) {
     throw new Error("Cannot change data contract details after root claim");
   }
 
   const claimHash = hashComputeClaim(txn.claim);
-  chain.claims[claimHash] = txn.claim;
+  const claimHashHex = bytesToHex(claimHash);
+  chain.claims[claimHashHex] = txn.claim;
   chain.headClaimHash = claimHash;
 }
 
 export function createAccount(
-  address: string,
+  address: Uint8Array,
   balance: bigint,
   daVerifierStake: bigint,
   stateVerifierStake: bigint,

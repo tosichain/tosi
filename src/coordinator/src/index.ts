@@ -2,7 +2,7 @@ import process from "process";
 import winston from "winston";
 
 import { CoordinatorNodeConfig, CoordinatorNode } from "./node";
-import { createInitialStateFromEnv } from "../../blockchain/util";
+import { bytesFromHex, createInitialStateFromEnv } from "../../blockchain/util";
 
 (async () => {
   const config: CoordinatorNodeConfig = {
@@ -33,7 +33,7 @@ import { createInitialStateFromEnv } from "../../blockchain/util";
       blockPeriod: Number(process.env.CHAIN_BLOCK_PERIOD),
       coordinatorSmartContract: process.env.COORDINATOR_SMART_CONTRACT,
     },
-    blsSecKey: String(process.env.BLS_SECRET),
+    blsSecKey: bytesFromHex(String(process.env.BLS_SECRET)),
     DACommitteeSampleSize: Number(process.env.OFFCHAIN_DA_COMMITEE_SAMPLE_SIZE),
     DAVerification: {
       RequestBroadcastPeriod: Number(process.env.OFFCHAIN_DAS_REQUEST_BROADCAST_PERIOD),

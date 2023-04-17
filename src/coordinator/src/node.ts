@@ -26,6 +26,8 @@ import {
 } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import {
+  bytesEqual,
+  bytesToHex,
   hashSignedTransaction,
   stringifySignedTransaction,
   hashTransactionBundle,
@@ -65,7 +67,7 @@ export interface CoordinatorNodeConfig {
     // stakePoolPubKey: string;
     coordinatorSmartContract?: string;
   };
-  blsSecKey: string;
+  blsSecKey: Uint8Array;
   DACommitteeSampleSize: number; // TODO: must be sealed in blockchain.
   DAVerification: DAVerificationManagerConfig;
   stateVerification: StateVerificationManagerConfig;
@@ -73,7 +75,7 @@ export interface CoordinatorNodeConfig {
 
 export class CoordinatorNode {
   private readonly config: CoordinatorNodeConfig;
-  private readonly blsPubKey: string;
+  private readonly blsPubKey: Uint8Array;
 
   private readonly log: winston.Logger;
 
@@ -95,8 +97,8 @@ export class CoordinatorNode {
 
     this.log = logger;
 
-    this.blsPubKey = Buffer.from(BLS.getPublicKey(this.config.blsSecKey)).toString("hex");
-    this.log.info(`*** BLS Public Key: ${this.blsPubKey}`);
+    this.blsPubKey = BLS.getPublicKey(this.config.blsSecKey);
+    this.log.info(`BLS Public Key: ${bytesToHex(this.blsPubKey)}`);
 
     this.storage = new BlockchainStorage(this.config.storage, this.log);
     this.ipfs = new IPFS(this.config.ipfs.options, this.log);
@@ -128,7 +130,7 @@ export class CoordinatorNode {
       this.log.info(`smart contracts successfully deployed`);
     } else {
       this.ethWallet = new ethers.Wallet(this.config.eth.walletSecret, this.ethProvider);
-      this.log.info("*** Ethereum wallet: " + (this.ethWallet as ethers.Wallet).address);
+      this.log.info("Ethereum wallet: " + (this.ethWallet as ethers.Wallet).address);
     }
 
     await this.storage.init();
@@ -235,8 +237,10 @@ export class CoordinatorNode {
           transactions: nextBlockTxns,
         };
         const bundleHash = hashTransactionBundle(txnBundle);
-        const bundleTxnHashes = txnBundle.transactions.map(hashSignedTransaction);
-        this.log.info(`created transaction bundle ${bundleHash} with transactions: ${JSON.stringify(bundleTxnHashes)}`);
+        const bundleTxnHashes = txnBundle.transactions.map(hashSignedTransaction).map(bytesToHex);
+        this.log.info(
+          `created transaction bundle ${bytesToHex(bundleHash)} with transactions: ${JSON.stringify(bundleTxnHashes)}`,
+        );
 
         // Generate randomness proof for block.
         this.log.info(`fetching drand beacon`);
@@ -261,7 +265,7 @@ export class CoordinatorNode {
           continue;
         }
 
-        // Check transaction data availability.
+        // Check state.
         const stateCommittee = await getVerificationCommitteeSample(
           this.storage,
           StakeType.StateVerifier,
@@ -273,7 +277,7 @@ export class CoordinatorNode {
           await this.storage.removePendingTransaction(txn);
         }
         if (stateCheckResult.acceptedTxns.length == 0) {
-          this.log.error(`failed to mint next block - all transactions have failed State verification`);
+          this.log.error(`failed to mint next block - all transactions have failed state verification`);
           continue;
         }
         // Mint block.
@@ -307,7 +311,7 @@ export class CoordinatorNode {
         const blockHash = hashBlock(nextBlock);
         const rawBlock = serializeBlock(nextBlock);
         await this.claimContract?.submitBlock(rawBlock);
-        this.log.info(`block ${blockHash} committed to smart contract`);
+        this.log.info(`block ${bytesToHex(blockHash)} committed to smart contract`);
 
         await this.storage.commitNextBlock(state, nextBlock);
       } catch (err: any) {
@@ -330,18 +334,17 @@ export class CoordinatorNode {
           throw new Error("can not fetch hash of head block from storage");
         }
         while (true) {
-          if (blockHash == NULL_HASH) {
+          if (bytesEqual(blockHash, NULL_HASH)) {
             throw new Error("Should never try to upload null hash");
           }
           const uploadedBlock: Block | undefined = await this.uploadBlockToIPFS(blockHash, force);
           // Сurrent block and all previous blocks are already uploaded.
           if (uploadedBlock == undefined) {
-            // this.log.info(`block ${blockHash} is already uploaded to ipfs`);
             break;
           }
           // Genesis block does not have previous block.
-          if (uploadedBlock.prevBlockHash == NULL_HASH) {
-            this.log.info(`genesis block ${blockHash} is uploaded to ipfs`);
+          if (bytesEqual(uploadedBlock.prevBlockHash, NULL_HASH)) {
+            this.log.info(`genesis block ${bytesToHex(blockHash)} is uploaded to ipfs`);
             break;
           }
           blockHash = uploadedBlock.prevBlockHash;
@@ -355,7 +358,7 @@ export class CoordinatorNode {
     }
   }
 
-  private async uploadBlockToIPFS(blockHash: string, force = false): Promise<Block | undefined> {
+  private async uploadBlockToIPFS(blockHash: Uint8Array, force = false): Promise<Block | undefined> {
     // Check if block is already uploaded.
     const blockMetaExists = await this.storage.getBlockMetadata(blockHash);
     if (blockMetaExists != undefined && !force) {
@@ -363,7 +366,7 @@ export class CoordinatorNode {
     }
 
     // Get block content and upload it to IPFS.
-    this.log.info(`uploading block ${blockHash} to ipfs: force ` + force);
+    this.log.info(`uploading block ${bytesToHex(blockHash)} to ipfs: force ` + force);
     const block = await this.storage.getBlock(blockHash);
     if (block == undefined) {
       throw Error("block metadata exists in db while block itself is missing");
@@ -382,22 +385,22 @@ export class CoordinatorNode {
     };
     const rawBlockMeta = serializeBlockMetadata(blockMeta);
     await this.storage.setBlockMetadata(blockHash, rawBlockMeta);
-    this.log.info(`uploaded block ${blockHash} to ipfs: force ` + force);
+    this.log.info(`uploaded block ${bytesToHex(blockHash)} to ipfs: force ` + force);
 
     return block;
   }
 
   // RPC methods.
 
-  public async getBlock(blockHash: string): Promise<Block | undefined> {
+  public async getBlock(blockHash: Uint8Array): Promise<Block | undefined> {
     return await this.storage.getBlock(blockHash);
   }
 
-  public async getAccount(address: string): Promise<Account | undefined> {
+  public async getAccount(address: Uint8Array): Promise<Account | undefined> {
     return this.storage.getAccount(address);
   }
 
-  public async getAccountTransactions(address: string): Promise<Transaction[] | undefined> {
+  public async getAccountTransactions(address: Uint8Array): Promise<Transaction[] | undefined> {
     if (!(await this.storage.getAccount(address))) {
       return undefined;
     }
@@ -410,12 +413,12 @@ export class CoordinatorNode {
         break;
       }
       block.transactions.forEach((transaction) => {
-        if (transaction.from == address) {
+        if (bytesEqual(transaction.from, address)) {
           transactions.push(transaction.txn);
         }
       });
       lastBlockHash = block.prevBlockHash;
-      if (lastBlockHash == "") {
+      if (lastBlockHash.length == 0) {
         break;
       }
     }
@@ -426,7 +429,7 @@ export class CoordinatorNode {
   public async getStakerList(stakeType: StakeType): Promise<Account[]> {
     const stakePool = await this.storage.getStakePool();
 
-    let stakerPubKeys: string[];
+    let stakerPubKeys: Uint8Array[];
     switch (stakeType) {
       case StakeType.DAVerifier:
         stakerPubKeys = stakePool.daVerifiers;
@@ -451,7 +454,7 @@ export class CoordinatorNode {
     return stakers;
   }
 
-  public async getDataChain(rootClaimHash: string): Promise<DataChain | undefined> {
+  public async getDataChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined> {
     return await this.storage.getComputeChain(rootClaimHash);
   }
 
@@ -459,11 +462,11 @@ export class CoordinatorNode {
     return await this.storage.getDataChainList();
   }
 
-  public async getHeadBblockHash(): Promise<string> {
+  public async getHeadBblockHash(): Promise<Uint8Array> {
     return await this.storage.getHeadBlockHash();
   }
 
-  public async getBLSPublicKey(): Promise<string> {
+  public async getBLSPublicKey(): Promise<Uint8Array> {
     return this.blsPubKey;
   }
 
@@ -475,7 +478,7 @@ export class CoordinatorNode {
     await this.storage.submitTransaction(txn);
   }
 
-  public async getBlockMetadata(blockHash: string): Promise<BlockMetadata | undefined> {
+  public async getBlockMetadata(blockHash: Uint8Array): Promise<BlockMetadata | undefined> {
     const rawMeta = await this.storage.getBlockMetadata(blockHash);
     if (rawMeta == undefined) {
       return undefined;
