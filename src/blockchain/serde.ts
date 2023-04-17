@@ -480,12 +480,16 @@ export function deserializeBlock(rawBlock: Uint8Array): Block {
 
 export function blockProofToPB(proof: BlockProof): PBBlockProof {
   const daCheckResults = proof.DACheckResults.map((result) => daCheckResultToPB(result));
+  const stateCheckResults = proof.stateCheckResults.map((result) => stateCheckResultToPB(result));
+
   return new PBBlockProof()
     .setTxnBundleHash(proof.txnBundleHash)
     .setTxnBundleProposer(proof.txnBundleProposer)
     .setRandomnessProof(proof.randomnessProof)
     .setDaCheckResultsList(daCheckResults)
-    .setAggDaCheckResultSignature(proof.aggDACheckResultSignature);
+    .setAggDaCheckResultSignature(proof.aggDACheckResultSignature)
+    .setStateCheckResultsList(stateCheckResults)
+    .setAggStateCheckResultSignature(proof.aggStateCheckResultSignature);
 }
 
 export function blockProofFromPB(pb: PBBlockProof): BlockProof {
