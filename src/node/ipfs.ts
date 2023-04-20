@@ -8,11 +8,15 @@ export type PubSubMessage = { from: string; seqno: Uint8Array; data: Uint8Array;
 
 export class IPFS {
   private ipfs: IpfsHttpClient.IPFSHTTPClient;
+  private ipfsForPubSub: IpfsHttpClient.IPFSHTTPClient;
+
   private logger: winston.Logger;
   id: string | undefined;
 
   constructor(options: IpfsHttpClient.Options, logger: winston.Logger) {
     this.ipfs = IpfsHttpClient.create(options);
+    this.ipfsForPubSub = IpfsHttpClient.create(options);
+
     this.logger = logger;
   }
 
@@ -47,6 +51,10 @@ export class IPFS {
     return this.ipfs;
   }
 
+  getIPFSforPubSub(): IpfsHttpClient.IPFSHTTPClient {
+    return this.ipfsForPubSub;
+  }
+
   async up(logger: winston.Logger): Promise<void> {
     logger.info("Waiting for IPFS..");
     while (true) {
@@ -57,6 +65,16 @@ export class IPFS {
     }
     await this.ipfs.config.set("Pubsub.Enabled", true);
     await this.ipfs.config.set("Swarm.DisableBandwidthMetrics", true);
+
+    logger.info("Waiting for IPFS pubsub connection.");
+    while (true) {
+      try {
+        await this.ipfsForPubSub.id();
+        break;
+      } catch (err) {}
+    }
+    await this.ipfsForPubSub.config.set("Pubsub.Enabled", true);
+    await this.ipfsForPubSub.config.set("Swarm.DisableBandwidthMetrics", true);
     return;
   }
 }

@@ -21,7 +21,7 @@ import {
   stringifyStateVerificationRequest,
   stringifyStateVerificationResponse,
 } from "../../p2p/util";
-import { execTask, prepopulate } from "./util";
+import { execTask } from "./util";
 
 export interface StateVerifierConfig {
   stateCheckTimeout: number;
@@ -68,16 +68,34 @@ export class StateVerifier {
     this.blockchain = blockchain;
   }
 
-  public async start(): Promise<void> {
-    await this.ipfs.getIPFS().pubsub.subscribe(IPFS_PUB_SUB_STATE_VERIFICATION, (msg: IPFSPubSubMessage) => {
-      this.handlePubSubMessage(msg);
-    });
-    await prepopulate(this.ipfs, this.log);
+  private async setupPubSub() {
+    try {
+      await this.ipfs.getIPFSforPubSub().pubsub.subscribe(
+        IPFS_PUB_SUB_STATE_VERIFICATION,
+        (msg: IPFSPubSubMessage) => {
+          this.handlePubSubMessage(msg);
+        },
+        {
+          onError: () => {
+            this.log.debug("error in state pubsub, reconnecting");
+            setTimeout(this.setupPubSub.bind(this), 1);
+          },
+        },
+      );
+      await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, new Uint8Array(0));
+    } catch (err) {
+      this.log.error("Failed during pubsub setup: " + err);
+    }
   }
+
+  public async start(): Promise<void> {
+    await this.setupPubSub();
+  }
+
 
   private async handlePubSubMessage(msg: IPFSPubSubMessage) {
     try {
-      this.log.info("received IPFS pubsub message " + stringifyPubSubMessage(msg));
+      this.log.info("state: received IPFS pubsub message " + stringifyPubSubMessage(msg));
 
       // Ignore our own messages.
       if (msg.from == this.ipfs.id) {

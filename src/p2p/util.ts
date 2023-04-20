@@ -18,9 +18,10 @@ export async function keepConnectedToSwarm(
   interval: number,
 ): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  await ipfs.getIPFS().pubsub.subscribe(swarmPrefix, () => {});
+  await ipfs.getIPFSforPubSub().pubsub.subscribe(swarmPrefix, () => {});
   setInterval(async () => {
     await ipfs.getIPFS().pubsub.publish(swarmPrefix, Buffer.alloc(0));
+    // this is intentionally on the normal getIPFS()
     const peers = await ipfs.getIPFS().pubsub.peers(swarmPrefix);
     for (let i = 0; i < peers.length; i++) {
       log.info("peer seen on pubsub: " + peers[i]);

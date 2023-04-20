@@ -72,12 +72,29 @@ export class StateVerificationManager {
     };
   }
 
-  public async start(): Promise<void> {
-    await this.ipfs.getIPFS().pubsub.subscribe(IPFS_PUB_SUB_STATE_VERIFICATION, (msg: IPFSPubSubMessage) => {
-      this.handlePubSubMessage(msg);
-    });
+  private async setupPubSub() {
+    try {
+      await this.ipfs.getIPFSforPubSub().pubsub.subscribe(
+        IPFS_PUB_SUB_STATE_VERIFICATION,
+        (msg: IPFSPubSubMessage) => {
+          this.handlePubSubMessage(msg);
+        },
+        {
+          onError: () => {
+            this.log.debug("error in state pubsub, reconnecting");
+            setTimeout(this.setupPubSub.bind(this), 1);
+          },
+        },
+      );
+      await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, new Uint8Array(0));
+    } catch (err) {
+      this.log.error("Failed during pubsub setup: " + err);
+    }
   }
 
+  public async start(): Promise<void> {
+    await this.setupPubSub();
+  }
   public async checkTxnBundleState(
     txnBundle: TransactionBundle,
     blockRandProof: Uint8Array,
@@ -294,7 +311,7 @@ export class StateVerificationManager {
 
   private handlePubSubMessage(msg: IPFSPubSubMessage): void {
     try {
-      this.log.info("received IPFS pubsub message " + stringifyPubSubMessage(msg));
+      this.log.info("received IPFS pubsub (state) message " + stringifyPubSubMessage(msg));
 
       // Ignore our own messages.
       if (msg.from == this.ipfs.id) {
