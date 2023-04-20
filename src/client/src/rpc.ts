@@ -179,7 +179,8 @@ export class ClientRPC {
     const req = new GenerateCreateDataChainTxnRequest()
       .setDataContractCid(params.dataContractCID.toString())
       .setInputCid(params.inputCID.toString())
-      .setOutputCid(params.outputCID.toString());
+      .setOutputCid(params.outputCID.toString())
+      .setOutputFileHash(params.outputFileHash);
     return new Promise<Transaction>((resolve, reject) => {
       this.grpc.generateCreateDataChainTxn(req, (err, resp) => {
         if (err) {
@@ -196,7 +197,8 @@ export class ClientRPC {
       .setDataContractCid(params.dataContractCID.toString())
       .setInputCid(params.inputCID.toString())
       .setOutputCid(params.outputCID.toString())
-      .setRootClaimHash(params.rootClaimHash);
+      .setRootClaimHash(params.rootClaimHash)
+      .setOutputFileHash(params.outputFileHash);
     return new Promise<Transaction>((resolve, reject) => {
       this.grpc.generateUpdateDataChainTxn(req, (err, resp) => {
         if (err) {

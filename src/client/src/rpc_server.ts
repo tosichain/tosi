@@ -212,6 +212,7 @@ export class ClientNodeRPCServer implements IClientNodeServer {
       dataContractCID: CID.parse(call.request.getDataContractCid()),
       inputCID: CID.parse(call.request.getInputCid()),
       outputCID: CID.parse(call.request.getOutputCid()),
+      outputFileHash: call.request.getOutputFileHash() as Uint8Array,
     };
     this.handler.generateCreateDatachainTxn(params).then((txn) => {
       const pbTxn = transactionToPB(txn);
@@ -228,6 +229,7 @@ export class ClientNodeRPCServer implements IClientNodeServer {
       inputCID: CID.parse(call.request.getInputCid()),
       outputCID: CID.parse(call.request.getOutputCid()),
       rootClaimHash: call.request.getRootClaimHash() as Uint8Array,
+      outputFileHash: call.request.getOutputFileHash() as Uint8Array,
     };
     this.handler.generateUpdateDatachainTxn(params).then((txn) => {
       const pbTxn = transactionToPB(txn);

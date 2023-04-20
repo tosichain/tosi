@@ -3477,7 +3477,8 @@ proto.blockchain.ComputeClaim.toObject = function(includeInstance, msg) {
     dataContract: (f = msg.getDataContract()) && proto.blockchain.ClaimDataRef.toObject(includeInstance, f),
     input: (f = msg.getInput()) && proto.blockchain.ClaimDataRef.toObject(includeInstance, f),
     output: (f = msg.getOutput()) && proto.blockchain.ClaimDataRef.toObject(includeInstance, f),
-    maxCartesiCycles: jspb.Message.getFieldWithDefault(msg, 6, "0")
+    maxCartesiCycles: jspb.Message.getFieldWithDefault(msg, 6, "0"),
+    outputFileHash: msg.getOutputFileHash_asB64()
   };
 
   if (includeInstance) {
@@ -3540,6 +3541,10 @@ proto.blockchain.ComputeClaim.deserializeBinaryFromReader = function(msg, reader
     case 6:
       var value = /** @type {string} */ (reader.readUint64String());
       msg.setMaxCartesiCycles(value);
+      break;
+    case 7:
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
+      msg.setOutputFileHash(value);
       break;
     default:
       reader.skipField();
@@ -3612,6 +3617,13 @@ proto.blockchain.ComputeClaim.serializeBinaryToWriter = function(message, writer
   if (parseInt(f, 10) !== 0) {
     writer.writeUint64String(
       6,
+      f
+    );
+  }
+  f = message.getOutputFileHash_asU8();
+  if (f.length > 0) {
+    writer.writeBytes(
+      7,
       f
     );
   }
@@ -3828,6 +3840,48 @@ proto.blockchain.ComputeClaim.prototype.getMaxCartesiCycles = function() {
  */
 proto.blockchain.ComputeClaim.prototype.setMaxCartesiCycles = function(value) {
   return jspb.Message.setProto3StringIntField(this, 6, value);
+};
+
+
+/**
+ * optional bytes output_file_hash = 7;
+ * @return {!(string|Uint8Array)}
+ */
+proto.blockchain.ComputeClaim.prototype.getOutputFileHash = function() {
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 7, ""));
+};
+
+
+/**
+ * optional bytes output_file_hash = 7;
+ * This is a type-conversion wrapper around `getOutputFileHash()`
+ * @return {string}
+ */
+proto.blockchain.ComputeClaim.prototype.getOutputFileHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getOutputFileHash()));
+};
+
+
+/**
+ * optional bytes output_file_hash = 7;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getOutputFileHash()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.ComputeClaim.prototype.getOutputFileHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getOutputFileHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.blockchain.ComputeClaim} returns this
+ */
+proto.blockchain.ComputeClaim.prototype.setOutputFileHash = function(value) {
+  return jspb.Message.setProto3BytesField(this, 7, value);
 };
 
 

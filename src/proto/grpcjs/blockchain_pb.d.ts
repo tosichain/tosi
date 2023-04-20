@@ -409,6 +409,10 @@ export class ComputeClaim extends jspb.Message {
     setOutput(value?: ClaimDataRef): ComputeClaim;
     getMaxCartesiCycles(): string;
     setMaxCartesiCycles(value: string): ComputeClaim;
+    getOutputFileHash(): Uint8Array | string;
+    getOutputFileHash_asU8(): Uint8Array;
+    getOutputFileHash_asB64(): string;
+    setOutputFileHash(value: Uint8Array | string): ComputeClaim;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ComputeClaim.AsObject;
@@ -428,6 +432,7 @@ export namespace ComputeClaim {
         input?: ClaimDataRef.AsObject,
         output?: ClaimDataRef.AsObject,
         maxCartesiCycles: string,
+        outputFileHash: Uint8Array | string,
     }
 }
 

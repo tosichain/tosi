@@ -24,6 +24,7 @@ import {
   stringifyPubSubMessage,
   stringifyDAVerificationRequest,
   stringifyDAVerificationResponse,
+  keepConnectedToSwarm,
 } from "../../p2p/util";
 import { createDAInfo } from "./util";
 import { P2PPubSubMessage, DAVerificationRequest, DAVerificationResponse } from "../../proto/grpcjs/p2p_pb";
@@ -97,6 +98,7 @@ export class DAVerifier {
 
   public async start(): Promise<void> {
     await this.setupPubSub();
+    await keepConnectedToSwarm(IPFS_PUB_SUB_DA_VERIFICATION, this.ipfs, this.log, 10000);
   }
 
   private async handlePubSubMessage(msg: IPFSPubSubMessage) {

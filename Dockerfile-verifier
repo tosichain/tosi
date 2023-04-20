@@ -75,7 +75,7 @@ FROM alpine:3.16.0 as image
 
 ARG KERNEL_VERSION="5.5.19"
 
-RUN apk --no-cache add qemu-system-x86_64 qemu-accel-tcg-x86_64 python3 openssh-server e2tools xxd libgomp boost1.77-serialization py3-pip gcc musl-dev wget
+RUN apk --no-cache add qemu-system-x86_64 qemu-accel-tcg-x86_64 openssh-server e2tools xxd libgomp boost1.77-serialization wget
 COPY --from=go-ipfs-build "/app/kubo/cmd/ipfs/ipfs" "/usr/bin/ipfs"
 RUN sed -i '/^#Port 22/s/^#//' /etc/ssh/sshd_config \
     && sed -i '/^#PasswordAuthentication/s/^#//' /etc/ssh/sshd_config \
@@ -85,7 +85,8 @@ RUN sed -i '/^#Port 22/s/^#//' /etc/ssh/sshd_config \
 
 WORKDIR /app
 
-RUN --mount=type=cache,target=/fetchcache8 wget -c -P /fetchcache8 https://web3.link/loader.squashfs && mkdir -p /data/prepopulate && cp /fetchcache8/* /data/prepopulate
+RUN --mount=type=cache,target=/fetchcache35 wget -c -P /fetchcache35 https://web3.link/loaderv2.squashfs && mkdir -p /data/prepopulate && cp /fetchcache35/* /data/prepopulate
+RUN --mount=type=cache,target=/fetchcache35-car wget -c -P /fetchcache35-car https://web3.link/init_image.car && mkdir -p /data/prepopulate-car && cp /fetchcache35-car/* /data/prepopulate-car
 RUN truncate -s 16384 /data/prepopulate/empty.16kb
 
 COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" /app
@@ -95,17 +96,15 @@ COPY --from=kernel-nokvm "/build/kernel/linux-${KERNEL_VERSION}/.config" /app/.c
 COPY --from=merkle-tree-build "/opt/tosi/bin/merkle-tree-hash" "/app//merkle-tree-hash"
 
 RUN mkdir -p /opt/verifier
-RUN pip3 install pycryptodome
 
-COPY ./src/verifier/keccak256.py /app/keccak256.py
-COPY ./src/verifier/log2.py /app/log2.py
 COPY ./src/verifier/qemu-run-task.sh /app/qemu-run-task.sh
 COPY ./src/verifier/qemu-test-task.sh /app/qemu-test-task.sh
+COPY ./src/verifier/qemu-test-cid.sh /app/qemu-test-cid.sh
 COPY ./src/verifier/ssh.sh /app/ssh.sh
 COPY ./src/verifier/grab-and-hash.sh /app/grab-and-hash.sh
 COPY ./src/verifier/grab-dag-as-car-and-hash.sh /app/grab-dag-as-car-and-hash.sh
 COPY ./src/verifier/prepopulate.sh /app/prepopulate.sh
 
-RUN chmod +x /app/ssh.sh /app/grab-and-hash.sh /app/qemu-run-task.sh /app/grab-dag-as-car-and-hash.sh /app/prepopulate.sh
+RUN chmod +x /app/ssh.sh /app/grab-and-hash.sh /app/qemu-run-task.sh /app/grab-dag-as-car-and-hash.sh /app/prepopulate.sh /app/qemu-test-cid.sh
 
 CMD [ "/app/ssh.sh" ]

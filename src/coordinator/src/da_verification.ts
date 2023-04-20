@@ -16,7 +16,7 @@ import { IPFS_PUB_SUB_DA_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
 import { DACheckResult as PBDACheckResult } from "../../proto/grpcjs/blockchain_pb";
 import { P2PPubSubMessage, DAVerificationRequest, DAVerificationResponse } from "../../proto/grpcjs/p2p_pb";
-import { stringifyPubSubMessage, stringifyDAVerificationResponse } from "../../p2p/util";
+import { stringifyPubSubMessage, stringifyDAVerificationResponse, keepConnectedToSwarm } from "../../p2p/util";
 
 export interface DAVerificationManagerConfig {
   RequestBroadcastPeriod: number;
@@ -87,6 +87,7 @@ export class DAVerificationManager {
 
   public async start(): Promise<void> {
     await this.setupPubSub();
+    await keepConnectedToSwarm(IPFS_PUB_SUB_DA_VERIFICATION, this.ipfs, this.log, 10000);
   }
 
   public async checkTxnBundleDA(

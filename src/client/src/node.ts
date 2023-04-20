@@ -37,6 +37,7 @@ export interface CreateDatachainParameters {
   dataContractCID: CID;
   inputCID: CID;
   outputCID: CID;
+  outputFileHash: Uint8Array;
 }
 
 export interface UpdateDatachainParameters {
@@ -46,6 +47,7 @@ export interface UpdateDatachainParameters {
   outputCID: CID;
   // Existing chain info.
   rootClaimHash: Uint8Array;
+  outputFileHash: Uint8Array;
 }
 
 export class ClientNode {
@@ -254,6 +256,7 @@ export class ClientNode {
           input: { cid: params.inputCID.toString(), ...inputInfo },
           output: { cid: params.outputCID.toString(), ...outputInfo },
           maxCartesiCycles: DEFAULT_CARTESI_VM_MAX_CYCLES,
+          outputFileHash: params.outputFileHash,
         },
       },
       nonce: 0,
@@ -291,6 +294,7 @@ export class ClientNode {
           input: { cid: params.inputCID.toString(), ...inputInfo },
           output: { cid: params.outputCID.toString(), ...outputInfo },
           maxCartesiCycles: DEFAULT_CARTESI_VM_MAX_CYCLES,
+          outputFileHash: params.outputFileHash,
         },
       },
       nonce: 0,
