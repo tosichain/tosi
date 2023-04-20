@@ -79,11 +79,29 @@ export class DAVerifier {
     this.blockchain = blockchain;
   }
 
+
+  private async setupPubSub() {
+    try {
+      await this.ipfs.getIPFSforPubSub().pubsub.subscribe(
+        IPFS_PUB_SUB_DA_VERIFICATION,
+        (msg: IPFSPubSubMessage) => {
+          this.handlePubSubMessage(msg);
+        },
+        {
+          onError: () => {
+            this.log.debug("error in da pubsub, reconnecting");
+            setTimeout(this.setupPubSub.bind(this), 1);
+          },
+        },
+      );
+      await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_DA_VERIFICATION, new Uint8Array(0));
+    } catch (err) {
+      this.log.error("Failed during pubsub setup: " + err);
+    }
+  }
+
   public async start(): Promise<void> {
-    await this.ipfs.getIPFS().pubsub.subscribe(IPFS_PUB_SUB_DA_VERIFICATION, (msg: IPFSPubSubMessage) => {
-      this.handlePubSubMessage(msg);
-    });
-    await prepopulate(this.ipfs, this.log);
+    await this.setupPubSub();
   }
 
   private async handlePubSubMessage(msg: IPFSPubSubMessage) {

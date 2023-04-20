@@ -12,7 +12,7 @@ import { signTransaction } from "../../blockchain/block";
 import { BlockchainClientSyncConfig, BlockchainClientSync } from "./blockchain_sync";
 import { ClientNodeRPCServerConfig, ClientNodeRPCServer } from "./rpc_server";
 import { DAVerifierConfig, DAVerifier } from "./da_verifier";
-import { createDAInfo } from "./util";
+import { createDAInfo, prepopulate } from "./util";
 import { DEFAULT_CARTESI_VM_MAX_CYCLES, SWARM_PING_INTERVAL } from "./constant";
 import { keepConnectedToSwarm } from "../../p2p/util";
 import { StateVerifier, StateVerifierConfig } from "./state_verifer";
@@ -136,6 +136,7 @@ export class ClientNode {
         setTimeout(resolve, 1000);
       });
     }
+    await prepopulate(this.ipfs, this.log);
     await this.storage.init();
     await this.blockchainSync.start();
     await this.daVerifier?.start();
