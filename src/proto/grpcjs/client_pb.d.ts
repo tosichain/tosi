@@ -15,6 +15,10 @@ export class GenerateCreateDataChainTxnRequest extends jspb.Message {
     setInputCid(value: string): GenerateCreateDataChainTxnRequest;
     getOutputCid(): string;
     setOutputCid(value: string): GenerateCreateDataChainTxnRequest;
+    getOutputFileHash(): Uint8Array | string;
+    getOutputFileHash_asU8(): Uint8Array;
+    getOutputFileHash_asB64(): string;
+    setOutputFileHash(value: Uint8Array | string): GenerateCreateDataChainTxnRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GenerateCreateDataChainTxnRequest.AsObject;
@@ -31,6 +35,7 @@ export namespace GenerateCreateDataChainTxnRequest {
         dataContractCid: string,
         inputCid: string,
         outputCid: string,
+        outputFileHash: Uint8Array | string,
     }
 }
 
@@ -68,6 +73,10 @@ export class GenerateUpdateDataChainTxnRequest extends jspb.Message {
     getRootClaimHash_asU8(): Uint8Array;
     getRootClaimHash_asB64(): string;
     setRootClaimHash(value: Uint8Array | string): GenerateUpdateDataChainTxnRequest;
+    getOutputFileHash(): Uint8Array | string;
+    getOutputFileHash_asU8(): Uint8Array;
+    getOutputFileHash_asB64(): string;
+    setOutputFileHash(value: Uint8Array | string): GenerateUpdateDataChainTxnRequest;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): GenerateUpdateDataChainTxnRequest.AsObject;
@@ -85,6 +94,7 @@ export namespace GenerateUpdateDataChainTxnRequest {
         inputCid: string,
         outputCid: string,
         rootClaimHash: Uint8Array | string,
+        outputFileHash: Uint8Array | string,
     }
 }
 

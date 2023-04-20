@@ -374,7 +374,8 @@ export function computeClaimToPB(claim: ComputeClaim): PBComputeClaim {
     .setDataContract(dataContract)
     .setInput(input)
     .setOutput(output)
-    .setMaxCartesiCycles(String(claim.maxCartesiCycles));
+    .setMaxCartesiCycles(String(claim.maxCartesiCycles))
+    .setOutputFileHash(claim.outputFileHash);
 }
 
 export function computeClaimFromPB(pb: PBComputeClaim): ComputeClaim {
@@ -394,6 +395,7 @@ export function computeClaimFromPB(pb: PBComputeClaim): ComputeClaim {
     input: input,
     output: output,
     maxCartesiCycles: BigInt(pb.getMaxCartesiCycles()),
+    outputFileHash: pb.getOutputFileHash() as Uint8Array,
   };
 }
 

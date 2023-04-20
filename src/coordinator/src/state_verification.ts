@@ -17,7 +17,7 @@ import {
 } from "../../blockchain/util";
 import { IPFS_PUB_SUB_STATE_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
-import { stringifyPubSubMessage, stringifyStateVerificationResponse } from "../../p2p/util";
+import { keepConnectedToSwarm, stringifyPubSubMessage, stringifyStateVerificationResponse } from "../../p2p/util";
 import { StateCheckResult as PBStateCheckResult } from "../../proto/grpcjs/blockchain_pb";
 import { P2PPubSubMessage, StateVerificationRequest, StateVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 
@@ -91,6 +91,7 @@ export class StateVerificationManager {
 
   public async start(): Promise<void> {
     await this.setupPubSub();
+    await keepConnectedToSwarm(IPFS_PUB_SUB_STATE_VERIFICATION, this.ipfs, this.log, 10000);
   }
   public async checkTxnBundleState(
     txnBundle: TransactionBundle,

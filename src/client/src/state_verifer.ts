@@ -13,6 +13,7 @@ import { bytesEqual, bytesToHex, bytesFromHex, hashComputeClaim, stringifyComput
 import { IPFS_PUB_SUB_STATE_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
 import {
+  keepConnectedToSwarm,
   stringifyPubSubMessage,
   stringifyStateVerificationRequest,
   stringifyStateVerificationResponse,
@@ -87,6 +88,7 @@ export class StateVerifier {
 
   public async start(): Promise<void> {
     await this.setupPubSub();
+    await keepConnectedToSwarm(IPFS_PUB_SUB_STATE_VERIFICATION, this.ipfs, this.log, 10000);
   }
 
   private async handlePubSubMessage(msg: IPFSPubSubMessage) {
@@ -166,6 +168,11 @@ export class StateVerifier {
     const claimHash = hashComputeClaim(claim);
     this.log.info(`checking State for claim ${bytesToHex(claimHash)} - ${stringifyComputeClaim(claim)}`);
 
+    // XXX Debug
+    if (claim.outputFileHash.length != 32) {
+      throw new Error("No output file hash?");
+    }
+
     // TODO: this check is actually redundant, but we, probably, need to query previous claim in future.
     // For non-root claim previous claim must exist in local storage.
 
@@ -185,6 +192,7 @@ export class StateVerifier {
     // start checks in parallel
     const prevClaimOutputCID = !prevClaim ? EMPTY_OUTPUT_DATA_REF.cid : prevClaim.output.cid;
     try {
+      const before = Math.floor(Date.now() / 1000);
       const result = await execTask(
         this.ipfs,
         this.log,
@@ -192,11 +200,23 @@ export class StateVerifier {
         CID.parse(prevClaimOutputCID),
         CID.parse(claim.input.cid),
       );
-      if (result.output && result.output.outputCID && result.output.outputCID == claim.output.cid) {
-        this.log.info(`all good, returning claim ${bytesToHex(claimHash)} with checking compute`);
+      if (
+        result.output &&
+        result.output.outputCID &&
+        result.output.outputCID == claim.output.cid &&
+        result.output.outputFileHash == Buffer.from(claim.outputFileHash).toString("hex")
+      ) {
+        const after = Math.floor(Date.now() / 1000);
+        this.log.info(
+          `all good, took ${after - before}s returning claim ${bytesToHex(claimHash)} with checking compute`,
+        );
         return { claimHash: claimHash, stateCorrect: true };
       } else {
-        this.log.error(`compute check for claim ${bytesToHex(claimHash)} doesn't match`);
+        this.log.error(
+          `compute check for claim ${bytesToHex(claimHash)} doesn't match; ${Buffer.from(claim.outputFileHash).toString(
+            "hex",
+          )} , ${JSON.stringify(result.output)} , ${claim.output.cid}`,
+        );
         return { claimHash: claimHash, stateCorrect: false };
       }
     } catch (err) {

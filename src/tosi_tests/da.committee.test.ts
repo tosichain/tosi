@@ -18,10 +18,11 @@ import { IPFS } from "../node/ipfs";
 import { hashComputeClaim } from "../blockchain/util";
 
 const FAKE_CID = "bafybeibnikymft2ikuygct6phxedz7x623cqlvcwxztedds5fzbb5mhdk4";
-const FUNCTION_CID = "bafybeihordq4yjtlp43mzrk7sn5h5vd25hdtvn6xjzvtt4jeejcvuqqbe4";
+const FUNCTION_CID = "bafybeihnujjp7cll46wrpw4tjxjfzphwzob6suzymfjswoparozveeh7zi";
+const SAMPLE_CID = "bafybeigyqpsfepjipxrz2m5e47rqwpgtkd526sn4z53fnis674gqb66c4e";
 const EMPTY_DIR_CID = "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354";
 const EMPTY_16KB_CID = "bafkreicp462zv5w6hntfwz3yrtbptgesvobh56xdurttikz3wtr3zds37y";
-
+const EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 const INVALID_TXN_WAIT_PERIOD = 25000; // 25 seconds
 
 const minterPrivKey = Buffer.from("2d1c0d704322c0386cc7bead93298a48ee22325e967567ebe4dbcd4a2f4482f1", "hex");
@@ -277,6 +278,7 @@ describe("DA verification is performed correctly", function () {
       dataContractCID: CID.parse(EMPTY_16KB_CID),
       inputCID: CID.parse(EMPTY_DIR_CID),
       outputCID: CID.parse(EMPTY_DIR_CID),
+      outputFileHash: Buffer.from(EMPTY_SHA256, "hex"),
     });
     if (!txn.createChain) {
       throw new Error("invalid CreateDatachain transaction");
@@ -297,8 +299,9 @@ describe("DA verification is performed correctly", function () {
   it("client creates new compute chain (real data)", async () => {
     const txn = await client.generateCreateDatachainTxn({
       dataContractCID: CID.parse(FUNCTION_CID),
-      inputCID: CID.parse(EMPTY_DIR_CID),
+      inputCID: CID.parse(SAMPLE_CID),
       outputCID: CID.parse(EMPTY_DIR_CID),
+      outputFileHash: Buffer.from(EMPTY_SHA256, "hex"),
     });
     if (!txn.createChain) {
       throw new Error("invalid CreateDatachain transaction");
@@ -308,7 +311,6 @@ describe("DA verification is performed correctly", function () {
     rootClaimHash = hashComputeClaim(rootClaim);
     headClaim = rootClaim;
     headClaimHash = rootClaimHash;
-
     await client.submitTransaction(txn);
 
     const accountNonces: Record<string, number> = {};
@@ -324,6 +326,7 @@ describe("DA verification is performed correctly", function () {
       inputCID: await getDummyData(),
       outputCID: CID.parse(EMPTY_DIR_CID),
       rootClaimHash: rootClaimHash,
+      outputFileHash: Buffer.from(EMPTY_SHA256, "hex"),
     });
     if (!txn.updateChain) {
       throw new Error("invalid UpdateDatachain transaction");
@@ -348,6 +351,7 @@ describe("DA verification is performed correctly", function () {
       inputCID: await getDummyData(),
       outputCID: CID.parse(EMPTY_DIR_CID),
       rootClaimHash: rootClaimHash,
+      outputFileHash: Buffer.from(EMPTY_SHA256, "hex"),
     });
     if (!txn.updateChain) {
       throw new Error("invalid UpdateDatachain transaction");
@@ -384,6 +388,7 @@ describe("DA verification is performed correctly", function () {
       dataContractCID: CID.parse(FUNCTION_CID),
       inputCID: await getDummyData(),
       outputCID: CID.parse(EMPTY_DIR_CID),
+      outputFileHash: Buffer.from(EMPTY_SHA256, "hex"),
     });
     if (!txn.createChain) {
       throw new Error("invalid CreateDatachain transaction");
@@ -421,6 +426,7 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
       dataContractCID: CID.parse(rootClaim.dataContract.cid),
       inputCID: CID.parse(rootClaim.input.cid),
       outputCID: CID.parse(rootClaim.output.cid),
+      outputFileHash: Buffer.from(EMPTY_SHA256, "hex"),
     });
     if (!txn.createChain) {
       throw new Error("invalid UpdateDatachain transaction");
@@ -442,6 +448,7 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
       inputCID: CID.parse(EMPTY_DIR_CID),
       outputCID: CID.parse(EMPTY_DIR_CID),
       rootClaimHash: rootClaimHash,
+      outputFileHash: Buffer.from(EMPTY_SHA256, "hex"),
     });
     if (!txn.updateChain) {
       throw new Error("invalid UpdateDatachain transaction");
@@ -474,6 +481,7 @@ describe("invalid CreateDatachain and UpdateDatachian transactions are rejected"
       inputCID: CID.parse(EMPTY_DIR_CID),
       outputCID: CID.parse(EMPTY_DIR_CID),
       rootClaimHash: rootClaimHash,
+      outputFileHash: Buffer.from(EMPTY_SHA256, "hex"),
     });
     if (!txn.updateChain) {
       throw new Error("invalid UpdateDatachain transaction");

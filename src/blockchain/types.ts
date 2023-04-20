@@ -96,6 +96,7 @@ export interface ComputeClaim {
 
   // "Parameters" of computation.
   readonly maxCartesiCycles: bigint;
+  readonly outputFileHash: Uint8Array;
 }
 
 export interface ClaimDataRef {

@@ -87,6 +87,7 @@ message ComputeClaim {
     ClaimDataRef input = 4;
     ClaimDataRef output = 5;
     uint64 max_cartesi_cycles = 6 [jstype = JS_STRING];
+    bytes output_file_hash = 7;
 }
 
 message ClaimDataRef {

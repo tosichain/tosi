@@ -235,7 +235,8 @@ proto.client.GenerateCreateDataChainTxnRequest.toObject = function(includeInstan
   var f, obj = {
     dataContractCid: jspb.Message.getFieldWithDefault(msg, 1, ""),
     inputCid: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    outputCid: jspb.Message.getFieldWithDefault(msg, 3, "")
+    outputCid: jspb.Message.getFieldWithDefault(msg, 3, ""),
+    outputFileHash: msg.getOutputFileHash_asB64()
   };
 
   if (includeInstance) {
@@ -284,6 +285,10 @@ proto.client.GenerateCreateDataChainTxnRequest.deserializeBinaryFromReader = fun
       var value = /** @type {string} */ (reader.readString());
       msg.setOutputCid(value);
       break;
+    case 4:
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
+      msg.setOutputFileHash(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -331,6 +336,13 @@ proto.client.GenerateCreateDataChainTxnRequest.serializeBinaryToWriter = functio
   if (f.length > 0) {
     writer.writeString(
       3,
+      f
+    );
+  }
+  f = message.getOutputFileHash_asU8();
+  if (f.length > 0) {
+    writer.writeBytes(
+      4,
       f
     );
   }
@@ -388,6 +400,48 @@ proto.client.GenerateCreateDataChainTxnRequest.prototype.getOutputCid = function
  */
 proto.client.GenerateCreateDataChainTxnRequest.prototype.setOutputCid = function(value) {
   return jspb.Message.setProto3StringField(this, 3, value);
+};
+
+
+/**
+ * optional bytes output_file_hash = 4;
+ * @return {!(string|Uint8Array)}
+ */
+proto.client.GenerateCreateDataChainTxnRequest.prototype.getOutputFileHash = function() {
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+};
+
+
+/**
+ * optional bytes output_file_hash = 4;
+ * This is a type-conversion wrapper around `getOutputFileHash()`
+ * @return {string}
+ */
+proto.client.GenerateCreateDataChainTxnRequest.prototype.getOutputFileHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getOutputFileHash()));
+};
+
+
+/**
+ * optional bytes output_file_hash = 4;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getOutputFileHash()`
+ * @return {!Uint8Array}
+ */
+proto.client.GenerateCreateDataChainTxnRequest.prototype.getOutputFileHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getOutputFileHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.client.GenerateCreateDataChainTxnRequest} returns this
+ */
+proto.client.GenerateCreateDataChainTxnRequest.prototype.setOutputFileHash = function(value) {
+  return jspb.Message.setProto3BytesField(this, 4, value);
 };
 
 
@@ -577,7 +631,8 @@ proto.client.GenerateUpdateDataChainTxnRequest.toObject = function(includeInstan
     dataContractCid: jspb.Message.getFieldWithDefault(msg, 1, ""),
     inputCid: jspb.Message.getFieldWithDefault(msg, 2, ""),
     outputCid: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    rootClaimHash: msg.getRootClaimHash_asB64()
+    rootClaimHash: msg.getRootClaimHash_asB64(),
+    outputFileHash: msg.getOutputFileHash_asB64()
   };
 
   if (includeInstance) {
@@ -629,6 +684,10 @@ proto.client.GenerateUpdateDataChainTxnRequest.deserializeBinaryFromReader = fun
     case 4:
       var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setRootClaimHash(value);
+      break;
+    case 5:
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
+      msg.setOutputFileHash(value);
       break;
     default:
       reader.skipField();
@@ -684,6 +743,13 @@ proto.client.GenerateUpdateDataChainTxnRequest.serializeBinaryToWriter = functio
   if (f.length > 0) {
     writer.writeBytes(
       4,
+      f
+    );
+  }
+  f = message.getOutputFileHash_asU8();
+  if (f.length > 0) {
+    writer.writeBytes(
+      5,
       f
     );
   }
@@ -783,6 +849,48 @@ proto.client.GenerateUpdateDataChainTxnRequest.prototype.getRootClaimHash_asU8 =
  */
 proto.client.GenerateUpdateDataChainTxnRequest.prototype.setRootClaimHash = function(value) {
   return jspb.Message.setProto3BytesField(this, 4, value);
+};
+
+
+/**
+ * optional bytes output_file_hash = 5;
+ * @return {!(string|Uint8Array)}
+ */
+proto.client.GenerateUpdateDataChainTxnRequest.prototype.getOutputFileHash = function() {
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/**
+ * optional bytes output_file_hash = 5;
+ * This is a type-conversion wrapper around `getOutputFileHash()`
+ * @return {string}
+ */
+proto.client.GenerateUpdateDataChainTxnRequest.prototype.getOutputFileHash_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getOutputFileHash()));
+};
+
+
+/**
+ * optional bytes output_file_hash = 5;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getOutputFileHash()`
+ * @return {!Uint8Array}
+ */
+proto.client.GenerateUpdateDataChainTxnRequest.prototype.getOutputFileHash_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getOutputFileHash()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.client.GenerateUpdateDataChainTxnRequest} returns this
+ */
+proto.client.GenerateUpdateDataChainTxnRequest.prototype.setOutputFileHash = function(value) {
+  return jspb.Message.setProto3BytesField(this, 5, value);
 };
 
 
