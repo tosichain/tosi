@@ -3,7 +3,6 @@ import * as BLS from "@noble/bls12-381";
 import { CID } from "ipfs-http-client";
 
 import { IPFS } from "../../node/ipfs";
-import { encodeCBOR, decodeCBOR, currentUnixTime } from "../../util";
 
 import {
   DAInfo,
@@ -13,24 +12,21 @@ import {
   StakeType,
   ClaimDataRef,
 } from "../../blockchain/types";
+import { computeClaimFromPB, daCheckResultToPB } from "../../blockchain/serde";
 import { signDACheckResult } from "../../blockchain/block_proof";
 import { getSeedFromBlockRandomnessProof } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { BlockchainStorage } from "../../blockchain/storage";
 import { bytesEqual, bytesToHex, bytesFromHex, hashComputeClaim, stringifyComputeClaim } from "../../blockchain/util";
-import {
-  IPFS_PUB_SUB_DA_VERIFICATION,
-  IPFS_MESSAGE_DA_VERIFICATION_REQUEST,
-  IPFS_MESSAGE_DA_VERIFICATION_RESPONSE,
-} from "../../p2p/constant";
-import { IPFSPubSubMessage, DAVerificationRequestMessage, DAVerificationResponseMessage } from "../../p2p/types";
+import { IPFS_PUB_SUB_DA_VERIFICATION } from "../../p2p/constant";
+import { IPFSPubSubMessage } from "../../p2p/types";
 import {
   stringifyPubSubMessage,
   stringifyDAVerificationRequest,
   stringifyDAVerificationResponse,
 } from "../../p2p/util";
-import { createDAInfo, execTask, prepopulate } from "./util";
-import { hexToBytes } from "@noble/bls12-381/lib/math";
+import { createDAInfo } from "./util";
+import { P2PPubSubMessage, DAVerificationRequest, DAVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 
 export interface DAVerifierConfig {
   DACheckTimeout: number;
@@ -79,7 +75,6 @@ export class DAVerifier {
     this.blockchain = blockchain;
   }
 
-
   private async setupPubSub() {
     try {
       await this.ipfs.getIPFSforPubSub().pubsub.subscribe(
@@ -119,20 +114,16 @@ export class DAVerifier {
         return;
       }
 
-      const decoded = decodeCBOR(msg.data);
-      if (decoded && decoded.code && decoded.code === IPFS_MESSAGE_DA_VERIFICATION_RESPONSE) {
-        this.log.info(`ignoring DA verification response message`);
-      } else if (decoded && decoded.code && decoded.code == IPFS_MESSAGE_DA_VERIFICATION_REQUEST) {
-        await this.handleDAVerificationRequest(decoded as DAVerificationRequestMessage);
-      } else {
-        this.log.warn(`ignoring decoded message with unknown code`);
+      const protoMsg = P2PPubSubMessage.deserializeBinary(msg.data);
+      if (protoMsg.hasDaVerificationRequest()) {
+        await this.handleDAVerificationRequest(protoMsg.getDaVerificationRequest() as DAVerificationRequest);
       }
     } catch (err: any) {
       this.log.error(err.toString() + " " + err.stack);
     }
   }
 
-  async handleDAVerificationRequest(req: DAVerificationRequestMessage): Promise<void> {
+  async handleDAVerificationRequest(req: DAVerificationRequest): Promise<void> {
     this.log.info(`received DA verification request - ${stringifyDAVerificationRequest(req)}`);
 
     if (!(await this.acceptDAVerificationRequest(req))) {
@@ -140,30 +131,31 @@ export class DAVerifier {
     }
 
     // Check data availability of each claim.
-    const claimDAChecks = req.claims.map((claim) => this.checkClaimDA(claim));
+    const claimDAChecks = req.getClaimsList().map((claim) => {
+      return this.checkClaimDA(computeClaimFromPB(claim));
+    });
     const claimDACheckResults = await Promise.all(claimDAChecks);
 
     // Generate and publish DA check response message.
     const result: DACheckResult = {
-      txnBundleHash: req.txnBundleHash,
-      randomnessProof: req.randomnessProof,
+      txnBundleHash: req.getTxnBundleHash() as Uint8Array,
+      randomnessProof: req.getRandomnessProof() as Uint8Array,
       signature: new Uint8Array(),
       signer: this.blsPubKey,
       claims: claimDACheckResults,
     };
-    const response: DAVerificationResponseMessage = {
-      code: IPFS_MESSAGE_DA_VERIFICATION_RESPONSE,
-      result: await signDACheckResult(result, this.blsSecKey),
-    };
+    const signedResult = await signDACheckResult(result, this.blsSecKey);
 
+    const response = new DAVerificationResponse().setResult(daCheckResultToPB(signedResult));
     this.log.info(`publishing DA verification response - ${stringifyDAVerificationResponse(response)}`);
-    await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_DA_VERIFICATION, encodeCBOR(response));
+    const msg = new P2PPubSubMessage().setDaVerificationResponse(response);
+    await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_DA_VERIFICATION, msg.serializeBinary());
   }
 
-  private async acceptDAVerificationRequest(daReq: DAVerificationRequestMessage): Promise<boolean> {
+  private async acceptDAVerificationRequest(daReq: DAVerificationRequest): Promise<boolean> {
     // Validate randomness proof (includes verifying coordinator's signature).
     // Check if no is in current DA commitee sample and is expected to process request.
-    const randSeed = getSeedFromBlockRandomnessProof(daReq.randomnessProof);
+    const randSeed = getSeedFromBlockRandomnessProof(daReq.getRandomnessProof() as Uint8Array);
     const committee = await getVerificationCommitteeSample(
       this.blockchain,
       StakeType.DAVerifier,

@@ -3,7 +3,7 @@
 ROOT_PATH="$( cd "$(dirname "$0")" ; cd ../ ; pwd -P )"
 PROTO_PATH=$ROOT_PATH/src/proto
 GRPCJS_PATH=$PROTO_PATH/grpcjs
-PROTOFILES="blockchain.proto node.proto coordinator.proto client.proto"
+PROTOFILES="blockchain.proto node.proto coordinator.proto client.proto p2p.proto"
 
 $ROOT_PATH/node_modules/.bin/grpc_tools_node_protoc \
 --js_out=import_style=commonjs,binary:$GRPCJS_PATH \

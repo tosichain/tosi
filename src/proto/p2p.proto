@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+import "blockchain.proto";
+
+package node;
+
+message P2PPubSubMessage {
+    optional DAVerificationRequest da_verification_request = 1;
+    optional DAVerificationResponse da_verification_response = 2;
+    optional StateVerificationRequest state_verification_request = 3;
+    optional StateVerificationResponse state_verification_response = 4;
+}
+
+message DAVerificationRequest {
+    bytes txn_bundle_hash = 1;
+    repeated blockchain.ComputeClaim claims = 2;
+    bytes randomness_proof = 3;
+}
+
+message DAVerificationResponse {
+    blockchain.DACheckResult result = 1;
+}
+
+message StateVerificationRequest {
+    bytes txn_bundle_hash = 1;
+    repeated blockchain.ComputeClaim claims = 2;
+    bytes randomness_proof = 3;
+}
+
+message StateVerificationResponse {
+    blockchain.StateCheckResult result = 1;
+}
