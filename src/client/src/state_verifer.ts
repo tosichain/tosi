@@ -3,25 +3,22 @@ import * as BLS from "@noble/bls12-381";
 import { CID } from "ipfs-http-client";
 
 import { IPFS } from "../../node/ipfs";
-import { encodeCBOR, decodeCBOR } from "../../util";
 import { ComputeClaim, ClaimStateCheckResult, StateCheckResult, StakeType, ClaimDataRef } from "../../blockchain/types";
+import { computeClaimFromPB, stateCheckResultToPB } from "../../blockchain/serde";
 import { signStateCheckResult } from "../../blockchain/block_proof";
 import { getSeedFromBlockRandomnessProof } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { BlockchainStorage } from "../../blockchain/storage";
 import { bytesEqual, bytesToHex, bytesFromHex, hashComputeClaim, stringifyComputeClaim } from "../../blockchain/util";
-import {
-  IPFS_PUB_SUB_STATE_VERIFICATION,
-  IPFS_MESSAGE_STATE_VERIFICATION_REQUEST,
-  IPFS_MESSAGE_STATE_VERIFICATION_RESPONSE,
-} from "../../p2p/constant";
-import { IPFSPubSubMessage, StateVerificationRequestMessage, StateVerificationResponseMessage } from "../../p2p/types";
+import { IPFS_PUB_SUB_STATE_VERIFICATION } from "../../p2p/constant";
+import { IPFSPubSubMessage } from "../../p2p/types";
 import {
   stringifyPubSubMessage,
   stringifyStateVerificationRequest,
   stringifyStateVerificationResponse,
 } from "../../p2p/util";
 import { execTask } from "./util";
+import { P2PPubSubMessage, StateVerificationRequest, StateVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 
 export interface StateVerifierConfig {
   stateCheckTimeout: number;
@@ -92,7 +89,6 @@ export class StateVerifier {
     await this.setupPubSub();
   }
 
-
   private async handlePubSubMessage(msg: IPFSPubSubMessage) {
     try {
       this.log.info("state: received IPFS pubsub message " + stringifyPubSubMessage(msg));
@@ -108,51 +104,48 @@ export class StateVerifier {
         return;
       }
 
-      const decoded = decodeCBOR(msg.data);
-      if (decoded && decoded.code && decoded.code == IPFS_MESSAGE_STATE_VERIFICATION_RESPONSE) {
-        this.log.info(`ignoring state verification response message`);
-      } else if (decoded && decoded.code && decoded.code == IPFS_MESSAGE_STATE_VERIFICATION_REQUEST) {
-        await this.handleStateVerificationRequest(decoded as StateVerificationRequestMessage);
-      } else {
-        this.log.warn(`ignoring decoded message with unknown code`);
+      const protoMsg = P2PPubSubMessage.deserializeBinary(msg.data);
+      if (protoMsg.hasStateVerificationRequest()) {
+        await this.handleStateVerificationRequest(protoMsg.getStateVerificationRequest() as StateVerificationRequest);
       }
     } catch (err: any) {
       this.log.error(err.toString() + " " + err.stack);
     }
   }
 
-  async handleStateVerificationRequest(req: StateVerificationRequestMessage): Promise<void> {
+  async handleStateVerificationRequest(req: StateVerificationRequest): Promise<void> {
     this.log.info(`received State verification request - ${stringifyStateVerificationRequest(req)}`);
 
     if (!(await this.acceptStateVerificationRequest(req))) {
       return;
     }
 
-    // Check data availability of each claim.
-    const claimStateChecks = req.claims.map((claim) => this.checkClaimState(claim));
+    // Check all claims concurrently.
+    const claimStateChecks = req.getClaimsList().map((claim) => {
+      return this.checkClaimState(computeClaimFromPB(claim));
+    });
     const claimStateCheckResults = await Promise.all(claimStateChecks);
 
     // Generate and publish State check response message.
     const result: StateCheckResult = {
-      txnBundleHash: req.txnBundleHash,
-      randomnessProof: req.randomnessProof,
+      txnBundleHash: req.getTxnBundleHash() as Uint8Array,
+      randomnessProof: req.getRandomnessProof() as Uint8Array,
       signature: new Uint8Array(),
       signer: this.blsPubKey,
       claims: claimStateCheckResults,
     };
-    const response: StateVerificationResponseMessage = {
-      code: IPFS_MESSAGE_STATE_VERIFICATION_RESPONSE,
-      result: await signStateCheckResult(result, this.blsSecKey),
-    };
+    const signedResult = await signStateCheckResult(result, this.blsSecKey);
 
+    const response = new StateVerificationResponse().setResult(stateCheckResultToPB(signedResult));
     this.log.info(`publishing State verification response - ${stringifyStateVerificationResponse(response)}`);
-    await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, encodeCBOR(response));
+    const msg = new P2PPubSubMessage().setStateVerificationResponse(response);
+    await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, msg.serializeBinary());
   }
 
-  private async acceptStateVerificationRequest(stateReq: StateVerificationRequestMessage): Promise<boolean> {
+  private async acceptStateVerificationRequest(stateReq: StateVerificationRequest): Promise<boolean> {
     // Validate randomness proof (includes verifying coordinator's signature).
     // Check if no is in current State commitee sample and is expected to process request.
-    const randSeed = getSeedFromBlockRandomnessProof(stateReq.randomnessProof);
+    const randSeed = getSeedFromBlockRandomnessProof(stateReq.getRandomnessProof() as Uint8Array);
     const committee = await getVerificationCommitteeSample(
       this.blockchain,
       StakeType.StateVerifier,
