@@ -1,4 +1,3 @@
-import winston from "winston";
 import * as ethers from "ethers";
 import { CID } from "ipfs-http-client";
 import * as Digest from "multiformats/hashes/digest";
@@ -9,6 +8,7 @@ import { DatachainV1__factory } from "../../contracts/factories/DatachainV1__fac
 import { DatachainV1 } from "../../contracts/DatachainV1";
 import { Block } from "../../blockchain/types";
 import { NULL_HASH } from "../../blockchain/constant";
+import { hashSignedTransaction } from "../../blockchain/util";
 import { mintNextBlock } from "../../blockchain/block";
 import { deserializeBlock } from "../../blockchain/serde";
 import { bytesEqual, bytesToHex, bytesFromHex, hashBlock, stringifySignedTransaction } from "../../blockchain/util";
@@ -16,6 +16,7 @@ import { verifyBlockProof } from "../../blockchain/block_proof";
 import { BlockchainStorage } from "../../blockchain/storage";
 import { CoordinatorRPC } from "../../coordinator/src/rpc";
 import { CLIENT_MAX_SUPPORTED_BLOCK_VERSION, CLIENT_MIN_SUPPORTED_BLOCK_VERSION } from "./constant";
+import Logger from "../../log/logger";
 
 export interface BlockchainClientSyncConfig {
   eth: {
@@ -31,7 +32,7 @@ export class BlockchainClientSync {
 
   private readonly config: BlockchainClientSyncConfig;
 
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
 
   private readonly coordinator: CoordinatorRPC;
 
@@ -46,7 +47,7 @@ export class BlockchainClientSync {
     daCommitteeSampleSize: number,
     stateCommitteeSampleSize: number,
     config: BlockchainClientSyncConfig,
-    log: winston.Logger,
+    log: Logger,
     coordinator: CoordinatorRPC,
     ipfs: IPFS,
     storage: BlockchainStorage,
@@ -208,6 +209,14 @@ export class BlockchainClientSync {
     if (rejectedTxns.length > 0) {
       throw new Error(`failed to apply 1 or more transactions from new block`);
     }
+
+    // Trace updates of world state and chain.
+    for (const txn of block.transactions) {
+      const txnHash = hashSignedTransaction(txn);
+      this.log.info("transaction applied", ["state", "trace"], { txn: txn, txnHash: txnHash });
+    }
+
+    this.log.debug("new world state", ["state", "trace"], { state: state });
 
     await this.storage.commitNextBlock(state, nextBlock);
   }

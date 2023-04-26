@@ -1,4 +1,3 @@
-import winston from "winston";
 import { IPFS } from "../node/ipfs";
 import JSONbigint from "json-bigint";
 
@@ -15,11 +14,12 @@ import {
   StateVerificationResponse,
   StateVerificationRequest,
 } from "../../src/proto/grpcjs/p2p_pb";
+import Logger from "../log/logger";
 
 export async function keepConnectedToSwarm(
   swarmPrefix: string,
   ipfs: IPFS,
-  log: winston.Logger,
+  log: Logger,
   interval: number,
 ): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-empty-function

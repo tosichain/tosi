@@ -1,4 +1,3 @@
-import winston from "winston";
 import mysql from "mysql";
 
 import { WorldState, SignedTransaction, Block, Account, DataChain, ComputeClaim, StakePool } from "./types";
@@ -13,6 +12,7 @@ import {
   serializeWorldState,
 } from "./serde";
 import { GENESIS_BLOCK_VERSION, NULL_HASH } from "./constant";
+import Logger from "../log/logger";
 
 const DB_KEY_HEAD_BLOCK = "headBlock";
 const DB_KEY_STATE_VALUE = "value";
@@ -29,9 +29,9 @@ export interface BlockchainStorageConfig {
 export class BlockchainStorage {
   private readonly config: BlockchainStorageConfig;
 
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
   private readonly db: mysql.Pool;
-  constructor(config: BlockchainStorageConfig, log: winston.Logger) {
+  constructor(config: BlockchainStorageConfig, log: Logger) {
     this.config = config;
 
     this.log = log;
@@ -230,7 +230,9 @@ export class BlockchainStorage {
     await this.putValue("main", DB_KEY_HEAD_BLOCK, nextBlockHash);
     await this.putValue("state", DB_KEY_STATE_VALUE, serializeWorldState(state));
     await this.putValue("block", bytesToHex(nextBlockHash), rawBlock);
-    this.log.info(`block ${bytesToHex(nextBlockHash)} committed to storage`);
+    this.log.info("block committed to storage", ["storage", "chain"], { blockHash: nextBlockHash });
+
+    this.log.debug("new head block", ["storage", "chain"], { block: block, blockHash: nextBlockHash });
 
     // Remove block transactions from mempool.
     for (const txn of block.transactions) {
