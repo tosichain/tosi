@@ -12,6 +12,7 @@ COPY [ "src/contracts", "./src/contracts" ]
 COPY [ "src/coordinator/src/rpc.ts", "./src/coordinator/src/rpc.ts" ]
 COPY [ "src/p2p", "./src/p2p" ]
 COPY [ "src/proto", "./src/proto"]
+COPY [ "src/log", "./src/log"]
 
 # "Indirect" dependencies from computechain source.
 

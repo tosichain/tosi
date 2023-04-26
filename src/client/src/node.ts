@@ -1,4 +1,3 @@
-import winston from "winston";
 import * as IpfsHttpClient from "ipfs-http-client";
 import { CID } from "ipfs-http-client";
 import * as BLS from "@noble/bls12-381";
@@ -16,6 +15,7 @@ import { createDAInfo, prepopulate } from "./util";
 import { DEFAULT_CARTESI_VM_MAX_CYCLES, SWARM_PING_INTERVAL } from "./constant";
 import { keepConnectedToSwarm } from "../../p2p/util";
 import { StateVerifier, StateVerifierConfig } from "./state_verifer";
+import Logger from "../../log/logger";
 
 export interface ClientNodeConfig {
   coordinator: CoordinatorRPCConfig;
@@ -54,7 +54,7 @@ export class ClientNode {
   private readonly config: ClientNodeConfig;
   private readonly blsPubKey: Uint8Array;
 
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
 
   private readonly coordinator: CoordinatorRPC;
 
@@ -67,7 +67,7 @@ export class ClientNode {
   private readonly stateVerifier: StateVerifier | undefined;
   private readonly apiServer: ClientNodeRPCServer;
 
-  constructor(config: ClientNodeConfig, log: winston.Logger) {
+  constructor(config: ClientNodeConfig, log: Logger) {
     this.config = config;
     this.blsPubKey = BLS.getPublicKey(this.config.blsSecKey);
 

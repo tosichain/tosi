@@ -1,10 +1,10 @@
 import * as IpfsHttpClient from "ipfs-http-client";
-import winston from "winston";
 import * as ethers from "ethers";
 import { IPFS } from "../../node/ipfs";
 import * as BLS from "@noble/bls12-381";
 
 import { currentUnixTime } from "../../util";
+import Logger from "../../log/logger";
 
 import {
   SignedTransaction,
@@ -77,7 +77,7 @@ export class CoordinatorNode {
   private readonly config: CoordinatorNodeConfig;
   private readonly blsPubKey: Uint8Array;
 
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
 
   private readonly storage: BlockchainStorage;
   private readonly ipfs: IPFS;
@@ -92,7 +92,7 @@ export class CoordinatorNode {
   private daManager: DAVerificationManager;
   private stateManager: StateVerificationManager;
 
-  constructor(config: CoordinatorNodeConfig, logger: winston.Logger) {
+  constructor(config: CoordinatorNodeConfig, logger: Logger) {
     this.config = config;
 
     this.log = logger;
@@ -300,12 +300,16 @@ export class CoordinatorNode {
           blockTime,
         );
         for (const txn of acceptedTxns) {
-          this.log.info(`transaction ${stringifySignedTransaction(txn)} accepted`);
+          const txnHash = hashSignedTransaction(txn);
+          this.log.info("transaction applied", ["state", "trace"], { txn: txn, txnHash: txnHash });
         }
         for (const [txn, err] of rejectedTxns) {
-          this.log.info(`transaction ${stringifySignedTransaction(txn)} rejected - ${err.message}`);
+          const txnHash = hashSignedTransaction(txn);
+          this.log.info(`transaction rejected`, ["state"], { txn: txn, txnHash: txnHash, reason: err.message });
           await this.storage.removePendingTransaction(txn);
         }
+
+        this.log.debug("new world state", ["state", "trace"], { state: state });
 
         // Commit minted block;
         const blockHash = hashBlock(nextBlock);

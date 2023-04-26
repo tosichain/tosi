@@ -1,7 +1,8 @@
 import * as IpfsHttpClient from "ipfs-http-client";
 import { CID } from "multiformats";
 import { encode, decode } from "@ipld/dag-cbor";
-import winston from "winston";
+
+import Logger from "../log/logger";
 
 export type IPFSOptions = IpfsHttpClient.Options;
 export type PubSubMessage = { from: string; seqno: Uint8Array; data: Uint8Array; topicIDs: Array<string> };
@@ -10,10 +11,10 @@ export class IPFS {
   private ipfs: IpfsHttpClient.IPFSHTTPClient;
   private ipfsForPubSub: IpfsHttpClient.IPFSHTTPClient;
 
-  private logger: winston.Logger;
+  private logger: Logger;
   id: string | undefined;
 
-  constructor(options: IpfsHttpClient.Options, logger: winston.Logger) {
+  constructor(options: IpfsHttpClient.Options, logger: Logger) {
     this.ipfs = IpfsHttpClient.create(options);
     this.ipfsForPubSub = IpfsHttpClient.create(options);
 
@@ -55,7 +56,7 @@ export class IPFS {
     return this.ipfsForPubSub;
   }
 
-  async up(logger: winston.Logger): Promise<void> {
+  async up(logger: Logger): Promise<void> {
     logger.info("Waiting for IPFS..");
     while (true) {
       try {

@@ -1,5 +1,6 @@
 import { Server, ServerCredentials, ServerUnaryCall, sendUnaryData } from "@grpc/grpc-js";
-import winston from "winston";
+
+import Logger from "../../log/logger";
 
 import {
   SignedTransaction,
@@ -72,11 +73,11 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
   [method: string]: any;
 
   private readonly config: CoordinatorRPCServerConfig;
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
   private readonly handler: RequestHandler;
   private readonly grpc: Server;
 
-  constructor(config: CoordinatorRPCServerConfig, logger: winston.Logger, handler: RequestHandler) {
+  constructor(config: CoordinatorRPCServerConfig, logger: Logger, handler: RequestHandler) {
     this.config = config;
     this.log = logger;
     this.handler = handler;

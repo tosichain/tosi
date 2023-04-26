@@ -10,6 +10,7 @@ COPY [ "src/blockchain", "./src/blockchain" ]
 COPY [ "src/p2p", "./src/p2p" ]
 COPY [ "src/contracts", "./src/contracts" ]
 COPY [ "src/proto", "./src/proto"]
+COPY [ "src/log", "./src/log"]
 
 # "Indirect" dependencies from computechain source.
 

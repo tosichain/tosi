@@ -56,27 +56,27 @@ export function createInitialStateFromEnv(): WorldState {
 
 export function hashSignedTransaction(txn: SignedTransaction): Uint8Array {
   const rawTxn = serializeSignedTransaction(txn);
-  return keccak256(Buffer.from(rawTxn));
+  return Uint8Array.from(keccak256(Buffer.from(rawTxn)));
 }
 
 export function hashTransaction(txn: Transaction): Uint8Array {
   const rawTxn = serializeTransaction(txn);
-  return keccak256(Buffer.from(rawTxn));
+  return Uint8Array.from(keccak256(Buffer.from(rawTxn)));
 }
 
 export function hashBlock(block: Block): Uint8Array {
   const rawBlock = serializeBlock(block);
-  return keccak256(Buffer.from(rawBlock));
+  return Uint8Array.from(keccak256(Buffer.from(rawBlock)));
 }
 
 export function hashComputeClaim(claim: ComputeClaim): Uint8Array {
   const rawClaim = serializeComputeClaim(claim);
-  return keccak256(Buffer.from(rawClaim));
+  return Uint8Array.from(keccak256(Buffer.from(rawClaim)));
 }
 
 export function hashTransactionBundle(txnBundle: TransactionBundle): Uint8Array {
   const rawBundle = serializeTransactionBundle(txnBundle);
-  return keccak256(Buffer.from(rawBundle));
+  return Uint8Array.from(keccak256(Buffer.from(rawBundle)));
 }
 
 export function stringifyTransaction(txn: Transaction): string {

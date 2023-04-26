@@ -1,4 +1,3 @@
-import winston from "winston";
 import { NodeSSH } from "node-ssh";
 import { CID } from "ipfs-http-client";
 
@@ -6,10 +5,11 @@ import { IPFS } from "../../node/ipfs";
 
 import { DAInfo } from "../../blockchain/types";
 import { bytesFromHex } from "../../blockchain/util";
+import Logger from "../../log/logger";
 
 export async function createDAInfo(
   ipfs: IPFS,
-  log: winston.Logger,
+  log: Logger,
   path: string,
   timeout: number,
   car: boolean,
@@ -27,7 +27,7 @@ export async function createDAInfo(
   } as DAInfo;
 }
 
-export async function prepopulate(ipfs: IPFS, log: winston.Logger): Promise<void> {
+export async function prepopulate(ipfs: IPFS, log: Logger): Promise<void> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
   const script = "/app/prepopulate.sh";
   const command = `IPFS_API=/dns4/${host}/tcp/${port} ${script}`;
@@ -50,7 +50,7 @@ interface TaskResult {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function execTask(
   ipfs: IPFS,
-  log: winston.Logger,
+  log: Logger,
   functionCID: CID,
   prevOutputCID: CID,
   inputCID: CID,
@@ -69,7 +69,7 @@ export interface CommandResult {
 }
 
 export async function execCommand(
-  log: winston.Logger,
+  log: Logger,
   command: string,
   env?: NodeJS.ProcessEnv,
 ): Promise<CommandResult> {

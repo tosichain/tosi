@@ -1,8 +1,8 @@
 import process from "process";
-import winston from "winston";
 
 import { ClientNodeConfig, ClientNode } from "./node";
 import { bytesFromHex, createInitialStateFromEnv } from "../../blockchain/util";
+import Logger from "../../log/logger";
 
 (async () => {
   const config: ClientNodeConfig = {
@@ -53,17 +53,7 @@ import { bytesFromHex, createInitialStateFromEnv } from "../../blockchain/util";
     config.roles.stateVerifier = undefined;
   }
 
-  const log = winston.createLogger({
-    level: "debug",
-    format: winston.format.json(),
-    defaultMeta: { service: "tosi-client" },
-    transports: [],
-  });
-  log.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    }),
-  );
+  const log = new Logger("tosi-client", "debug");
 
   const node = new ClientNode(config, log);
   await node.start();
