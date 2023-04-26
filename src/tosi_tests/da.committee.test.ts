@@ -48,7 +48,7 @@ let daVerifier3: ClientRPC;
 let ipfs: IPFS;
 
 before(async () => {
-  const log = new Logger({ name: "tosi-claim-verificatoin-test" });
+  log = new Logger({ name: "tosi-claim-verificatoin-test" });
 
   coordinator = new CoordinatorRPC({
     serverAddr: "127.0.0.1:20001",
