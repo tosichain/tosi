@@ -300,7 +300,7 @@ export class CoordinatorNode {
           blockTime,
         );
         for (const txn of acceptedTxns) {
-          this.log.info(`transaction ${stringifySignedTransaction(txn)} accepted`);
+          this.log.info({ tags: "core" }, `transaction ${stringifySignedTransaction(txn)} accepted`);
         }
         for (const [txn, err] of rejectedTxns) {
           this.log.info(`transaction ${stringifySignedTransaction(txn)} rejected - ${err.message}`);

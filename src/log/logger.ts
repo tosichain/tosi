@@ -5,7 +5,7 @@ const DEFAULT_LEVEL: keyof typeof LEVELS = "info";
 
 export interface LoggerOptions {
   name?: string;
-  tags?: string[];
+  tags?: string[] | string;
   details?: any;
 }
 
@@ -16,7 +16,7 @@ export interface LoggerOptions {
  */
 export default class Logger {
   readonly name: string | undefined;
-  readonly tags: string[];
+  readonly tags: string[] | string;
   private details: any;
   private levelNumber: number;
   private winston = winston; // This is here for unit testing.

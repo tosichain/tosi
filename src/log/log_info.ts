@@ -1,7 +1,7 @@
 export interface LogInfo {
   "@timestamp"?: string;
   message?: string;
-  tags?: string[];
+  tags?: string[] | string;
   details?: any;
   err?: Error;
 }
@@ -57,7 +57,7 @@ export function sanitizeLogInfo(
   level: string,
   message: string,
   info: LogInfo,
-  loggerTags: string[] | undefined,
+  loggerTags: string[] | string | undefined,
 ): SanitizedLogInfo {
   const result: SanitizedLogInfo = {
     level,
