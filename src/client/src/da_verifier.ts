@@ -1,4 +1,3 @@
-import winston from "winston";
 import * as BLS from "@noble/bls12-381";
 import { CID } from "ipfs-http-client";
 
@@ -27,6 +26,7 @@ import {
 } from "../../p2p/util";
 import { createDAInfo } from "./util";
 import { P2PPubSubMessage, DAVerificationRequest, DAVerificationResponse } from "../../proto/grpcjs/p2p_pb";
+import Logger from "../../log/logger";
 
 export interface DAVerifierConfig {
   DACheckTimeout: number;
@@ -41,7 +41,7 @@ export class DAVerifier {
   private readonly daCommitteeSampleSize: number;
 
   private readonly config: DAVerifierConfig;
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
 
   private readonly ipfs: IPFS;
 
@@ -55,7 +55,7 @@ export class DAVerifier {
     cooridnatorPubKey: Uint8Array,
     daCommitteeSampleSize: number,
     config: DAVerifierConfig,
-    log: winston.Logger,
+    log: Logger,
     ipfs: IPFS,
     blockchain: BlockchainStorage,
   ) {

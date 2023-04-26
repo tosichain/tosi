@@ -3,7 +3,6 @@
 import { expect } from "chai";
 import chai from "chai";
 import chaiAsPromised from "chai-as-promised";
-import winston from "winston";
 import * as BLS from "@noble/bls12-381";
 import { CID } from "ipfs-http-client";
 
@@ -16,6 +15,7 @@ import { CoordinatorRPC } from "../coordinator/src/rpc";
 import { ClientRPC } from "../client/src/rpc";
 import { IPFS } from "../node/ipfs";
 import { hashComputeClaim } from "../blockchain/util";
+import Logger from "../log/logger";
 
 const FAKE_CID = "bafybeibnikymft2ikuygct6phxedz7x623cqlvcwxztedds5fzbb5mhdk4";
 const FUNCTION_CID = "bafybeihordq4yjtlp43mzrk7sn5h5vd25hdtvn6xjzvtt4jeejcvuqqbe4";
@@ -39,7 +39,7 @@ const daVerifier2PubKey = BLS.getPublicKey(daVerifier2PrivKey);
 const daVerifier3PrivKey = Buffer.from("34a4db75366744ce1aef1702a981dac83bede3c90e8777dfb47d1992d557da7e", "hex");
 const daVerifier3PubKey = BLS.getPublicKey(daVerifier3PrivKey);
 
-let log: winston.Logger;
+let log: Logger;
 let coordinator: CoordinatorRPC;
 let client: ClientRPC;
 let daVerifier1: ClientRPC;
@@ -48,17 +48,7 @@ let daVerifier3: ClientRPC;
 let ipfs: IPFS;
 
 before(async () => {
-  log = winston.createLogger({
-    level: "debug",
-    format: winston.format.json(),
-    defaultMeta: { service: "tosi.network.test" },
-    transports: [],
-  });
-  log.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    }),
-  );
+  const log = new Logger({ name: "tosi-claim-verificatoin-test" });
 
   coordinator = new CoordinatorRPC({
     serverAddr: "127.0.0.1:20001",

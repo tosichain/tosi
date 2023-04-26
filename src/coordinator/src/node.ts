@@ -1,10 +1,10 @@
 import * as IpfsHttpClient from "ipfs-http-client";
-import winston from "winston";
 import * as ethers from "ethers";
 import { IPFS } from "../../node/ipfs";
 import * as BLS from "@noble/bls12-381";
 
 import { currentUnixTime } from "../../util";
+import Logger from "../../log/logger";
 
 import {
   SignedTransaction,
@@ -77,7 +77,7 @@ export class CoordinatorNode {
   private readonly config: CoordinatorNodeConfig;
   private readonly blsPubKey: Uint8Array;
 
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
 
   private readonly storage: BlockchainStorage;
   private readonly ipfs: IPFS;
@@ -92,7 +92,7 @@ export class CoordinatorNode {
   private daManager: DAVerificationManager;
   private stateManager: StateVerificationManager;
 
-  constructor(config: CoordinatorNodeConfig, logger: winston.Logger) {
+  constructor(config: CoordinatorNodeConfig, logger: Logger) {
     this.config = config;
 
     this.log = logger;

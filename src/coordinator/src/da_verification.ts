@@ -1,5 +1,3 @@
-import winston from "winston";
-
 import { IPFS } from "../../node/ipfs";
 
 import { Account, ComputeClaim, DACheckResult, SignedTransaction, TransactionBundle } from "../../blockchain/types";
@@ -17,6 +15,7 @@ import { IPFSPubSubMessage } from "../../p2p/types";
 import { DACheckResult as PBDACheckResult } from "../../proto/grpcjs/blockchain_pb";
 import { P2PPubSubMessage, DAVerificationRequest, DAVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 import { stringifyPubSubMessage, stringifyDAVerificationResponse } from "../../p2p/util";
+import Logger from "../../log/logger";
 
 export interface DAVerificationManagerConfig {
   RequestBroadcastPeriod: number;
@@ -42,13 +41,13 @@ interface DACheckProcess {
 
 export class DAVerificationManager {
   private readonly config: DAVerificationManagerConfig;
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
 
   private ipfs: IPFS;
 
   private readonly process: DACheckProcess;
 
-  constructor(config: DAVerificationManagerConfig, log: winston.Logger, ipfs: IPFS) {
+  constructor(config: DAVerificationManagerConfig, log: Logger, ipfs: IPFS) {
     this.config = config;
     this.log = log;
 

@@ -1,4 +1,3 @@
-import winston from "winston";
 import * as ethers from "ethers";
 import { CID } from "ipfs-http-client";
 import * as Digest from "multiformats/hashes/digest";
@@ -16,6 +15,7 @@ import { verifyBlockProof } from "../../blockchain/block_proof";
 import { BlockchainStorage } from "../../blockchain/storage";
 import { CoordinatorRPC } from "../../coordinator/src/rpc";
 import { CLIENT_MAX_SUPPORTED_BLOCK_VERSION, CLIENT_MIN_SUPPORTED_BLOCK_VERSION } from "./constant";
+import Logger from "../../log/logger";
 
 export interface BlockchainClientSyncConfig {
   eth: {
@@ -31,7 +31,7 @@ export class BlockchainClientSync {
 
   private readonly config: BlockchainClientSyncConfig;
 
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
 
   private readonly coordinator: CoordinatorRPC;
 
@@ -46,7 +46,7 @@ export class BlockchainClientSync {
     daCommitteeSampleSize: number,
     stateCommitteeSampleSize: number,
     config: BlockchainClientSyncConfig,
-    log: winston.Logger,
+    log: Logger,
     coordinator: CoordinatorRPC,
     ipfs: IPFS,
     storage: BlockchainStorage,

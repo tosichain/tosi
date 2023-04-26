@@ -1,8 +1,8 @@
 import process from "process";
-import winston from "winston";
 
 import { CoordinatorNodeConfig, CoordinatorNode } from "./node";
 import { bytesFromHex, createInitialStateFromEnv } from "../../blockchain/util";
+import Logger from "../../log/logger";
 
 (async () => {
   const config: CoordinatorNodeConfig = {
@@ -45,19 +45,9 @@ import { bytesFromHex, createInitialStateFromEnv } from "../../blockchain/util";
     },
   };
 
-  const logger = winston.createLogger({
-    level: "debug",
-    format: winston.format.json(),
-    defaultMeta: { service: "tosi-coordinator" },
-    transports: [],
-  });
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    }),
-  );
+  const log = new Logger({ name: "tosi-coordinator" });
 
-  const node = new CoordinatorNode(config, logger);
+  const node = new CoordinatorNode(config, log);
   await node.start();
 })().catch((err) => {
   // eslint-disable-next-line no-console

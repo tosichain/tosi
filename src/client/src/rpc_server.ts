@@ -1,6 +1,5 @@
 import { CID } from "ipfs-http-client";
 import { Server, ServerCredentials, ServerUnaryCall, sendUnaryData } from "@grpc/grpc-js";
-import winston from "winston";
 
 import { Transaction, Account, StakeType, DataChain, Block } from "../../blockchain/types";
 import {
@@ -46,7 +45,7 @@ import {
 } from "../../proto/grpcjs/client_pb";
 import { ClientNodeService, IClientNodeServer } from "../../proto/grpcjs/client_grpc_pb";
 import { CreateDatachainParameters, UpdateDatachainParameters } from "./node";
-import { stringifyTransaction } from "../../blockchain/util";
+import Logger from "../../log/logger";
 
 export interface RequestHandler {
   getBlock(blockHash: Uint8Array): Promise<Block | undefined>;
@@ -72,11 +71,11 @@ export class ClientNodeRPCServer implements IClientNodeServer {
   [method: string]: any;
 
   private readonly config: ClientNodeRPCServerConfig;
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
   private readonly handler: RequestHandler;
   private readonly grpc: Server;
 
-  constructor(config: ClientNodeRPCServerConfig, logger: winston.Logger, handler: RequestHandler) {
+  constructor(config: ClientNodeRPCServerConfig, logger: Logger, handler: RequestHandler) {
     this.config = config;
     this.log = logger;
     this.handler = handler;

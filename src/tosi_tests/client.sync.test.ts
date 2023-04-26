@@ -3,7 +3,6 @@
 import { expect } from "chai";
 import chai from "chai";
 import chaiAsPromised from "chai-as-promised";
-import winston from "winston";
 import * as BLS from "@noble/bls12-381";
 
 chai.use(chaiAsPromised);
@@ -14,6 +13,7 @@ import { signTransaction } from "../blockchain/block";
 import { serializeBlock } from "../blockchain/serde";
 import { CoordinatorRPC } from "../coordinator/src/rpc";
 import { ClientRPC } from "../client/src/rpc";
+import Logger from "../log/logger";
 
 const INAVLID_TXN_WAIT_PERIOD = 10000; // 10 seconds (it depends on block period, specified in docker compose)
 
@@ -26,22 +26,12 @@ const accOnePubKey = Buffer.from(BLS.getPublicKey(accOnePrivKey));
 const accTwoPrivKey = Buffer.from(BLS.utils.randomPrivateKey());
 const accTwoPubKey = Buffer.from(BLS.getPublicKey(accTwoPrivKey));
 
-let log: winston.Logger;
+let log: Logger;
 let coordinator: CoordinatorRPC;
 let client: ClientRPC;
 
 before(async () => {
-  log = winston.createLogger({
-    level: "debug",
-    format: winston.format.json(),
-    defaultMeta: { service: "tosi.network.test" },
-    transports: [],
-  });
-  log.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    }),
-  );
+  const log = new Logger({ name: "tosi-client-sync-test" });
 
   coordinator = new CoordinatorRPC({
     serverAddr: "127.0.0.1:20001",

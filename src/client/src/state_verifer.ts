@@ -1,4 +1,3 @@
-import winston from "winston";
 import * as BLS from "@noble/bls12-381";
 import { CID } from "ipfs-http-client";
 
@@ -19,6 +18,7 @@ import {
 } from "../../p2p/util";
 import { execTask } from "./util";
 import { P2PPubSubMessage, StateVerificationRequest, StateVerificationResponse } from "../../proto/grpcjs/p2p_pb";
+import Logger from "../../log/logger";
 
 export interface StateVerifierConfig {
   stateCheckTimeout: number;
@@ -33,7 +33,7 @@ export class StateVerifier {
   private readonly stateCommitteeSampleSize: number;
 
   private readonly config: StateVerifierConfig;
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
 
   private readonly ipfs: IPFS;
 
@@ -45,7 +45,7 @@ export class StateVerifier {
     cooridnatorPubKey: Uint8Array,
     stateCommitteeSampleSize: number,
     config: StateVerifierConfig,
-    log: winston.Logger,
+    log: Logger,
     ipfs: IPFS,
     blockchain: BlockchainStorage,
   ) {

@@ -14,9 +14,6 @@ export interface SanitizedLogInfo extends LogInfo {
   message: string;
   name?: string;
   droppedFields?: string[];
-  src?: {
-    file: string;
-  };
 }
 
 /**
@@ -57,7 +54,6 @@ function sanitizeTags(tags: string | string[] | undefined) {
 
 export function sanitizeLogInfo(
   loggerName: string | undefined,
-  loggerFilename: string | undefined,
   level: string,
   message: string,
   info: LogInfo,
@@ -81,12 +77,6 @@ export function sanitizeLogInfo(
   const droppedFields = findExtraFields(info);
   if (droppedFields) {
     result.droppedFields = droppedFields;
-  }
-
-  if (loggerFilename) {
-    result.src = {
-      file: loggerFilename,
-    };
   }
 
   if (info.details) {

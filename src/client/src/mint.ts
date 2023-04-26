@@ -1,11 +1,7 @@
-import winston from "winston";
-
 import { Transaction } from "../../blockchain/types";
 import { bytesFromHex } from "../../blockchain/util";
 import { signTransaction } from "../../blockchain/block";
 import { CoordinatorRPC } from "../../coordinator/src/rpc";
-
-let log: winston.Logger;
 
 async function init() {
   // Get the minter private key from the environment variable.
@@ -43,17 +39,6 @@ async function init() {
   }
   const nonce = Number(nonceStr);
 
-  log = winston.createLogger({
-    level: "debug",
-    format: winston.format.json(),
-    defaultMeta: { service: "tosi.network.test" },
-    transports: [],
-  });
-  log.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    }),
-  );
   // Create a transaction object with the provided values.
   const txn: Transaction = {
     mint: {

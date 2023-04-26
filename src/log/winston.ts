@@ -19,7 +19,7 @@ winston.addColors(COLORS);
 const logger = winston.createLogger({
   transports: [
     new winston.transports.Console({
-      format: winston.format.combine(winston.format.colorize({ message: true })),
+      format: winston.format.combine(winston.format.simple(), winston.format.colorize({ message: true })),
     }),
   ],
 });

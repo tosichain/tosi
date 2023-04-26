@@ -6,7 +6,6 @@ const DEFAULT_LEVEL: keyof typeof LEVELS = "info";
 export interface LoggerOptions {
   name?: string;
   tags?: string[];
-  filename?: string;
   details?: any;
 }
 
@@ -17,11 +16,10 @@ export interface LoggerOptions {
  */
 export default class Logger {
   readonly name: string | undefined;
-  readonly filename: string | undefined;
   readonly tags: string[];
-  private _details: any;
-  private _levelNumber: number;
-  private _winston = winston; // This is here for unit testing.
+  private details: any;
+  private levelNumber: number;
+  private winston = winston; // This is here for unit testing.
 
   /**
    * Create a new Logger.
@@ -30,7 +28,6 @@ export default class Logger {
    * @param [options.name] - The name of this logger.
    * @param [options.tags] - Array of one or more tags to add to this logger.
    *   This may be overridden by explicitly providing tags in a LogInfo object.
-   * @param [options.filename] - Name of the file this logger was created from.
    * @param [options.details] - Details to include with every message logged by
    *   this logger.  May be overridden by explicitly providing details in a
    *   logInfo object.
@@ -38,9 +35,8 @@ export default class Logger {
   constructor(options: LoggerOptions = {}) {
     this.name = options.name;
     this.tags = options.tags || [];
-    this.filename = options.filename;
-    this._details = options.details;
-    this._levelNumber = LEVELS[DEFAULT_LEVEL];
+    this.details = options.details;
+    this.levelNumber = LEVELS[DEFAULT_LEVEL];
   }
 
   debug(message: string): void;
@@ -99,8 +95,8 @@ export default class Logger {
       info = {};
     }
 
-    if (!info.details && this._details) {
-      info.details = this._details;
+    if (!info.details && this.details) {
+      info.details = this.details;
     }
 
     // If there's an error, and no message, set the message.
@@ -108,9 +104,9 @@ export default class Logger {
       message = info.err.toString && info.err.toString();
     }
 
-    const entry = sanitizeLogInfo(this.name, this.filename, level, message || "", info, this.tags);
+    const entry = sanitizeLogInfo(this.name, level, message || "", info, this.tags);
 
-    this._winston.log(entry);
+    this.winston.log(entry);
   }
 
   /**
@@ -124,6 +120,6 @@ export default class Logger {
     if (levelNumber === undefined) {
       return false;
     }
-    return levelNumber <= this._levelNumber;
+    return levelNumber <= this.levelNumber;
   }
 }

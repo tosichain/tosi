@@ -1,5 +1,3 @@
-import winston from "winston";
-
 import { IPFS } from "../../node/ipfs";
 
 import { Account, ComputeClaim, SignedTransaction, StateCheckResult, TransactionBundle } from "../../blockchain/types";
@@ -20,6 +18,7 @@ import { IPFSPubSubMessage } from "../../p2p/types";
 import { stringifyPubSubMessage, stringifyStateVerificationResponse } from "../../p2p/util";
 import { StateCheckResult as PBStateCheckResult } from "../../proto/grpcjs/blockchain_pb";
 import { P2PPubSubMessage, StateVerificationRequest, StateVerificationResponse } from "../../proto/grpcjs/p2p_pb";
+import Logger from "../../log/logger";
 
 export interface StateVerificationManagerConfig {
   RequestBroadcastPeriod: number;
@@ -46,13 +45,13 @@ interface StateCheckProcess {
 // Computation result verification.
 export class StateVerificationManager {
   private readonly config: StateVerificationManagerConfig;
-  private readonly log: winston.Logger;
+  private readonly log: Logger;
 
   private ipfs: IPFS;
 
   private readonly process: StateCheckProcess;
 
-  constructor(config: StateVerificationManagerConfig, log: winston.Logger, ipfs: IPFS) {
+  constructor(config: StateVerificationManagerConfig, log: Logger, ipfs: IPFS) {
     this.config = config;
     this.log = log;
 
