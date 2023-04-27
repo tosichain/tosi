@@ -300,10 +300,10 @@ export class CoordinatorNode {
           blockTime,
         );
         for (const txn of acceptedTxns) {
-          this.log.info({ tags: "core" }, `transaction ${stringifySignedTransaction(txn)} accepted`);
+          this.log.info(`transaction ${stringifySignedTransaction(txn)} accepted`, ["core", "state"]);
         }
         for (const [txn, err] of rejectedTxns) {
-          this.log.info(`transaction ${stringifySignedTransaction(txn)} rejected - ${err.message}`);
+          this.log.info(`transaction ${stringifySignedTransaction(txn)} rejected`, ["core"], { reason: err.message });
           await this.storage.removePendingTransaction(txn);
         }
 
