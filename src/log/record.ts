@@ -1,3 +1,13 @@
+import { configure } from "safe-stable-stringify";
+import MerkleTree from "merkletreejs";
+
+import { bytesToHex } from "../blockchain/util";
+
+const stringify = configure({
+  bigint: true,
+  deterministic: true,
+});
+
 export interface LogRecord {
   "@timestamp"?: string;
   message: string;
@@ -39,11 +49,7 @@ export function sanitizeLogRecord(
     if (typeof record.details === "string") {
       result.details = record.details;
     } else {
-      try {
-        result.details = JSON.stringify(record.details);
-      } catch (err: any) {
-        result.details = `Logger could not stringify: ${err.toString()}`;
-      }
+      result.details = stringifyObject(record.details);
     }
   }
 
@@ -63,4 +69,17 @@ function sanitizeTags(tags: string | string[]): string[] {
   }
 
   return result;
+}
+
+function stringifyObject(object: any): string | undefined {
+  return stringify(object, (key: string, value: any): any => {
+    if (value instanceof Uint8Array) {
+      return bytesToHex(value);
+    } else if (value instanceof Buffer) {
+      return bytesToHex(Uint8Array.from(value));
+    } else if (value instanceof MerkleTree) {
+      return value.getHexRoot();
+    }
+    return value;
+  });
 }

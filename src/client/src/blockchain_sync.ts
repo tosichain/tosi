@@ -209,6 +209,12 @@ export class BlockchainClientSync {
       throw new Error(`failed to apply 1 or more transactions from new block`);
     }
 
+    // Trace updates of world state and chain.
+    for (const txn of block.transactions) {
+      this.log.debug("transaction applied", "statetrace", { txn: txn.txn });
+    }
+    this.log.debug("new world state", "statetrace", { state: state });
+
     await this.storage.commitNextBlock(state, nextBlock);
   }
 

@@ -1,7 +1,7 @@
 import { default as winston, LEVELS } from "./winston";
 import { LogRecord, sanitizeLogRecord } from "./record";
 
-const DEFAULT_LEVEL: keyof typeof LEVELS = "info";
+const DEFAULT_LEVEL: keyof typeof LEVELS = "debug";
 
 export interface LoggerOptions {
   name?: string;
