@@ -53,7 +53,7 @@ import Logger from "../../log/logger";
     config.roles.stateVerifier = undefined;
   }
 
-  const log = new Logger({ name: "tosi-client" });
+  const log = new Logger("tosi-client", "debug");
 
   const node = new ClientNode(config, log);
   await node.start();

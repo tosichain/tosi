@@ -9,15 +9,11 @@ const stringify = configure({
 });
 
 export interface LogRecord {
-  "@timestamp"?: string;
   message: string;
   tags?: string[] | string;
   details?: any;
   err?: Error;
 }
-
-// Fields, allowed in log record.
-export const ALLOWED_FIELDS = ["@timestamp", "message", "tags", "details", "err"];
 
 export interface SanitizedLogRecord extends LogRecord {
   level: string;
@@ -60,15 +56,14 @@ export function sanitizeLogRecord(
   return result;
 }
 
-function sanitizeTags(tags: string | string[]): string[] {
+function sanitizeTags(tags: string | string[]): string {
   let result: string[] = [];
   if (Array.isArray(tags)) {
     result = tags;
-  } else if (typeof (tags === "string")) {
+  } else if (typeof (tags == "string")) {
     result = [tags];
   }
-
-  return result;
+  return JSON.stringify(result);
 }
 
 function stringifyObject(object: any): string | undefined {

@@ -45,7 +45,7 @@ import Logger from "../../log/logger";
     },
   };
 
-  const log = new Logger({ name: "tosi-coordinator" });
+  const log = new Logger("tosi-coordinator", "debug");
 
   const node = new CoordinatorNode(config, log);
   await node.start();

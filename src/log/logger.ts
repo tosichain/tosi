@@ -1,55 +1,54 @@
-import { default as winston, LEVELS } from "./winston";
+import winston from "winston";
+const { combine, printf, colorize } = winston.format;
+
 import { LogRecord, sanitizeLogRecord } from "./record";
 
-const DEFAULT_LEVEL: keyof typeof LEVELS = "debug";
+winston.addColors({
+  error: "red",
+  warn: "yellow",
+  info: "green",
+  debug: "cyan",
+});
 
 export interface LoggerOptions {
   name?: string;
+  level?: string;
 }
 
 export default class Logger {
-  private readonly level: number;
-  private readonly name: string | undefined;
-  private readonly winston = winston;
+  private readonly name: string;
+  private readonly winston: winston.Logger;
 
-  constructor(options: LoggerOptions = {}) {
-    this.name = options.name;
-    this.level = LEVELS[DEFAULT_LEVEL];
+  constructor(name: string, level: string) {
+    this.name = name;
+
+    this.winston = winston.createLogger({
+      level: level,
+      transports: [
+        new winston.transports.Console({
+          format: combine(colorize({ level: true }), printf(formatter)),
+        }),
+      ],
+    });
   }
 
   debug(message: string, tags?: string[] | string, details?: any): void {
     this.log("debug", message, tags, details);
   }
-  isDebugEnabled(): boolean {
-    return this.isLevelEnabled("debug");
-  }
 
   info(message: string, tags?: string[] | string, details?: any): void {
     this.log("info", message, tags, details);
-  }
-  isInfoEnabled(): boolean {
-    return this.isLevelEnabled("info");
   }
 
   warn(message: string, tags?: string[] | string, details?: any): void {
     this.log("warn", message, tags, details);
   }
-  isWarnEnabled(): boolean {
-    return this.isLevelEnabled("warn");
-  }
 
   error(message: string, err?: Error, tags?: string[] | string, details?: any): void {
     this.log("error", message, tags, details, err);
   }
-  isErrorEnabled(): boolean {
-    return this.isLevelEnabled("error");
-  }
 
   log(level: string, message: string, tags?: string[] | string, details?: any, err?: Error): void {
-    if (!this.isLevelEnabled(level)) {
-      return;
-    }
-
     const record: LogRecord = {
       message: message,
       tags: tags,
@@ -58,12 +57,15 @@ export default class Logger {
     };
     this.winston.log(sanitizeLogRecord(this.name, level, record));
   }
+}
 
-  isLevelEnabled(level: string): boolean {
-    const levelNumber = LEVELS[level];
-    if (levelNumber === undefined) {
-      return false;
-    }
-    return levelNumber <= this.level;
+function formatter(info: winston.Logform.TransformableInfo) {
+  let str = `${info.level}: ${info.message}`;
+  if (info.tags) {
+    str = str.concat(` | tags: ${info.tags}`);
   }
+  if (info.details) {
+    str = str.concat(` | details : ${info.details}`);
+  }
+  return str;
 }

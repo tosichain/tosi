@@ -301,17 +301,14 @@ export class CoordinatorNode {
         );
         for (const txn of acceptedTxns) {
           this.log.info(`transaction ${stringifySignedTransaction(txn)} accepted`);
+          this.log.debug("transaction applied", ["state", "trace"], { txn: txn });
         }
         for (const [txn, err] of rejectedTxns) {
           this.log.info(`transaction ${stringifySignedTransaction(txn)} rejected - ${err.message}`);
           await this.storage.removePendingTransaction(txn);
         }
 
-        // Trace updates of world state.
-        for (const txn of acceptedTxns) {
-          this.log.info("transaction applied", "state-trace", { txn: txn });
-        }
-        this.log.info("new world state", "state-trace", { state: state });
+        this.log.debug("new world state", ["state", "trace"], { state: state });
 
         // Commit minted block;
         const blockHash = hashBlock(nextBlock);
