@@ -249,9 +249,9 @@ async function verifyHeadClaim(rootClaimHash: Uint8Array, headClaim: ComputeClai
   if (headClaim) {
     expect(chain).not.to.be.undefined;
     const headClaimInChain = chain?.claims[bytesToHex(chain?.headClaimHash)];
-    expect(headClaimInChain?.dataContract.cid).to.be.eq(headClaim.dataContract.cid.toString());
-    expect(headClaimInChain?.input.cid).to.be.eq(headClaim.input.cid.toString());
-    expect(headClaimInChain?.output.cid).to.be.eq(headClaim.output.cid.toString());
+    expect(headClaimInChain?.dataContract.cid.toString()).to.be.equal(headClaim.dataContract.cid.toString());
+    expect(headClaimInChain?.input.cid.toString()).to.be.equal(headClaim.input.cid.toString());
+    expect(headClaimInChain?.output.cid.toString()).to.be.equal(headClaim.output.cid.toString());
   } else {
     expect(chain).to.be.undefined;
   }
@@ -354,7 +354,7 @@ describe("DA verification is performed correctly", function () {
         rootClaimHash: rootClaimHash,
         claim: {
           ...txn.updateChain.claim,
-          input: { ...txn.updateChain.claim.input, cid: FAKE_CID },
+          input: { ...txn.updateChain.claim.input, cid: CID.parse(FAKE_CID) },
         },
       },
     };
@@ -390,7 +390,7 @@ describe("DA verification is performed correctly", function () {
       createChain: {
         rootClaim: {
           ...txn.createChain.rootClaim,
-          dataContract: { ...txn.createChain.rootClaim.dataContract, cid: FAKE_CID },
+          dataContract: { ...txn.createChain.rootClaim.dataContract, cid: CID.parse(FAKE_CID) },
         },
       },
     };
@@ -413,9 +413,9 @@ describe("DA verification is performed correctly", function () {
 describe("invalid CreateDatachain and UpdateDatachian transactions are rejected", function () {
   it("CreateDatachain transaction, creating duplicate datachain, is rejected", async () => {
     const txn = await client.generateCreateDatachainTxn({
-      dataContractCID: CID.parse(rootClaim.dataContract.cid),
-      inputCID: CID.parse(rootClaim.input.cid),
-      outputCID: CID.parse(rootClaim.output.cid),
+      dataContractCID: rootClaim.dataContract.cid,
+      inputCID: rootClaim.input.cid,
+      outputCID: rootClaim.output.cid,
       outputFileHash: Buffer.from(EMPTY_SHA256, "hex"),
     });
     if (!txn.createChain) {

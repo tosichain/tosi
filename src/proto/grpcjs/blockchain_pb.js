@@ -3917,7 +3917,7 @@ proto.blockchain.ClaimDataRef.prototype.toObject = function(opt_includeInstance)
  */
 proto.blockchain.ClaimDataRef.toObject = function(includeInstance, msg) {
   var f, obj = {
-    cid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    cid: msg.getCid_asB64(),
     size: jspb.Message.getFieldWithDefault(msg, 2, 0),
     cartesimerkleroot: msg.getCartesimerkleroot_asB64()
   };
@@ -3957,7 +3957,7 @@ proto.blockchain.ClaimDataRef.deserializeBinaryFromReader = function(msg, reader
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {string} */ (reader.readString());
+      var value = /** @type {!Uint8Array} */ (reader.readBytes());
       msg.setCid(value);
       break;
     case 2:
@@ -3997,9 +3997,9 @@ proto.blockchain.ClaimDataRef.prototype.serializeBinary = function() {
  */
 proto.blockchain.ClaimDataRef.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getCid();
+  f = message.getCid_asU8();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeBytes(
       1,
       f
     );
@@ -4022,20 +4022,44 @@ proto.blockchain.ClaimDataRef.serializeBinaryToWriter = function(message, writer
 
 
 /**
- * optional string cid = 1;
- * @return {string}
+ * optional bytes cid = 1;
+ * @return {!(string|Uint8Array)}
  */
 proto.blockchain.ClaimDataRef.prototype.getCid = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
- * @param {string} value
+ * optional bytes cid = 1;
+ * This is a type-conversion wrapper around `getCid()`
+ * @return {string}
+ */
+proto.blockchain.ClaimDataRef.prototype.getCid_asB64 = function() {
+  return /** @type {string} */ (jspb.Message.bytesAsB64(
+      this.getCid()));
+};
+
+
+/**
+ * optional bytes cid = 1;
+ * Note that Uint8Array is not supported on all browsers.
+ * @see http://caniuse.com/Uint8Array
+ * This is a type-conversion wrapper around `getCid()`
+ * @return {!Uint8Array}
+ */
+proto.blockchain.ClaimDataRef.prototype.getCid_asU8 = function() {
+  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
+      this.getCid()));
+};
+
+
+/**
+ * @param {!(string|Uint8Array)} value
  * @return {!proto.blockchain.ClaimDataRef} returns this
  */
 proto.blockchain.ClaimDataRef.prototype.setCid = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 

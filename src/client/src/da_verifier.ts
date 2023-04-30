@@ -189,7 +189,7 @@ export class DAVerifier {
     }
 
     const EMPTY_OUTPUT_DATA_REF = {
-      cid: "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354",
+      cid: CID.parse("bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354"),
       size: 100,
       cartesiMerkleRoot: bytesFromHex("de611e620dee2c51aec860dbcab29b08a7fe80686bf02c5a1f19ac0c2ff3fe0a"), // tree log size 31 / 2gb
     } as ClaimDataRef;
@@ -197,10 +197,10 @@ export class DAVerifier {
     // start checks in parallel
     const prevClaimDataRef = prevClaim ? prevClaim.output : EMPTY_OUTPUT_DATA_REF;
     const prevClaimOutputCID = !prevClaim ? EMPTY_OUTPUT_DATA_REF.cid : prevClaim.output.cid;
-    const functionDataPromise = this.fetchDAInfo(CID.parse(claim.dataContract.cid), false);
-    const prevOutputDataPromise = this.fetchDAInfo(CID.parse(prevClaimOutputCID), true); // strictly speaking we don't really need to re-merkle this but double checking doesn't hurt
-    const inputDataPromise = this.fetchDAInfo(CID.parse(claim.input.cid), true);
-    const outputDataPromise = this.fetchDAInfo(CID.parse(claim.output.cid), true);
+    const functionDataPromise = this.fetchDAInfo(claim.dataContract.cid, false);
+    const prevOutputDataPromise = this.fetchDAInfo(prevClaimOutputCID, true); // strictly speaking we don't really need to re-merkle this but double checking doesn't hurt
+    const inputDataPromise = this.fetchDAInfo(claim.input.cid, true);
+    const outputDataPromise = this.fetchDAInfo(claim.output.cid, true);
 
     // wait for them all to settle
     const functionInfo = await functionDataPromise;

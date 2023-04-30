@@ -1,3 +1,4 @@
+import { CID } from "ipfs-http-client";
 import MerkleTree from "merkletreejs";
 
 export interface SignedTransaction {
@@ -100,7 +101,7 @@ export interface ComputeClaim {
 }
 
 export interface ClaimDataRef {
-  readonly cid: string;
+  readonly cid: CID;
   readonly size: number;
   readonly cartesiMerkleRoot: Uint8Array;
 }

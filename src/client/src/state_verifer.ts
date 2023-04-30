@@ -184,7 +184,7 @@ export class StateVerifier {
     }
 
     const EMPTY_OUTPUT_DATA_REF = {
-      cid: "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354",
+      cid: CID.parse("bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354"),
       size: 100,
       cartesiMerkleRoot: bytesFromHex("de611e620dee2c51aec860dbcab29b08a7fe80686bf02c5a1f19ac0c2ff3fe0a"), // tree log size 31 / 2gb
     } as ClaimDataRef;
@@ -193,17 +193,11 @@ export class StateVerifier {
     const prevClaimOutputCID = !prevClaim ? EMPTY_OUTPUT_DATA_REF.cid : prevClaim.output.cid;
     try {
       const before = Math.floor(Date.now() / 1000);
-      const result = await execTask(
-        this.ipfs,
-        this.log,
-        CID.parse(claim.dataContract.cid),
-        CID.parse(prevClaimOutputCID),
-        CID.parse(claim.input.cid),
-      );
+      const result = await execTask(this.ipfs, this.log, claim.dataContract.cid, prevClaimOutputCID, claim.input.cid);
       if (
         result.output &&
         result.output.outputCID &&
-        result.output.outputCID == claim.output.cid &&
+        result.output.outputCID == claim.output.cid.toString() &&
         result.output.outputFileHash == Buffer.from(claim.outputFileHash).toString("hex")
       ) {
         const after = Math.floor(Date.now() / 1000);
@@ -215,7 +209,7 @@ export class StateVerifier {
         this.log.error(
           `compute check for claim ${bytesToHex(claimHash)} doesn't match; ${Buffer.from(claim.outputFileHash).toString(
             "hex",
-          )} , ${JSON.stringify(result.output)} , ${claim.output.cid}`,
+          )} , ${JSON.stringify(result.output)} , ${claim.output.cid.toString()}`,
         );
         return { claimHash: claimHash, stateCorrect: false };
       }
