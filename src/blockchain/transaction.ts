@@ -315,7 +315,7 @@ export function applyAddComputeClaimTxn(state: WorldState, txFrom: Uint8Array, t
   }
 
   if (
-    chain.claims[rootClaimHashHex].dataContract.cid != txn.claim.dataContract.cid ||
+    !chain.claims[rootClaimHashHex].dataContract.cid.equals(txn.claim.dataContract.cid) ||
     !bytesEqual(
       chain.claims[rootClaimHashHex].dataContract.cartesiMerkleRoot,
       txn.claim.dataContract.cartesiMerkleRoot,

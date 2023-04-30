@@ -91,7 +91,7 @@ message ComputeClaim {
 }
 
 message ClaimDataRef {
-    string cid = 1;
+    bytes cid = 1;
     uint64 size = 2;
     bytes cartesiMerkleRoot = 3;
 }

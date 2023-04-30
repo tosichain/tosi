@@ -55,6 +55,7 @@ import {
   StateCheckResult,
 } from "./types";
 import { bytesToHex, hashComputeClaim } from "./util";
+import { CID } from "ipfs-http-client";
 
 // SignedTransaction
 
@@ -415,12 +416,12 @@ export function daInfoToPB(info: DAInfo): PBDAInfo {
 }
 
 export function claimDataRefToPB(info: ClaimDataRef): PBClaimDataRef {
-  return new PBClaimDataRef().setSize(info.size).setCid(info.cid).setCartesimerkleroot(info.cartesiMerkleRoot);
+  return new PBClaimDataRef().setSize(info.size).setCid(info.cid.bytes).setCartesimerkleroot(info.cartesiMerkleRoot);
 }
 
 export function claimDataRefFromPB(pb: PBClaimDataRef): ClaimDataRef {
   return {
-    cid: pb.getCid(),
+    cid: CID.decode(pb.getCid_asU8()),
     size: pb.getSize(),
     cartesiMerkleRoot: pb.getCartesimerkleroot() as Uint8Array,
   };

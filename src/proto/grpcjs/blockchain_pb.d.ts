@@ -437,8 +437,10 @@ export namespace ComputeClaim {
 }
 
 export class ClaimDataRef extends jspb.Message { 
-    getCid(): string;
-    setCid(value: string): ClaimDataRef;
+    getCid(): Uint8Array | string;
+    getCid_asU8(): Uint8Array;
+    getCid_asB64(): string;
+    setCid(value: Uint8Array | string): ClaimDataRef;
     getSize(): number;
     setSize(value: number): ClaimDataRef;
     getCartesimerkleroot(): Uint8Array | string;
@@ -458,7 +460,7 @@ export class ClaimDataRef extends jspb.Message {
 
 export namespace ClaimDataRef {
     export type AsObject = {
-        cid: string,
+        cid: Uint8Array | string,
         size: number,
         cartesimerkleroot: Uint8Array | string,
     }
