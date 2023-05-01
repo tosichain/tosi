@@ -3,7 +3,7 @@ import { CID } from "ipfs-http-client";
 import * as BLS from "@noble/bls12-381";
 
 import { IPFS } from "../../node/ipfs";
-import { Transaction, Account, DAInfo, Block, DataChain, StakeType } from "../../blockchain/types";
+import { Transaction, Account, DAInfo, Block, DataChain, StakeType, DrandBeaconInfo } from "../../blockchain/types";
 import { bytesEqual } from "../../blockchain/util";
 import { CoordinatorRPCConfig, CoordinatorRPC } from "../../coordinator/src/rpc";
 import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/storage";
@@ -67,7 +67,7 @@ export class ClientNode {
   private readonly stateVerifier: StateVerifier | undefined;
   private readonly apiServer: ClientNodeRPCServer;
 
-  constructor(config: ClientNodeConfig, log: Logger) {
+  constructor(config: ClientNodeConfig, log: Logger, drandBeaconInfo: DrandBeaconInfo) {
     this.config = config;
     this.blsPubKey = BLS.getPublicKey(this.config.blsSecKey);
 
@@ -86,6 +86,7 @@ export class ClientNode {
       this.coordinator,
       this.ipfs,
       this.storage,
+      drandBeaconInfo,
     );
 
     if (this.config.roles.daVerifier) {
