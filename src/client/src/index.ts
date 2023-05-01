@@ -3,6 +3,7 @@ import process from "process";
 import { ClientNodeConfig, ClientNode } from "./node";
 import { bytesFromHex, createInitialStateFromEnv } from "../../blockchain/util";
 import Logger from "../../log/logger";
+import { fetchDrandBeaconInfo } from "../../blockchain/block_randomness";
 
 (async () => {
   const config: ClientNodeConfig = {
@@ -54,8 +55,8 @@ import Logger from "../../log/logger";
   }
 
   const log = new Logger("tosi-client", "debug");
-
-  const node = new ClientNode(config, log);
+  const drandBeaconInfo = await fetchDrandBeaconInfo();
+  const node = new ClientNode(config, log, drandBeaconInfo);
   await node.start();
 })().catch((err) => {
   // eslint-disable-next-line no-console

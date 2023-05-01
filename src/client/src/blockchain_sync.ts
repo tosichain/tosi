@@ -6,7 +6,7 @@ import { IPFS } from "../../node/ipfs";
 
 import { DatachainV1__factory } from "../../contracts/factories/DatachainV1__factory";
 import { DatachainV1 } from "../../contracts/DatachainV1";
-import { Block } from "../../blockchain/types";
+import { Block, DrandBeaconInfo } from "../../blockchain/types";
 import { NULL_HASH } from "../../blockchain/constant";
 import { hashSignedTransaction } from "../../blockchain/util";
 import { mintNextBlock } from "../../blockchain/block";
@@ -42,6 +42,7 @@ export class BlockchainClientSync {
 
   private readonly ethProvider: ethers.providers.JsonRpcProvider;
   private readonly claimContract: DatachainV1;
+  private readonly drandBeaconInfo: DrandBeaconInfo;
 
   constructor(
     daCommitteeSampleSize: number,
@@ -51,6 +52,7 @@ export class BlockchainClientSync {
     coordinator: CoordinatorRPC,
     ipfs: IPFS,
     storage: BlockchainStorage,
+    drandBeaconInfo: DrandBeaconInfo,
   ) {
     this.daCommiteeSampleSize = daCommitteeSampleSize;
     this.stateCommiteeSampleSize = stateCommitteeSampleSize;
@@ -64,6 +66,8 @@ export class BlockchainClientSync {
     this.storage = storage;
 
     this.ipfs = ipfs;
+
+    this.drandBeaconInfo = drandBeaconInfo;
 
     this.ethProvider = new ethers.providers.JsonRpcProvider(this.config.eth.rpc);
     this.claimContract = DatachainV1__factory.connect(this.config.eth.claimContractAddress, this.ethProvider);
@@ -190,7 +194,15 @@ export class BlockchainClientSync {
       );
     }
 
-    if (!(await verifyBlockProof(block, this.storage, this.daCommiteeSampleSize, this.stateCommiteeSampleSize))) {
+    if (
+      !(await verifyBlockProof(
+        block,
+        this.storage,
+        this.daCommiteeSampleSize,
+        this.stateCommiteeSampleSize,
+        this.drandBeaconInfo,
+      ))
+    ) {
       throw new Error(`block proof is invalid`);
     }
 

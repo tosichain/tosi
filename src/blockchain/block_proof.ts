@@ -3,11 +3,19 @@ import * as BLS from "@noble/bls12-381";
 
 import { encodeCBOR } from "../util";
 
-import { Block, DACheckResult, ClaimDACheckResult, StakeType, ClaimStateCheckResult, StateCheckResult } from "./types";
+import {
+  Block,
+  DACheckResult,
+  ClaimDACheckResult,
+  StakeType,
+  ClaimStateCheckResult,
+  StateCheckResult,
+  DrandBeaconInfo,
+} from "./types";
 import { serializeClaimDACheckResult, serializeClaimStateCheckResult } from "./serde";
 import { bytesEqual } from "./util";
 import { BlockchainStorage } from "./storage";
-import { fetchDrandBeaconInfo, getSeedFromBlockRandomnessProof, verifyBlockRandomnessProof } from "./block_randomness";
+import { getSeedFromBlockRandomnessProof, verifyBlockRandomnessProof } from "./block_randomness";
 import { getVerificationCommitteeSample } from "./block_commitee";
 
 export async function verifyBlockProof(
@@ -15,11 +23,11 @@ export async function verifyBlockProof(
   blockchain: BlockchainStorage,
   daCommitteeSampleSzie: number,
   stateCommitteeSampleSzie: number,
+  beaconInfo: DrandBeaconInfo,
 ): Promise<boolean> {
   const proof = block.proof;
 
   // Verify randomness proof.
-  const beaconInfo = await fetchDrandBeaconInfo();
   const randProofValid = await verifyBlockRandomnessProof(
     proof.txnBundleHash,
     proof.txnBundleProposer,
