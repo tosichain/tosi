@@ -98,6 +98,7 @@ export class ClientNode {
         this.log,
         this.ipfs,
         this.storage,
+        drandBeaconInfo,
       );
     }
 
@@ -110,6 +111,7 @@ export class ClientNode {
         this.log,
         this.ipfs,
         this.storage,
+        drandBeaconInfo,
       );
     }
 

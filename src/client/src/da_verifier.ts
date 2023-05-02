@@ -10,10 +10,11 @@ import {
   DACheckResult,
   StakeType,
   ClaimDataRef,
+  DrandBeaconInfo,
 } from "../../blockchain/types";
 import { computeClaimFromPB, daCheckResultToPB } from "../../blockchain/serde";
 import { signDACheckResult } from "../../blockchain/block_proof";
-import { getSeedFromBlockRandomnessProof } from "../../blockchain/block_randomness";
+import { getSeedFromBlockRandomnessProof, verifyBlockRandomnessProof } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { BlockchainStorage } from "../../blockchain/storage";
 import { bytesEqual, bytesToHex, bytesFromHex, hashComputeClaim, stringifyComputeClaim } from "../../blockchain/util";
@@ -28,6 +29,7 @@ import {
 import { createDAInfo } from "./util";
 import { P2PPubSubMessage, DAVerificationRequest, DAVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 import Logger from "../../log/logger";
+import { currentUnixTime } from "../../util";
 
 export interface DAVerifierConfig {
   DACheckTimeout: number;
@@ -45,6 +47,7 @@ export class DAVerifier {
   private readonly log: Logger;
 
   private readonly ipfs: IPFS;
+  private readonly drandBeaconInfo: DrandBeaconInfo;
 
   // TODO: Is allowed only to read from blockahin storage (seprate interface?);
   private readonly blockchain: BlockchainStorage;
@@ -59,6 +62,7 @@ export class DAVerifier {
     log: Logger,
     ipfs: IPFS,
     blockchain: BlockchainStorage,
+    drandBeaconInfo: DrandBeaconInfo,
   ) {
     this.blsSecKey = blsSecKey;
     this.blsPubKey = Buffer.from(BLS.getPublicKey(this.blsSecKey));
@@ -66,7 +70,7 @@ export class DAVerifier {
     this.coordinatorPubKey = cooridnatorPubKey;
 
     this.daCommitteeSampleSize = daCommitteeSampleSize;
-
+    this.drandBeaconInfo = drandBeaconInfo;
     this.config = config;
 
     this.log = log;
@@ -156,6 +160,18 @@ export class DAVerifier {
 
   private async acceptDAVerificationRequest(daReq: DAVerificationRequest): Promise<boolean> {
     // Validate randomness proof (includes verifying coordinator's signature).
+    if (
+      !verifyBlockRandomnessProof(
+        daReq.getTxnBundleHash_asU8(),
+        this.coordinatorPubKey,
+        daReq.getRandomnessProof_asU8(),
+        this.drandBeaconInfo,
+        currentUnixTime(),
+      )
+    ) {
+      this.log.info("can not process DA verification request - randomness proof not correct");
+      return false;
+    }
     // Check if no is in current DA commitee sample and is expected to process request.
     const randSeed = getSeedFromBlockRandomnessProof(daReq.getRandomnessProof() as Uint8Array);
     const committee = await getVerificationCommitteeSample(
