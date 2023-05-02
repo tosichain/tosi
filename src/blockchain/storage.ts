@@ -112,6 +112,45 @@ export class BlockchainStorage {
     });
   }
 
+  private async putValues(tableKeyValue: [[string, string, Uint8Array]]): Promise<void> {
+    return await new Promise((resolve, reject) => {
+      this.db.getConnection((connErr, conn) => {
+        if (connErr) {
+          reject(connErr);
+        }
+
+        conn.beginTransaction((txnErr) => {
+          if (txnErr) {
+            conn.rollback((rollbackErr) => reject(rollbackErr));
+            reject(txnErr);
+          }
+
+          for (const [table, key, value] of tableKeyValue) {
+            conn.query(
+              "INSERT INTO " + table + " (`k`, `val`) VALUES (?, ?) ON DUPLICATE KEY UPDATE val = ?",
+              [key, Buffer.from(value), Buffer.from(value)],
+              function (error, results, fields) {
+                if (error) {
+                  conn.rollback((rollbackErr) => reject(rollbackErr));
+                  reject(error);
+                } else {
+                  resolve();
+                }
+              },
+            );
+          }
+
+          conn.commit((commitErr) => {
+            if (commitErr) {
+              conn.rollback((err) => reject(err));
+            }
+            reject(commitErr);
+          });
+        });
+      });
+    });
+  }
+
   private async getValues(table: string): Promise<Uint8Array[]> {
     const results: Uint8Array[] = await new Promise((resolve, reject) => {
       this.db.query("SELECT `val` FROM " + table, function (error, results, fields) {
@@ -226,12 +265,13 @@ export class BlockchainStorage {
     const rawBlock = serializeBlock(block);
     const nextBlockHash = hashBlock(block);
 
-    /* TODO: turn this atomic */
-    await this.putValue("main", DB_KEY_HEAD_BLOCK, nextBlockHash);
-    await this.putValue("state", DB_KEY_STATE_VALUE, serializeWorldState(state));
-    await this.putValue("block", bytesToHex(nextBlockHash), rawBlock);
+    // @ts-ignore
+    await this.putValues([
+      ["main", DB_KEY_HEAD_BLOCK, nextBlockHash],
+      ["state", DB_KEY_STATE_VALUE, serializeWorldState(state)],
+      ["block", bytesToHex(nextBlockHash), rawBlock],
+    ]);
     this.log.info("block committed to storage", ["storage", "chain"], { blockHash: nextBlockHash });
-
     this.log.debug("new head block", ["storage", "chain"], { block: block, blockHash: nextBlockHash });
 
     // Remove block transactions from mempool.
