@@ -736,7 +736,7 @@ CONFIG_NET=y
 # Networking options
 #
 # CONFIG_PACKET is not set
-# CONFIG_UNIX is not set
+CONFIG_UNIX=y
 # CONFIG_TLS is not set
 # CONFIG_XFRM_USER is not set
 # CONFIG_NET_KEY is not set
