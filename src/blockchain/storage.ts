@@ -2,7 +2,7 @@ import mysql from "mysql";
 
 import { WorldState, SignedTransaction, Block, Account, DataChain, ComputeClaim, StakePool } from "./types";
 import { accountsMerkleTree } from "./block";
-import { bytesToHex, hashBlock, hashSignedTransaction, stringifySignedTransaction } from "./util";
+import { bytesToHex, hashBlock, hashSignedTransaction } from "./util";
 import {
   deserializeBlock,
   deserializeSignedTransaction,
@@ -13,6 +13,11 @@ import {
 } from "./serde";
 import { GENESIS_BLOCK_VERSION, NULL_HASH } from "./constant";
 import Logger from "../log/logger";
+
+const LOG_STORAGE = "storage";
+const LOG_NETWORK = [LOG_STORAGE, "network"];
+const LOG_MEMPOOL = [LOG_STORAGE, "mempool"];
+const LOG_CHAIN = [LOG_STORAGE, "chain"];
 
 const DB_KEY_HEAD_BLOCK = "headBlock";
 const DB_KEY_STATE_VALUE = "value";
@@ -58,22 +63,22 @@ export class BlockchainStorage {
         });
         break;
       } catch (err: any) {
-        this.log.info(err.toString());
+        this.log.error("failed to connect to db", err, LOG_NETWORK);
         await new Promise((resolve, reject) => {
           setTimeout(resolve, 1000);
         });
       }
     }
-    this.log.info("Checking DB state...");
+    this.log.info("checking db state", LOG_STORAGE);
     const headValue = await this.getValue("main", DB_KEY_HEAD_BLOCK);
     const genesisValue = await this.getValue("main", DB_KEY_GENESIS_BLOCK);
     if (headValue == null || genesisValue == null) {
-      this.log.info("Initialising DB");
+      this.log.info("initialising db", LOG_STORAGE);
       if (this.config.initialState) {
         await this.initDB(this.config.initialState);
       }
     } else {
-      this.log.info("DB already initialised");
+      this.log.info("db already initialised", LOG_STORAGE);
     }
   }
 
@@ -87,7 +92,7 @@ export class BlockchainStorage {
             throw new Error("Too many results");
           }
           if (results.length > 0) {
-            resolve(results[0].val as Uint8Array);
+            resolve(Uint8Array.from(results[0].val));
           } else {
             resolve(null);
           }
@@ -158,7 +163,7 @@ export class BlockchainStorage {
           reject(error);
         } else {
           if (results.length > 0) {
-            resolve(results.map((x: any) => x.val as Uint8Array));
+            resolve(results.map((x: any) => Uint8Array.from(x.val)));
           } else {
             resolve([] as Uint8Array[]);
           }
@@ -224,13 +229,13 @@ export class BlockchainStorage {
     const serializedTxn = serializeSignedTransaction(txn);
     const txnHash = hashSignedTransaction(txn);
     await this.putValue("mempool", bytesToHex(txnHash), serializedTxn);
-    this.log.info(`transaction ${stringifySignedTransaction(txn)} submitted to the mempool`);
+    this.log.info("new transaction submitted", LOG_MEMPOOL, { txn: txn, txnHash: txnHash });
   }
 
   public async removePendingTransaction(txn: SignedTransaction): Promise<void> {
     const txnHash = hashSignedTransaction(txn);
     await this.clearKey("mempool", bytesToHex(txnHash));
-    this.log.info(`transaction ${bytesToHex(txnHash)} removed from the mempool`);
+    this.log.info("pending transaction removed", LOG_MEMPOOL, { txnHash: txnHash });
   }
 
   public async getNextBlockInput(): Promise<[WorldState, Block, SignedTransaction[]]> {
@@ -271,14 +276,14 @@ export class BlockchainStorage {
       ["state", DB_KEY_STATE_VALUE, serializeWorldState(state)],
       ["block", bytesToHex(nextBlockHash), rawBlock],
     ]);
-    this.log.info("block committed to storage", ["storage", "chain"], { blockHash: nextBlockHash });
-    this.log.debug("new head block", ["storage", "chain"], { block: block, blockHash: nextBlockHash });
+    this.log.info("block committed to storage", LOG_CHAIN, { blockHash: nextBlockHash });
+    this.log.debug("new head block", LOG_CHAIN, { block: block, blockHash: nextBlockHash });
 
     // Remove block transactions from mempool.
     for (const txn of block.transactions) {
       const txnHash = hashSignedTransaction(txn);
       await this.clearKey("mempool", bytesToHex(txnHash));
-      this.log.info(`transaction ${bytesToHex(txnHash)} removed from the mempool`);
+      this.log.info("pending transaction removed", LOG_MEMPOOL, { txnHash: txnHash });
     }
   }
 

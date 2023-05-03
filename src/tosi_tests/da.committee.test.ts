@@ -10,7 +10,7 @@ import crypto from "crypto";
 chai.use(chaiAsPromised);
 
 import { Transaction, ComputeClaim, StakeType } from "../blockchain/types";
-import { bytesToHex, bytesFromHex, stringifyAccount } from "../blockchain/util";
+import { bytesToHex, bytesFromHex } from "../blockchain/util";
 import { signTransaction } from "../blockchain/block";
 import { CoordinatorRPC } from "../coordinator/src/rpc";
 import { ClientRPC } from "../client/src/rpc";
@@ -77,7 +77,7 @@ before(async () => {
 });
 
 async function waitForAccountNonce(accountNonce: Record<string, number>): Promise<void> {
-  log.debug(`waiting for account nonces -  ${JSON.stringify(accountNonce)}`);
+  log.debug("waiting for account nonces", undefined, { accounts: accountNonce });
 
   while (true) {
     // Sleep for 1 second.
@@ -87,19 +87,19 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     // Check if coordinator node has accepted/rejected transactions from accounts.
     let coordinatorCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
-      log.debug(`querying account ${accPubKey} at coordinator node`);
+      log.debug("querying account at coordinator node", undefined, { address: accPubKey });
       const account = await coordinator.getAccount(bytesFromHex(accPubKey));
 
       if (!account) {
-        log.debug(`account ${accPubKey} does not exist at coordinator node`);
+        log.debug("account does not exist at coordinator node");
         coordinatorCheck = false;
         break;
       }
 
-      log.debug(`account ${accPubKey} at coordinator node - ${stringifyAccount(account)}`);
+      log.debug("account found at coordinator node", undefined, { account: account });
 
       if (account.nonce != accountNonce[accPubKey]) {
-        log.debug(`account ${accPubKey} does not have desired nonce at coordinator node`);
+        log.debug("account does not have desired nonce at coordinator node");
         coordinatorCheck = false;
         break;
       }
@@ -112,23 +112,22 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     const clients: ClientRPC[] = [client, daVerifier1, daVerifier2, daVerifier3];
     let clientCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
-      log.debug(`querying account ${accPubKey} at at all client nodes`);
+      log.debug("querying account at all client nodes", undefined, { address: accPubKey });
 
       const accountQuery = clients.map((c) => c.getAccount(bytesFromHex(accPubKey)));
       const accounts = await Promise.all(accountQuery);
 
       if (!accounts.every((a) => a != undefined)) {
-        log.debug(`account ${accPubKey} does not exist at one or more client nodes`);
+        log.debug("account does not exist at one or more client nodes");
         clientCheck = false;
         break;
       }
 
       if (!accounts.every((a) => a?.nonce == accountNonce[accPubKey])) {
-        log.debug(
-          `account ${accPubKey} does not have desired nonce at one or more client nodes ${accounts.map((x) => {
-            x?.nonce;
-          })}`,
-        );
+        log.debug("account does not have desired nonce at one or more client nodes", undefined, {
+          address: accPubKey,
+          accountNonces: accounts.map((x) => x?.nonce),
+        });
         clientCheck = false;
         break;
       }
@@ -210,6 +209,8 @@ async function setupDACommittee() {
   accountNonces[bytesToHex(daVerifier3PubKey)] = 0;
 
   await waitForAccountNonce(accountNonces);
+
+  log.info("state verifiers put tokens at stake");
 
   await daVerifier1.submitTransaction({
     stake: {

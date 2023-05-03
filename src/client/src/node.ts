@@ -17,6 +17,8 @@ import { keepConnectedToSwarm } from "../../p2p/util";
 import { StateVerifier, StateVerifierConfig } from "./state_verifer";
 import Logger from "../../log/logger";
 
+const LOG_NETWORK = "network";
+
 export interface ClientNodeConfig {
   coordinator: CoordinatorRPCConfig;
   ipfs: IpfsHttpClient.Options;
@@ -127,7 +129,7 @@ export class ClientNode {
           .getIPFS()
           .swarm.connect(bootstrap[i])
           .catch((err) => {
-            this.log.info("failed to connect to bootstrap peer: " + bootstrap[i]);
+            this.log.error("failed to connect to bootstrap peer", err, LOG_NETWORK, { address: bootstrap[i] });
           });
       }
     }
@@ -136,7 +138,7 @@ export class ClientNode {
       if (peers.length > 0) {
         break;
       }
-      this.log.info("IPFS has no peers, waiting a second..");
+      this.log.info("IPFS has no peers, waiting a second..", LOG_NETWORK);
       await new Promise((resolve, reject) => {
         setTimeout(resolve, 1000);
       });

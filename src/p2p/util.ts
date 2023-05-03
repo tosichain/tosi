@@ -1,8 +1,6 @@
 import { IPFS } from "../node/ipfs";
-import JSONbigint from "json-bigint";
 
 import { computeClaimFromPB, daCheckResultFromPB, stateCheckResultFromPB } from "../blockchain/serde";
-import { bytesToHex } from "../blockchain/util";
 import { IPFSPubSubMessage } from "./types";
 import {
   DACheckResult as PBDACheckResult,
@@ -15,6 +13,8 @@ import {
   StateVerificationRequest,
 } from "../../src/proto/grpcjs/p2p_pb";
 import Logger from "../log/logger";
+
+const LOG_NETWORK = "network";
 
 export async function keepConnectedToSwarm(
   swarmPrefix: string,
@@ -29,58 +29,48 @@ export async function keepConnectedToSwarm(
     // this is intentionally on the normal getIPFS()
     const peers = await ipfs.getIPFS().pubsub.peers(swarmPrefix);
     for (let i = 0; i < peers.length; i++) {
-      log.info("peer seen on pubsub: " + peers[i]);
+      log.info("peer seen on pubsub", LOG_NETWORK, { address: peers[i] });
       ipfs
         .getIPFS()
         .swarm.connect("/p2p/" + peers[i])
-        .catch(() => {
-          log.error("error connecting to " + peers[i]);
+        .catch((err: any) => {
+          log.error("failed to connect to peer", err, LOG_NETWORK, { address: peers[i] });
         });
     }
   }, interval);
 }
 
-export function stringifyPubSubMessage(msg: IPFSPubSubMessage): string {
-  return stringifyHelper({
+export function logPubSubMessage(msg: IPFSPubSubMessage): any {
+  return {
     from: msg.from,
     topicIDs: msg.topicIDs,
-  });
+  };
 }
 
-export function stringifyDAVerificationRequest(request: DAVerificationRequest): string {
-  const obj = {
+export function logDAVerificationRequest(request: DAVerificationRequest): any {
+  return {
     txnBundleHash: request.getTxnBundleHash(),
     claims: request.getClaimsList().map(computeClaimFromPB),
     randomnessProof: request.getRandomnessProof(),
   };
-  return stringifyHelper(obj);
 }
 
-export function stringifyDAVerificationResponse(response: DAVerificationResponse): string {
-  const obj = {
+export function logDAVerificationResponse(response: DAVerificationResponse): any {
+  return {
     result: daCheckResultFromPB(response.getResult() as PBDACheckResult),
   };
-  return stringifyHelper(obj);
 }
 
-export function stringifyStateVerificationRequest(request: StateVerificationRequest): string {
-  const obj = {
+export function logStateVerificationRequest(request: StateVerificationRequest): any {
+  return {
     txnBundleHash: request.getTxnBundleHash(),
     claims: request.getClaimsList().map(computeClaimFromPB),
     randomnessProof: request.getRandomnessProof(),
   };
-  return JSONbigint.stringify(obj);
 }
 
-export function stringifyStateVerificationResponse(response: StateVerificationResponse): string {
-  const obj = {
+export function logStateVerificationResponse(response: StateVerificationResponse): any {
+  return {
     result: stateCheckResultFromPB(response.getResult() as PBStateCheckResult),
   };
-  return stringifyHelper(obj);
-}
-
-function stringifyHelper(object: any): string {
-  return JSONbigint.stringify(object, (key: string, value: any): any => {
-    return value instanceof Uint8Array ? bytesToHex(value) : value;
-  });
 }

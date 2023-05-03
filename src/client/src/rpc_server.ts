@@ -69,6 +69,8 @@ export interface ClientNodeRPCServerConfig {
   noPrivileged: boolean;
 }
 
+const LOG_NETWORK = "network";
+
 export class ClientNodeRPCServer implements IClientNodeServer {
   [method: string]: any;
 
@@ -92,7 +94,7 @@ export class ClientNodeRPCServer implements IClientNodeServer {
       if (err) {
         throw err;
       }
-      this.log.info(`API server is listening on - ${hostPort}`);
+      this.log.info("API server is listening", LOG_NETWORK, { hostPort: hostPort });
       this.grpc.start();
     });
   }

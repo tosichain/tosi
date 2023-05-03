@@ -1,5 +1,6 @@
 import { configure } from "safe-stable-stringify";
 import MerkleTree from "merkletreejs";
+import { CID } from "ipfs-http-client";
 
 import { bytesToHex } from "../blockchain/util";
 
@@ -68,12 +69,14 @@ function sanitizeTags(tags: string | string[]): string {
 
 function stringifyObject(object: any): string | undefined {
   return stringify(object, (key: string, value: any): any => {
-    if (value instanceof Uint8Array) {
-      return bytesToHex(value);
-    } else if (value instanceof Buffer) {
+    if (value instanceof Buffer) {
       return bytesToHex(Uint8Array.from(value));
+    } else if (value instanceof Uint8Array) {
+      return bytesToHex(value);
     } else if (value instanceof MerkleTree) {
       return value.getHexRoot();
+    } else if (value instanceof CID) {
+      return value.toString();
     }
     return value;
   });

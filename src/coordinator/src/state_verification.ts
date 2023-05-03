@@ -6,19 +6,16 @@ import {
   verifyStateCheckResultsAggregatedSignature,
   verifyStateCheckResultSignature,
 } from "../../blockchain/block_proof";
-import {
-  bytesEqual,
-  bytesToHex,
-  hashComputeClaim,
-  stringifySignedTransaction,
-  hashTransactionBundle,
-} from "../../blockchain/util";
+import { bytesEqual, bytesToHex, hashComputeClaim, hashTransactionBundle } from "../../blockchain/util";
 import { IPFS_PUB_SUB_STATE_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
-import { keepConnectedToSwarm, stringifyPubSubMessage, stringifyStateVerificationResponse } from "../../p2p/util";
+import { keepConnectedToSwarm, logPubSubMessage, logStateVerificationResponse } from "../../p2p/util";
 import { StateCheckResult as PBStateCheckResult } from "../../proto/grpcjs/blockchain_pb";
 import { P2PPubSubMessage, StateVerificationRequest, StateVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 import Logger from "../../log/logger";
+
+const LOG_VERIFIER = "state-verifier";
+const LOG_NETWORK = [LOG_VERIFIER, "network"];
 
 export interface StateVerificationManagerConfig {
   RequestBroadcastPeriod: number;
@@ -76,15 +73,15 @@ export class StateVerificationManager {
           this.handlePubSubMessage(msg);
         },
         {
-          onError: () => {
-            this.log.debug("error in state pubsub, reconnecting");
+          onError: (err) => {
+            this.log.error("pubsub failed, reconnecting", err, LOG_NETWORK);
             setTimeout(this.setupPubSub.bind(this), 1);
           },
         },
       );
       await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, new Uint8Array(0));
-    } catch (err) {
-      this.log.error("Failed during pubsub setup: " + err);
+    } catch (err: any) {
+      this.log.error("failed to setup pubsub", err, LOG_NETWORK);
     }
   }
 
@@ -166,7 +163,7 @@ export class StateVerificationManager {
     if (validAggSig) {
       result.aggSignature = aggSig;
     } else {
-      this.log.error("aggregated State committee sample signature is invalid");
+      this.log.info("aggregated state committee sample signature is invalid", LOG_VERIFIER);
       result.acceptedTxns = txnsWithoutClaim;
       result.rejectedTxns = Object.values(claimToTxn);
 
@@ -199,13 +196,16 @@ export class StateVerificationManager {
         // State checkers agreed that state for claim is incorrect.
         const txn = claimToTxn[claimHash];
         result.rejectedTxns.push(txn);
-        this.log.error(`transaction ${stringifySignedTransaction(txn)} rejected - state incorrect`);
+        this.log.info("transaction rejected", LOG_VERIFIER, { reason: "invalid state", txn: txn });
       } else {
         // State checkers didn't reach consensus on claim state correctness.
         result.acceptedTxns = txnsWithoutClaim;
         result.rejectedTxns = Object.values(claimToTxn);
         for (const txn of result.rejectedTxns) {
-          this.log.error(`transaction ${stringifySignedTransaction(txn)} rejected - State committee consensus failure`);
+          this.log.info("transaction rejected", LOG_VERIFIER, {
+            reason: "state committee consensus failure",
+            txn: txn,
+          });
         }
         break;
       }
@@ -256,7 +256,9 @@ export class StateVerificationManager {
       // Current transaction bundle haven't received enough responses.
       const responseCount = Object.keys(this.process.results).length;
       if (responseCount < this.process.committee.length) {
-        this.log.info(`did not receive enough responses for ${bytesToHex(txnBundleHash)}`);
+        this.log.info("not enough responses from committee for transaction bundle", LOG_NETWORK, {
+          txnBundleHash: txnBundleHash,
+        });
         this.process.reject(
           new Error("State verification timeout - no response for " + this.config.RequestTimeout + "ms"),
         );
@@ -267,20 +269,22 @@ export class StateVerificationManager {
   }
 
   private async broadcastStateCheckRequest(txnBundleHash: Uint8Array) {
-    this.log.info(
-      `starting broadcast of State check verification request for transaction bundle ${bytesToHex(txnBundleHash)}`,
-    );
+    this.log.info("starting broadcast of state verification request", LOG_NETWORK, {
+      txnBundleHash: txnBundleHash,
+    });
 
     while (true) {
       if (!bytesEqual(txnBundleHash, this.process.txnBundleHash)) {
-        this.log.info(
-          `stopping broadcast of State verification request for transaction bundle ${bytesToHex(txnBundleHash)}`,
-        );
+        this.log.info("stopping broadcast of state verification request", LOG_NETWORK, {
+          txnBundleHash: txnBundleHash,
+        });
         return;
       }
 
       // Send reqeust via IPFS pub-sub.
-      this.log.info(`publishing State verification request for transaction bundle ${bytesToHex(txnBundleHash)}`);
+      this.log.info("publishing state verification request", LOG_NETWORK, {
+        txnBundleHash: txnBundleHash,
+      });
       const request = new StateVerificationRequest()
         .setTxnBundleHash(this.process.txnBundleHash)
         .setClaimsList(this.process.claims.map(computeClaimToPB))
@@ -306,16 +310,18 @@ export class StateVerificationManager {
 
   private async handlePubSubMessage(msg: IPFSPubSubMessage): Promise<void> {
     try {
-      this.log.info("received IPFS pubsub (state) message " + stringifyPubSubMessage(msg));
+      this.log.info("received IPFS pubsub message", LOG_NETWORK, {
+        message: logPubSubMessage(msg),
+      });
 
       // Ignore our own messages.
       if (msg.from == this.ipfs.id) {
-        this.log.info("ignoring message from myself");
+        this.log.debug("ignoring message from myself", LOG_NETWORK);
         return;
       }
       // Ignore pings.
       if (msg.data.length == 0) {
-        this.log.info("ignoring ping message");
+        this.log.info("ignoring ping message", LOG_NETWORK);
         return;
       }
 
@@ -326,12 +332,14 @@ export class StateVerificationManager {
         );
       }
     } catch (err: any) {
-      this.log.error(err.toString() + " " + err.stack);
+      this.log.error(err.stack, err, LOG_NETWORK);
     }
   }
 
   private async handleStateVerificationResponse(response: StateVerificationResponse): Promise<void> {
-    this.log.info(`received State verification response - ${stringifyStateVerificationResponse(response)}`);
+    this.log.info("received state verification response", LOG_NETWORK, {
+      response: logStateVerificationResponse(response),
+    });
 
     // Check signature of response.
     const result = stateCheckResultFromPB(response.getResult() as PBStateCheckResult);
@@ -344,28 +352,31 @@ export class StateVerificationManager {
         result.signer,
       ))
     ) {
-      this.log.error("State check result signature is invalid");
+      this.log.info("state check result signature is invalid", LOG_VERIFIER);
       return;
     }
 
     // Check that response is for current transaction bundle (check txnBundleHash)
     // TODO: should we check randomness proof here as well?
     if (!bytesEqual(result.txnBundleHash, this.process.txnBundleHash)) {
-      this.log.error("State verification request transaction bundle hash does not match");
+      this.log.info("state verification request transaction bundle hash does not match", LOG_VERIFIER);
       return;
     }
 
     // Check if sender is part of committee.
     const inCommittee = this.process.committee.find((s) => bytesEqual(s.address, result.signer));
     if (!inCommittee) {
-      this.log.error("State verification response signer does not belong to current State committee sample");
+      this.log.info(
+        "state verification response signer does not belong to current state committee sample",
+        LOG_VERIFIER,
+      );
       return;
     }
 
     // Check if member already sent response.
     const signerAddrHex = bytesToHex(result.signer);
     if (this.process.results[signerAddrHex] != undefined) {
-      this.log.error("State committee member already sent response for current transaction bundle");
+      this.log.info("state committee member already sent response for current transaction bundle", LOG_VERIFIER);
       return;
     }
     this.process.results[signerAddrHex] = result;
@@ -375,7 +386,7 @@ export class StateVerificationManager {
     if (responseCount < this.process.committee.length) {
       return;
     }
-    this.log.info("Received all responses for State check");
+    this.log.info("Received all responses for state check", LOG_VERIFIER);
     // Notify, that all respones have been received.
     this.process.resolve();
   }

@@ -8,7 +8,7 @@ import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 chai.use(chaiAsPromised);
 
 import { Transaction, Account, StakeType } from "../blockchain/types";
-import { bytesEqual, bytesToHex, bytesFromHex, stringifyAccount } from "../blockchain/util";
+import { bytesEqual, bytesToHex, bytesFromHex } from "../blockchain/util";
 import { signTransaction } from "../blockchain/block";
 import { serializeBlock } from "../blockchain/serde";
 import { CoordinatorRPC } from "../coordinator/src/rpc";
@@ -42,7 +42,7 @@ before(async () => {
 });
 
 async function waitForAccountNonce(accountNonce: Record<string, number>): Promise<void> {
-  log.debug(`waiting for account nonces -  ${JSON.stringify(accountNonce)}`);
+  log.debug("waiting for account nonces", undefined, { accounts: accountNonce });
 
   while (true) {
     // Sleep for 1 second.
@@ -53,19 +53,19 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     // Check if coordinator has accepted/rejected transactions from accounts.
     let coordinatorCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
-      log.debug(`querying account ${accPubKey} at coordinator node`);
+      log.debug("querying account at coordinator node", undefined, { address: accPubKey });
       const account = await coordinator.getAccount(bytesFromHex(accPubKey));
 
       if (!account) {
-        log.debug(`account ${accPubKey} does not exist at coordinator node`);
+        log.debug("account does not exist at coordinator node");
         coordinatorCheck = false;
         break;
       }
 
-      log.debug(`account ${accPubKey} at coordinator node - ${stringifyAccount(account)}`);
+      log.debug("account found at coordinator node", undefined, { account: account });
 
       if (account.nonce != accountNonce[accPubKey]) {
-        log.debug(`account ${accPubKey} does not have desired nonce at coordinator node`);
+        log.debug("account does not have desired nonce at coordinator node");
         coordinatorCheck = false;
         break;
       }
@@ -77,19 +77,19 @@ async function waitForAccountNonce(accountNonce: Record<string, number>): Promis
     // Check if client has accepted/rejected transactions from accounts.
     let clientCheck = true;
     for (const accPubKey of Object.keys(accountNonce)) {
-      log.debug(`querying account ${accPubKey} at client node`);
+      log.debug("querying account at client node", undefined, { address: accPubKey });
       const account = await client.getAccount(bytesFromHex(accPubKey));
 
       if (!account) {
-        log.debug(`account ${accPubKey} does not exist at client node`);
+        log.debug("account does not exist at client node");
         clientCheck = false;
         break;
       }
 
-      log.debug(`account ${accPubKey} at client node - ${stringifyAccount(account)}`);
+      log.debug("account found at client node", undefined, { account: account });
 
       if (account.nonce != accountNonce[accPubKey]) {
-        log.debug(`account ${accPubKey} does not have desired nonce at client node`);
+        log.debug("account does not have desired nonce at client node");
         clientCheck = false;
         break;
       }
@@ -108,13 +108,12 @@ async function checkHeadBlock(): Promise<void> {
   }
   const coordinatorBlock = await coordinator.getBlock(blockHash);
   if (coordinatorBlock == undefined) {
-    log.error(`coordinator does not have block ${coordinatorBlock}`);
     throw new Error("coordinatorBlock is undefined");
   }
   const clientBlockHash = await client.getHeadBlockHash();
   if (!bytesEqual(clientBlockHash, blockHash)) {
     throw new Error(
-      `client block hash ${bytesToHex(clientBlockHash)} != coordinator block hash ${bytesToHex(blockHash)}`,
+      `client block hash ${bytesToHex(clientBlockHash)} does not match coordinator block hash ${bytesToHex(blockHash)}`,
     );
   }
 

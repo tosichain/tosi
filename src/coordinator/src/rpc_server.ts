@@ -65,6 +65,8 @@ export interface RequestHandler {
   getBlockMetadata(blockHash: Uint8Array): Promise<BlockMetadata | undefined>;
 }
 
+const LOG_NETWORK = "network";
+
 export interface CoordinatorRPCServerConfig {
   port: number;
 }
@@ -92,7 +94,7 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
       if (err) {
         throw err;
       }
-      this.log.info(`API server is listening on - ${hostPort}`);
+      this.log.info("API server is listening", LOG_NETWORK, { hostPort: hostPort });
       this.grpc.start();
     });
   }

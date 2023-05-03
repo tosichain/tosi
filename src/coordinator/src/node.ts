@@ -25,14 +25,7 @@ import {
   getSeedFromBlockRandomnessProof,
 } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
-import {
-  bytesEqual,
-  bytesToHex,
-  hashSignedTransaction,
-  stringifySignedTransaction,
-  hashTransactionBundle,
-  hashBlock,
-} from "../../blockchain/util";
+import { bytesEqual, bytesToHex, hashSignedTransaction, hashTransactionBundle, hashBlock } from "../../blockchain/util";
 import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/storage";
 import { DatachainV1__factory } from "../../contracts/factories/DatachainV1__factory";
 import { DatachainV1 } from "../../contracts/DatachainV1";
@@ -43,6 +36,11 @@ import { COORDINATOR_BLOCK_VERSION, SWARM_PING_INTERVAL } from "./constant";
 import { keepConnectedToSwarm } from "../../p2p/util";
 import { NULL_HASH } from "../../blockchain/constant";
 import { StateVerificationManager, StateVerificationManagerConfig } from "./state_verification";
+
+const LOG_NETWORK = "network";
+const LOG_ETH = [LOG_NETWORK, "eth"];
+const LOG_STATE = "state";
+const LOG_STATE_TRACE = [LOG_STATE, "trace"];
 
 export type IPFSOptions = IpfsHttpClient.Options;
 
@@ -98,7 +96,7 @@ export class CoordinatorNode {
     this.log = logger;
 
     this.blsPubKey = BLS.getPublicKey(this.config.blsSecKey);
-    this.log.info(`BLS Public Key: ${bytesToHex(this.blsPubKey)}`);
+    this.log.info("BLS public key is ready", undefined, { key: this.blsPubKey });
 
     this.storage = new BlockchainStorage(this.config.storage, this.log);
     this.ipfs = new IPFS(this.config.ipfs.options, this.log);
@@ -115,9 +113,9 @@ export class CoordinatorNode {
     if (this.config.eth.impersonateAddress && this.config.chain.coordinatorSmartContract) {
       await this.ethProvider.send("hardhat_impersonateAccount", [this.config.eth.impersonateAddress]);
       await this.ethProvider.send("hardhat_setBalance", [this.config.eth.impersonateAddress, "0x50000000000000000"]);
-
       this.ethWallet = this.ethProvider.getSigner(this.config.eth.impersonateAddress);
-      this.log.info(`deploying smart contracts / upgrading`);
+
+      this.log.info("deploying/upgrading smart contracts", LOG_ETH);
 
       const contractFactory = new DatachainV1__factory(this.ethWallet);
       const deployedContract = await contractFactory.deploy();
@@ -125,12 +123,14 @@ export class CoordinatorNode {
 
       await this.claimContract.setCoordinatorNode(await this.ethWallet.getAddress());
       await this.claimContract.upgradeTo(deployedContract.address);
-
-      this.log.info("Upgraded smart contract and set coordinator node to " + (await this.ethWallet.getAddress()));
-      this.log.info(`smart contracts successfully deployed`);
+      this.log.info("upgraded smart contract", LOG_ETH, {
+        corrdinatorAddress: await this.ethWallet.getAddress(),
+      });
     } else {
       this.ethWallet = new ethers.Wallet(this.config.eth.walletSecret, this.ethProvider);
-      this.log.info("Ethereum wallet: " + (this.ethWallet as ethers.Wallet).address);
+      this.log.info("ethereum wallet is ready", LOG_ETH, {
+        address: (this.ethWallet as ethers.Wallet).address,
+      });
     }
 
     await this.storage.init();
@@ -140,7 +140,7 @@ export class CoordinatorNode {
       if (peers.length > 0) {
         break;
       }
-      this.log.info("IPFS has no peers, waiting a second..");
+      this.log.info("IPFS has no peers, waiting a second..", LOG_NETWORK);
       await new Promise((resolve, reject) => {
         setTimeout(resolve, 1000);
       });
@@ -160,7 +160,7 @@ export class CoordinatorNode {
         break;
       } catch (err: any) {
         if (err.code == "SERVER_ERROR") {
-          this.log.error(`failed to connect to eth rpc endpoint, waiting for retry: ` + err);
+          this.log.error("failed to connect to eth rpc endpoint, waiting for retry..", err, LOG_ETH);
           await new Promise((resolve, _) => {
             setTimeout(resolve, this.config.eth.rpcRetryPeriod);
           });
@@ -185,7 +185,7 @@ export class CoordinatorNode {
 
   private async connectEthContract(): Promise<void> {
     if (!this.ethWallet) {
-      throw new Error("ethWallet not connected");
+      throw new Error("ethereum wallet is not ready");
     }
     if (!this.config.chain.coordinatorSmartContract) {
       throw new Error("config.chain.coordinatorSmartContract not set");
@@ -195,7 +195,7 @@ export class CoordinatorNode {
 
   private async deployEthContracts(): Promise<void> {
     if (!this.ethWallet) {
-      throw new Error("ethWallet not connected");
+      throw new Error("ethereum wallet is not ready");
     }
     await this.ethProvider.send("hardhat_setBalance", [await this.ethWallet.getAddress(), "0x50000000000000000"]);
     await this.ethProvider.send("evm_setIntervalMining", [5000]);
@@ -203,12 +203,12 @@ export class CoordinatorNode {
     // Deploy DatachainV1 contract to 0x78e875422BEDeD0655d5f4d3B80043639bf3da8C.
     const contractFactory = new DatachainV1__factory(this.ethWallet);
     const deployedContract = await contractFactory.deploy();
-    this.log.info("Deployed DatachainV1 contract at: " + deployedContract.address);
+    this.log.info("Deployed DatachainV1 contract", LOG_ETH, { address: deployedContract.address });
 
     // Deploy UUPSProxy contract to 0xB249f874F74B8d873b3252759Caed4388cfe2492.
     const proxyFactory = new UUPSProxy__factory(this.ethWallet);
     const deployedProxy = await proxyFactory.deploy(deployedContract.address, "0x");
-    this.log.info("Deployed UUPSProxy contract at: " + deployedProxy.address);
+    this.log.info("Deployed UUPSProxy contract", LOG_ETH, { address: deployedProxy.address });
 
     // DatachainV1 client.
     this.claimContract = DatachainV1__factory.connect(deployedProxy.address, this.ethWallet);
@@ -238,14 +238,15 @@ export class CoordinatorNode {
         };
         const bundleHash = hashTransactionBundle(txnBundle);
         const bundleTxnHashes = txnBundle.transactions.map(hashSignedTransaction).map(bytesToHex);
-        this.log.info(
-          `created transaction bundle ${bytesToHex(bundleHash)} with transactions: ${JSON.stringify(bundleTxnHashes)}`,
-        );
+        this.log.info("created new transaction bundle", LOG_STATE, {
+          txnBundeHash: bundleHash,
+          txns: bundleTxnHashes,
+        });
 
         // Generate randomness proof for block.
-        this.log.info(`fetching drand beacon`);
+        this.log.info("fetching drand beacon", LOG_NETWORK);
         const blockRandBeacon = await fetchDrandBeacon();
-        this.log.info(`fetched drand beacon: ${JSON.stringify(blockRandBeacon)}`);
+        this.log.info("fetched drand beacon", LOG_NETWORK, { beacon: blockRandBeacon });
         const blockRandProof = await createBlockRandomnessProof(bundleHash, this.config.blsSecKey, blockRandBeacon);
         const blockRandSeed = getSeedFromBlockRandomnessProof(blockRandProof);
 
@@ -261,7 +262,10 @@ export class CoordinatorNode {
           await this.storage.removePendingTransaction(txn);
         }
         if (daCheckResult.acceptedTxns.length == 0) {
-          this.log.error(`failed to mint next block - all transactions have failed DA verification`);
+          this.log.info("failed to mint next block", LOG_STATE, {
+            txnBundleHash: bundleHash,
+            reason: "all transactions have failed DA verification",
+          });
           continue;
         }
 
@@ -277,11 +281,15 @@ export class CoordinatorNode {
           await this.storage.removePendingTransaction(txn);
         }
         if (stateCheckResult.acceptedTxns.length == 0) {
-          this.log.error(`failed to mint next block - all transactions have failed state verification`);
+          this.log.info("failed to mint next block", LOG_STATE, {
+            txnBundleHash: bundleHash,
+            reason: "all transactions have failed state verification",
+          });
           continue;
         }
+
         // Mint block.
-        this.log.info(`minting next block from ${daCheckResult.acceptedTxns.length} new transactions`);
+        this.log.info("veryfing transactions and minting next block", LOG_STATE, { txnBundleHash: bundleHash });
         const nextBlockProof: BlockProof = {
           txnBundleHash: bundleHash,
           txnBundleProposer: this.blsPubKey,
@@ -301,29 +309,29 @@ export class CoordinatorNode {
         );
         for (const txn of acceptedTxns) {
           const txnHash = hashSignedTransaction(txn);
-          this.log.info("transaction applied", ["state", "trace"], { txn: txn, txnHash: txnHash });
+          this.log.info("transaction applied", LOG_STATE_TRACE, { txn: txn, txnHash: txnHash });
         }
         for (const [txn, err] of rejectedTxns) {
           const txnHash = hashSignedTransaction(txn);
-          this.log.info(`transaction rejected`, ["state"], { txn: txn, txnHash: txnHash, reason: err.message });
+          this.log.info(`transaction rejected`, LOG_STATE, { txn: txn, txnHash: txnHash, reason: err.message });
           await this.storage.removePendingTransaction(txn);
         }
         if (acceptedTxns.length == 0) {
-          this.log.error("failed to mint next block - no valid transactions");
+          this.log.info("failed to mint next block", LOG_STATE, { reason: "no valid transactions" });
           continue;
         }
 
-        this.log.debug("new world state", ["state", "trace"], { state: state });
+        this.log.debug("new world state", LOG_STATE_TRACE, { state: state });
 
         // Commit minted block;
         const blockHash = hashBlock(nextBlock);
         const rawBlock = serializeBlock(nextBlock);
         await this.claimContract?.submitBlock(rawBlock);
-        this.log.info(`block ${bytesToHex(blockHash)} committed to smart contract`);
+        this.log.info("block committed to smart contract", LOG_ETH, { blockHash: blockHash });
 
         await this.storage.commitNextBlock(state, nextBlock);
       } catch (err: any) {
-        this.log.error(`failed to mint next block - ${err.message}`);
+        this.log.error("failed to mint next block", err, LOG_STATE);
       }
     }
   }
@@ -352,7 +360,7 @@ export class CoordinatorNode {
           }
           // Genesis block does not have previous block.
           if (bytesEqual(uploadedBlock.prevBlockHash, NULL_HASH)) {
-            this.log.info(`genesis block ${bytesToHex(blockHash)} is uploaded to ipfs`);
+            this.log.info("genesis block uploaded to IPFS", LOG_NETWORK, { blockHash: blockHash });
             break;
           }
           blockHash = uploadedBlock.prevBlockHash;
@@ -361,7 +369,7 @@ export class CoordinatorNode {
           break;
         }
       } catch (err: any) {
-        this.log.error(`failed to upload blockchain to IPFS - ${err.message}`);
+        this.log.error("failed to upload blocks to IPFS", err, LOG_NETWORK);
       }
     }
   }
@@ -374,7 +382,7 @@ export class CoordinatorNode {
     }
 
     // Get block content and upload it to IPFS.
-    this.log.info(`uploading block ${bytesToHex(blockHash)} to ipfs: force ` + force);
+    this.log.info("uploading block to IPFS", LOG_NETWORK, { blockHash: blockHash, force: force });
     const block = await this.storage.getBlock(blockHash);
     if (block == undefined) {
       throw Error("block metadata exists in db while block itself is missing");
@@ -393,7 +401,7 @@ export class CoordinatorNode {
     };
     const rawBlockMeta = serializeBlockMetadata(blockMeta);
     await this.storage.setBlockMetadata(blockHash, rawBlockMeta);
-    this.log.info(`uploaded block ${bytesToHex(blockHash)} to ipfs: force ` + force);
+    this.log.info("block uploaded to IPFS", LOG_NETWORK, { blockHash: blockHash, force: force });
 
     return block;
   }

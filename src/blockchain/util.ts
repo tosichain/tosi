@@ -1,18 +1,7 @@
 import process from "process";
 import keccak256 from "keccak256";
-import JSONbigint from "json-bigint";
 
-import {
-  SignedTransaction,
-  Transaction,
-  WorldState,
-  Account,
-  StakePool,
-  DataChain,
-  ComputeClaim,
-  Block,
-  TransactionBundle,
-} from "./types";
+import { SignedTransaction, Transaction, WorldState, ComputeClaim, Block, TransactionBundle } from "./types";
 import { createAccount } from "./transaction";
 import {
   serializeBlock,
@@ -77,34 +66,4 @@ export function hashComputeClaim(claim: ComputeClaim): Uint8Array {
 export function hashTransactionBundle(txnBundle: TransactionBundle): Uint8Array {
   const rawBundle = serializeTransactionBundle(txnBundle);
   return Uint8Array.from(keccak256(Buffer.from(rawBundle)));
-}
-
-export function stringifyTransaction(txn: Transaction): string {
-  return stringifyHelper(txn);
-}
-
-export function stringifySignedTransaction(txn: SignedTransaction): string {
-  return stringifyHelper(txn);
-}
-
-export function stringifyAccount(account: Account): string {
-  return stringifyHelper(account);
-}
-
-export function stringifyStakePool(pool: StakePool): string {
-  return stringifyHelper(pool);
-}
-
-export function stringifyDataChain(chain: DataChain): string {
-  return stringifyHelper(chain);
-}
-
-export function stringifyComputeClaim(claim: ComputeClaim): string {
-  return stringifyHelper(claim);
-}
-
-function stringifyHelper(object: any): string {
-  return JSONbigint.stringify(object, (key: string, value: any): any => {
-    return value instanceof Uint8Array ? bytesToHex(value) : value;
-  });
 }

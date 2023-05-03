@@ -17,19 +17,22 @@ import { signDACheckResult } from "../../blockchain/block_proof";
 import { getSeedFromBlockRandomnessProof, verifyBlockRandomnessProof } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { BlockchainStorage } from "../../blockchain/storage";
-import { bytesEqual, bytesToHex, bytesFromHex, hashComputeClaim, stringifyComputeClaim } from "../../blockchain/util";
+import { bytesEqual, bytesFromHex, hashComputeClaim } from "../../blockchain/util";
 import { IPFS_PUB_SUB_DA_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
 import {
-  stringifyPubSubMessage,
-  stringifyDAVerificationRequest,
-  stringifyDAVerificationResponse,
+  logPubSubMessage,
+  logDAVerificationRequest,
+  logDAVerificationResponse,
   keepConnectedToSwarm,
 } from "../../p2p/util";
 import { createDAInfo } from "./util";
 import { P2PPubSubMessage, DAVerificationRequest, DAVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 import Logger from "../../log/logger";
 import { currentUnixTime } from "../../util";
+
+const LOG_VERIFIER = "da-verifier";
+const LOG_NETWORK = [LOG_VERIFIER, "network"];
 
 export interface DAVerifierConfig {
   DACheckTimeout: number;
@@ -88,15 +91,15 @@ export class DAVerifier {
           this.handlePubSubMessage(msg);
         },
         {
-          onError: () => {
-            this.log.debug("error in da pubsub, reconnecting");
+          onError: (err) => {
+            this.log.error("pubsub failed, reconnecting", err, LOG_NETWORK);
             setTimeout(this.setupPubSub.bind(this), 1);
           },
         },
       );
       await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_DA_VERIFICATION, new Uint8Array(0));
-    } catch (err) {
-      this.log.error("Failed during pubsub setup: " + err);
+    } catch (err: any) {
+      this.log.error("failed to setup pubsub", err, LOG_NETWORK);
     }
   }
 
@@ -107,16 +110,16 @@ export class DAVerifier {
 
   private async handlePubSubMessage(msg: IPFSPubSubMessage) {
     try {
-      this.log.info("received IPFS pubsub message " + stringifyPubSubMessage(msg));
+      this.log.info("received IPFS pubsub message", LOG_NETWORK, { message: logPubSubMessage(msg) });
 
       // Ignore our own messages.
       if (msg.from === this.ipfs.id) {
-        this.log.info("ignoring message from myself");
+        this.log.debug("ignoring message from myself", LOG_NETWORK);
         return;
       }
       // Ignore pings.
       if (msg.data.length == 0) {
-        this.log.info("ignoring ping message");
+        this.log.debug("ignoring ping message", LOG_NETWORK);
         return;
       }
 
@@ -125,12 +128,12 @@ export class DAVerifier {
         await this.handleDAVerificationRequest(protoMsg.getDaVerificationRequest() as DAVerificationRequest);
       }
     } catch (err: any) {
-      this.log.error(err.toString() + " " + err.stack);
+      this.log.error(err.stack, err, LOG_NETWORK);
     }
   }
 
   async handleDAVerificationRequest(req: DAVerificationRequest): Promise<void> {
-    this.log.info(`received DA verification request - ${stringifyDAVerificationRequest(req)}`);
+    this.log.info("received DA verification request", LOG_NETWORK, { request: logDAVerificationRequest(req) });
 
     if (!(await this.acceptDAVerificationRequest(req))) {
       return;
@@ -153,7 +156,9 @@ export class DAVerifier {
     const signedResult = await signDACheckResult(result, this.blsSecKey);
 
     const response = new DAVerificationResponse().setResult(daCheckResultToPB(signedResult));
-    this.log.info(`publishing DA verification response - ${stringifyDAVerificationResponse(response)}`);
+    this.log.info("publishing DA verification response", LOG_NETWORK, {
+      response: logDAVerificationResponse(response),
+    });
     const msg = new P2PPubSubMessage().setDaVerificationResponse(response);
     await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_DA_VERIFICATION, msg.serializeBinary());
   }
@@ -169,7 +174,7 @@ export class DAVerifier {
         currentUnixTime(),
       )
     ) {
-      this.log.info("can not process DA verification request - randomness proof not correct");
+      this.log.info("can not process DA verification request", LOG_VERIFIER, { reason: "invalid randomness proof" });
       return false;
     }
     // Check if no is in current DA commitee sample and is expected to process request.
@@ -183,7 +188,9 @@ export class DAVerifier {
 
     const inCommittee = committee.find((s) => bytesEqual(s.address, this.blsPubKey)) != undefined;
     if (!inCommittee) {
-      this.log.info("can not process DA verification request - not in current DA committee sample");
+      this.log.info("can not process DA verification request", LOG_VERIFIER, {
+        reason: "not in current DA committee sample",
+      });
       return false;
     }
 
@@ -192,7 +199,7 @@ export class DAVerifier {
 
   private async checkClaimDA(claim: ComputeClaim): Promise<ClaimDACheckResult> {
     const claimHash = hashComputeClaim(claim);
-    this.log.info(`checking DA for claim ${bytesToHex(claimHash)} - ${stringifyComputeClaim(claim)}`);
+    this.log.info("checking DA for claim", LOG_VERIFIER, { claim: claim, claimHash: claimHash });
 
     // TODO: this check is actually redundant, but we, probably, need to query previous claim in future.
     // For non-root claim previous claim must exist in local storage.
@@ -229,47 +236,50 @@ export class DAVerifier {
     }
 
     if (!functionInfo || !compareDAInfo(functionInfo, claim.dataContract)) {
-      this.log.error(
-        `function data for claim ${bytesToHex(claimHash)} doesn't match - ${JSON.stringify(
-          functionInfo,
-        )} ${JSON.stringify(claim.dataContract)}`,
-      );
+      this.log.info("function data for claim does not match", LOG_VERIFIER, {
+        claimHash: claimHash,
+        functionInfo: functionInfo,
+        dataContract: claim.dataContract,
+      });
       return { claimHash: claimHash, dataAvailable: false };
     }
 
     if (!prevOutputInfo || !compareDAInfo(prevOutputInfo, prevClaimDataRef)) {
-      this.log.error(`prev output info data for claim ${bytesToHex(claimHash)} doesn't match`);
+      this.log.info("prev output info data for claim does not match", LOG_VERIFIER, { claimHash: claimHash });
       return { claimHash: claimHash, dataAvailable: false };
     }
 
     if (!inputInfo || !compareDAInfo(inputInfo, claim.input)) {
-      this.log.error(`input info data for claim ${bytesToHex(claimHash)} doesn't match`);
+      this.log.info("input info data for claim does not match", LOG_VERIFIER, { claimHash: claimHash });
       return { claimHash: claimHash, dataAvailable: false };
     }
 
     if (!outputInfo || !compareDAInfo(outputInfo, claim.output)) {
-      this.log.error(`output info data for claim ${bytesToHex(claimHash)} doesn't match`);
+      this.log.info("output info data for claim doesn not match", LOG_VERIFIER, { claimHash: claimHash });
       return { claimHash: claimHash, dataAvailable: false };
     }
     return { claimHash: claimHash, dataAvailable: true };
   }
 
   private async fetchDAInfo(cid: CID, car: boolean): Promise<DAInfo | undefined> {
-    this.log.info("FETCH DA INFO: " + cid.toString());
-    const cachedDAInfo = this.daInfoCache[cid.toString() + ":" + car];
+    const cacheKey = cid.toString() + ":" + car;
+
+    const cachedDAInfo = this.daInfoCache[cacheKey];
     if (cachedDAInfo != undefined) {
-      this.log.info(`found DA info for CID ${cid.toString() + ":" + car} in cache`);
+      this.log.info("found DA info in cache", LOG_VERIFIER, { cacheKey: cacheKey });
       return cachedDAInfo;
     }
 
+    this.log.info("fetching DA info", LOG_NETWORK, { cid: cid });
     const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), this.config.DACheckTimeout, car);
     if (!daInfo) {
-      this.log.info(`error getting DA info for CID ${cid.toString()}`);
+      this.log.info("can not fetch DA info", LOG_NETWORK, { cid: cid });
       return undefined;
     }
-    this.log.info(`fetched DA info for CID ${cid.toString()} - ${JSON.stringify(daInfo)}`);
-    this.daInfoCache[cid.toString() + ":" + car] = daInfo;
-    this.log.info("local DA info cache updated");
+    this.log.info("fetched DA info", LOG_NETWORK, { daInfo: daInfo });
+
+    this.daInfoCache[cacheKey] = daInfo;
+    this.log.info("local DA info cache updated", LOG_VERIFIER, { cacheKey: cacheKey });
 
     return daInfo;
   }
