@@ -9,7 +9,10 @@
     "test:integration": "npm run test:tosi.client.sync",
     "test:tosi.client.sync": "mocha --exit --timeout 500000 src/tosi_tests/client.sync.test.ts",
     "test:tosi.da.committee.test": "mocha --exit --timeout 500000 src/tosi_tests/da.committee.test.ts",
-    "lint": "eslint src/ --ext .ts"
+    "lint": "eslint src/ --ext .ts",
+    "test:api:e2e": "yarn run test:api",
+    "test:api": "mocha --exit --timeout 500000 src/client/apiServer.test.ts"    
+    
   },
   "nyc": {
     "extension": [
