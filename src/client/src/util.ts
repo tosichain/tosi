@@ -7,6 +7,8 @@ import { DAInfo } from "../../blockchain/types";
 import { bytesFromHex } from "../../blockchain/util";
 import Logger from "../../log/logger";
 
+const LOG_VERIFIER = "verifier";
+
 export async function createDAInfo(
   ipfs: IPFS,
   log: Logger,
@@ -75,9 +77,11 @@ export async function execCommand(log: Logger, command: string, env?: NodeJS.Pro
     username: "root",
     password: "Docker!",
   });
-  log.info("Executing in verifier: " + JSON.stringify(command));
+  log.info("executing command", LOG_VERIFIER, { command: command });
   const result = await ssh.execCommand(command, { execOptions: { env } });
-  log.info("stderr: " + result.stderr);
-  log.info("stdout:" + result.stdout);
+  log.info("command execution finished", LOG_VERIFIER, {
+    stdout: result.stdout,
+    stderr: result.stderr,
+  });
   return { stdout: result.stdout, stderr: result.stderr };
 }

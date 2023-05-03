@@ -15,19 +15,22 @@ import { signStateCheckResult } from "../../blockchain/block_proof";
 import { getSeedFromBlockRandomnessProof, verifyBlockRandomnessProof } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { BlockchainStorage } from "../../blockchain/storage";
-import { bytesEqual, bytesToHex, bytesFromHex, hashComputeClaim, stringifyComputeClaim } from "../../blockchain/util";
+import { bytesEqual, bytesFromHex, hashComputeClaim } from "../../blockchain/util";
 import { IPFS_PUB_SUB_STATE_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
 import {
   keepConnectedToSwarm,
-  stringifyPubSubMessage,
-  stringifyStateVerificationRequest,
-  stringifyStateVerificationResponse,
+  logPubSubMessage,
+  logStateVerificationRequest,
+  logStateVerificationResponse,
 } from "../../p2p/util";
 import { execTask } from "./util";
 import { P2PPubSubMessage, StateVerificationRequest, StateVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 import Logger from "../../log/logger";
 import { currentUnixTime } from "../../util";
+
+const LOG_VERIFIER = "state-verifier";
+const LOG_NETWORK = [LOG_VERIFIER, "network"];
 
 export interface StateVerifierConfig {
   stateCheckTimeout: number;
@@ -85,15 +88,15 @@ export class StateVerifier {
           this.handlePubSubMessage(msg);
         },
         {
-          onError: () => {
-            this.log.debug("error in state pubsub, reconnecting");
+          onError: (err) => {
+            this.log.error("error in state pubsub, reconnecting", err, LOG_NETWORK);
             setTimeout(this.setupPubSub.bind(this), 1);
           },
         },
       );
       await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, new Uint8Array(0));
-    } catch (err) {
-      this.log.error("Failed during pubsub setup: " + err);
+    } catch (err: any) {
+      this.log.error("failed to setup pubsub", err, LOG_NETWORK);
     }
   }
 
@@ -104,16 +107,16 @@ export class StateVerifier {
 
   private async handlePubSubMessage(msg: IPFSPubSubMessage) {
     try {
-      this.log.info("state: received IPFS pubsub message " + stringifyPubSubMessage(msg));
+      this.log.info("received IPFS pubsub message", LOG_NETWORK, { message: logPubSubMessage(msg) });
 
       // Ignore our own messages.
       if (msg.from == this.ipfs.id) {
-        this.log.info("ignoring message from myself");
+        this.log.debug("ignoring message from myself", LOG_NETWORK);
         return;
       }
       // Ignore pings.
       if (msg.data.length == 0) {
-        this.log.info("ignoring ping message");
+        this.log.debug("ignoring ping message", LOG_NETWORK);
         return;
       }
 
@@ -122,12 +125,14 @@ export class StateVerifier {
         await this.handleStateVerificationRequest(protoMsg.getStateVerificationRequest() as StateVerificationRequest);
       }
     } catch (err: any) {
-      this.log.error(err.toString() + " " + err.stack);
+      this.log.error(err.stack, err, LOG_NETWORK);
     }
   }
 
   async handleStateVerificationRequest(req: StateVerificationRequest): Promise<void> {
-    this.log.info(`received State verification request - ${stringifyStateVerificationRequest(req)}`);
+    this.log.info("received state verification request", LOG_NETWORK, {
+      request: logStateVerificationRequest(req),
+    });
 
     if (!(await this.acceptStateVerificationRequest(req))) {
       return;
@@ -150,7 +155,9 @@ export class StateVerifier {
     const signedResult = await signStateCheckResult(result, this.blsSecKey);
 
     const response = new StateVerificationResponse().setResult(stateCheckResultToPB(signedResult));
-    this.log.info(`publishing State verification response - ${stringifyStateVerificationResponse(response)}`);
+    this.log.info("publishing state verification response", LOG_NETWORK, {
+      response: logStateVerificationResponse(response),
+    });
     const msg = new P2PPubSubMessage().setStateVerificationResponse(response);
     await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, msg.serializeBinary());
   }
@@ -166,7 +173,7 @@ export class StateVerifier {
         currentUnixTime(),
       )
     ) {
-      this.log.info("can not process State verification request - randomness proof not correct");
+      this.log.info("can not process state verification request", LOG_VERIFIER, { reason: "invalid randomness proof" });
       return false;
     }
     // Check if no is in current State commitee sample and is expected to process request.
@@ -180,7 +187,9 @@ export class StateVerifier {
 
     const inCommittee = committee.find((s) => bytesEqual(s.address, this.blsPubKey)) != undefined;
     if (!inCommittee) {
-      this.log.info("can not process State verification request - not in current State committee sample");
+      this.log.info("can not process state verification request", LOG_VERIFIER, {
+        reason: "not in current State committee sample",
+      });
       return false;
     }
 
@@ -189,11 +198,11 @@ export class StateVerifier {
 
   private async checkClaimState(claim: ComputeClaim): Promise<ClaimStateCheckResult> {
     const claimHash = hashComputeClaim(claim);
-    this.log.info(`checking State for claim ${bytesToHex(claimHash)} - ${stringifyComputeClaim(claim)}`);
+    this.log.info("checking claim state", LOG_VERIFIER, { claim: claim, claimHash: claimHash });
 
     // XXX Debug
     if (claim.outputFileHash.length != 32) {
-      throw new Error("No output file hash?");
+      throw new Error("invalid hash of output file");
     }
 
     // TODO: this check is actually redundant, but we, probably, need to query previous claim in future.
@@ -215,7 +224,7 @@ export class StateVerifier {
     // start checks in parallel
     const prevClaimOutputCID = !prevClaim ? EMPTY_OUTPUT_DATA_REF.cid : prevClaim.output.cid;
     try {
-      const before = Math.floor(Date.now() / 1000);
+      const before = currentUnixTime();
       const result = await execTask(this.ipfs, this.log, claim.dataContract.cid, prevClaimOutputCID, claim.input.cid);
       if (
         result.output &&
@@ -223,21 +232,23 @@ export class StateVerifier {
         result.output.outputCID == claim.output.cid.toString() &&
         result.output.outputFileHash == Buffer.from(claim.outputFileHash).toString("hex")
       ) {
-        const after = Math.floor(Date.now() / 1000);
-        this.log.info(
-          `all good, took ${after - before}s returning claim ${bytesToHex(claimHash)} with checking compute`,
-        );
+        const after = currentUnixTime();
+        this.log.info("claim successfully passed state state check", LOG_VERIFIER, {
+          timeElapsed: after - before,
+          claimHash: claimHash,
+        });
         return { claimHash: claimHash, stateCorrect: true };
       } else {
-        this.log.error(
-          `compute check for claim ${bytesToHex(claimHash)} doesn't match; ${Buffer.from(claim.outputFileHash).toString(
-            "hex",
-          )} , ${JSON.stringify(result.output)} , ${claim.output.cid.toString()}`,
-        );
+        this.log.info("claim state check failed", LOG_VERIFIER, {
+          claimHash: claimHash,
+          outputFileHash: claim.outputFileHash,
+          actualOutput: result.output,
+          claimOutputCID: claim.output.cid,
+        });
         return { claimHash: claimHash, stateCorrect: false };
       }
-    } catch (err) {
-      this.log.error("Failed executing computation: " + err);
+    } catch (err: any) {
+      this.log.error("failed to compute claim state", err, LOG_VERIFIER);
       return { claimHash: claimHash, stateCorrect: false };
     }
   }

@@ -11,12 +11,17 @@ import { NULL_HASH } from "../../blockchain/constant";
 import { hashSignedTransaction } from "../../blockchain/util";
 import { mintNextBlock } from "../../blockchain/block";
 import { deserializeBlock } from "../../blockchain/serde";
-import { bytesEqual, bytesToHex, bytesFromHex, hashBlock, stringifySignedTransaction } from "../../blockchain/util";
+import { bytesEqual, bytesFromHex, hashBlock } from "../../blockchain/util";
 import { verifyBlockProof } from "../../blockchain/block_proof";
 import { BlockchainStorage } from "../../blockchain/storage";
 import { CoordinatorRPC } from "../../coordinator/src/rpc";
 import { CLIENT_MAX_SUPPORTED_BLOCK_VERSION, CLIENT_MIN_SUPPORTED_BLOCK_VERSION } from "./constant";
 import Logger from "../../log/logger";
+
+const LOG_SYNC = "sync";
+const LOG_NETWORK = [LOG_SYNC, "network"];
+const LOG_STATE = [LOG_SYNC, "state"];
+const LOG_STATE_TRACE = [LOG_SYNC, "state", "trace"];
 
 export interface BlockchainClientSyncConfig {
   eth: {
@@ -84,7 +89,7 @@ export class BlockchainClientSync {
           setTimeout(resolve, this.config.syncPeriod);
         });
 
-        this.log.info("starting block sync");
+        this.log.info("starting block sync", LOG_SYNC);
 
         // Starting from head block fetch, all blocks, until
         // block, already committed to local storage, is found.
@@ -95,11 +100,11 @@ export class BlockchainClientSync {
           // Coordinator hasn't submitted any blocks yet.
           continue;
         }
-        this.log.info(`head block in smart contract ${bytesToHex(headBlockHash)}`);
+        this.log.info("head block in smart contract", LOG_SYNC, { blockHash: headBlockHash });
         const localHeadBlockHash = await this.storage.getHeadBlockHash();
-        this.log.info(`head block in local storage - ${bytesToHex(localHeadBlockHash)}`);
+        this.log.info("head block in local storage", LOG_SYNC, { blockHash: localHeadBlockHash });
         if (bytesEqual(headBlockHash, localHeadBlockHash)) {
-          this.log.info("local blockchain copy is up-to-date");
+          this.log.info("local blockchain copy is up-to-date", LOG_SYNC);
           continue;
         }
 
@@ -111,54 +116,54 @@ export class BlockchainClientSync {
           blocksToCommit.push(block);
           // Previous block is in local storage.
           if (bytesEqual(block.prevBlockHash, localHeadBlockHash)) {
-            this.log.info("hit local head block hash");
+            this.log.info("hit local head block hash", LOG_SYNC);
             break;
           } else {
-            this.log.info("local head block hash not in local storage, continuing");
+            this.log.info("local head block hash not in local storage, continuing", LOG_SYNC);
             blockToFetch = block.prevBlockHash;
           }
         }
-        this.log.info("done fetching blocks");
+        this.log.info("done fetching blocks", LOG_SYNC);
         // Commit block to local storage in correct order.
         blocksToCommit.reverse();
         for (const block of blocksToCommit) {
           await this.applyBlockTxns(block);
         }
-        this.log.info("block sync finished");
+        this.log.info("block sync finished", LOG_SYNC);
       } catch (err: any) {
-        this.log.error(`failed to sync blocks - ${err.message}`);
+        this.log.error("failed to sync blocks", err, LOG_SYNC);
       }
     }
   }
 
   private async fetchBlock(blockHash: Uint8Array): Promise<Block> {
-    this.log.info(`fetching block ${bytesToHex(blockHash)}`);
-    return await this.getBlockByHash(blockHash);
-  }
+    this.log.info("fetching block", LOG_NETWORK, { blockHash: blockHash });
 
-  private async getBlockByHash(blockHash: Uint8Array) {
     const constructedCID = CID.createV1(0x55, Digest.create(0x1b, blockHash));
 
     let lastBlock;
     try {
       const rawLastBlock = await this.getRawBlock(constructedCID);
       lastBlock = deserializeBlock(rawLastBlock);
-      this.log.info(`fetched last block from IPFS: ${bytesToHex(blockHash)} ${constructedCID.toString()}`);
-    } catch (err) {
-      this.log.info(
-        `failed to fetch ${bytesToHex(blockHash)} from IPFS, ${constructedCID.toString()}: ${err}, peers: ${
-          (await this.ipfs.getIPFS().swarm.peers()).length
-        }`,
-      );
+      this.log.info("fetched last block from IPFS", LOG_NETWORK, {
+        blockHash: blockHash,
+        cid: constructedCID,
+      });
+    } catch (err: any) {
+      this.log.error("failed to fetch block from IPFS", err, LOG_NETWORK, {
+        blockHash: blockHash,
+        cid: constructedCID,
+        peers: (await this.ipfs.getIPFS().swarm.peers()).length,
+      });
       lastBlock = await this.coordinator.getBlock(blockHash);
       if (!lastBlock) {
-        this.log.info(`block ${bytesToHex(blockHash)} was not found at the coordinator either`);
+        this.log.error("block was not found at the coordinator either", err, LOG_NETWORK, { blockHash: blockHash });
       } else {
-        this.log.info(`fetched last block from Coordinator instead: ${bytesToHex(blockHash)}`);
+        this.log.info(`fetched last block from coordinator instead`, LOG_NETWORK, { blockHash: blockHash });
       }
     }
     if (!lastBlock) {
-      throw new Error(`No block?`);
+      throw new Error("last block is undefined");
     }
     const realBlockHash = hashBlock(lastBlock);
     if (!bytesEqual(realBlockHash, blockHash)) {
@@ -216,7 +221,7 @@ export class BlockchainClientSync {
       block.time,
     );
     for (const [txn, err] of rejectedTxns) {
-      this.log.error(`transaction ${stringifySignedTransaction(txn)} rejected - ${err.message}`);
+      this.log.error("transaction rejected", err, LOG_STATE, { txn: txn, txnHash: hashSignedTransaction(txn) });
     }
     if (rejectedTxns.length > 0) {
       throw new Error(`failed to apply 1 or more transactions from new block`);
@@ -225,10 +230,10 @@ export class BlockchainClientSync {
     // Trace updates of world state and chain.
     for (const txn of block.transactions) {
       const txnHash = hashSignedTransaction(txn);
-      this.log.info("transaction applied", ["state", "trace"], { txn: txn, txnHash: txnHash });
+      this.log.info("transaction applied", LOG_STATE_TRACE, { txn: txn, txnHash: txnHash });
     }
 
-    this.log.debug("new world state", ["state", "trace"], { state: state });
+    this.log.debug("new world state", LOG_STATE_TRACE, { state: state });
 
     await this.storage.commitNextBlock(state, nextBlock);
   }
