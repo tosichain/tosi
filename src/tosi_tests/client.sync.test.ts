@@ -31,7 +31,7 @@ let coordinator: CoordinatorRPC;
 let client: ClientRPC;
 
 before(async () => {
-  log = new Logger("tosi-client-sync-test", "debug");
+  log = new Logger("tosi-client-sync-test", "info");
 
   coordinator = new CoordinatorRPC({
     serverAddr: "127.0.0.1:20001",
