@@ -49,7 +49,7 @@ let daVerifier3: ClientRPC;
 let ipfs: IPFS;
 
 before(async () => {
-  log = new Logger("claim-verification-test", "debug");
+  log = new Logger("claim-verification-test", "info");
 
   coordinator = new CoordinatorRPC({
     serverAddr: "127.0.0.1:20001",
