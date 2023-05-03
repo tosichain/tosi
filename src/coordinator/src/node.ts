@@ -308,6 +308,10 @@ export class CoordinatorNode {
           this.log.info(`transaction rejected`, ["state"], { txn: txn, txnHash: txnHash, reason: err.message });
           await this.storage.removePendingTransaction(txn);
         }
+        if (acceptedTxns.length == 0) {
+          this.log.error("failed to mint next block - no valid transactions");
+          continue;
+        }
 
         this.log.debug("new world state", ["state", "trace"], { state: state });
 
