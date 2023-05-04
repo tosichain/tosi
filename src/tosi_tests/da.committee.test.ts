@@ -3,8 +3,9 @@
 import { expect } from "chai";
 import chai from "chai";
 import chaiAsPromised from "chai-as-promised";
-import * as BLS from "@noble/bls12-381";
+import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 import { CID } from "ipfs-http-client";
+import crypto from "crypto";
 
 chai.use(chaiAsPromised);
 
@@ -239,7 +240,7 @@ async function setupDACommittee() {
 }
 
 async function getDummyData(): Promise<CID> {
-  const data = BLS.utils.randomBytes(100);
+  const data = crypto.randomBytes(100);
 
   return (await ipfs.getIPFS().add(data, { cidVersion: 1 })).cid;
 }

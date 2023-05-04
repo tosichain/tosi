@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import * as BLS from "@noble/bls12-381";
+import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 
 import { encodeCBOR } from "../util";
 

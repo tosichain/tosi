@@ -1,6 +1,6 @@
 import * as IpfsHttpClient from "ipfs-http-client";
 import { CID } from "ipfs-http-client";
-import * as BLS from "@noble/bls12-381";
+import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 
 import { IPFS } from "../../node/ipfs";
 import { Transaction, Account, DAInfo, Block, DataChain, StakeType, DrandBeaconInfo } from "../../blockchain/types";

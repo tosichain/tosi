@@ -1,7 +1,7 @@
 import * as IpfsHttpClient from "ipfs-http-client";
 import * as ethers from "ethers";
 import { IPFS } from "../../node/ipfs";
-import * as BLS from "@noble/bls12-381";
+import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 
 import { currentUnixTime } from "../../util";
 import Logger from "../../log/logger";
