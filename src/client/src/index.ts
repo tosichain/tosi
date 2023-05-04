@@ -37,6 +37,7 @@ import { fetchDrandBeaconInfo } from "../../blockchain/block_randomness";
     },
     rpc: {
       port: Number(process.env.API_PORT),
+      noPrivileged: process.env.NO_PRIVILEGED_RPC ? true : false,
     },
     blsSecKey: bytesFromHex(String(process.env.BLS_SEC_KEY)),
     coordinatorPubKey: bytesFromHex(String(process.env.COORDINATOR_PUB_KEY)),

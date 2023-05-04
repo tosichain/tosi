@@ -46,6 +46,7 @@ import {
 import { ClientNodeService, IClientNodeServer } from "../../proto/grpcjs/client_grpc_pb";
 import { CreateDatachainParameters, UpdateDatachainParameters } from "./node";
 import Logger from "../../log/logger";
+import { Status } from "@grpc/grpc-js/build/src/constants";
 
 export interface RequestHandler {
   getBlock(blockHash: Uint8Array): Promise<Block | undefined>;
@@ -65,6 +66,7 @@ export interface RequestHandler {
 
 export interface ClientNodeRPCServerConfig {
   port: number;
+  noPrivileged: boolean;
 }
 
 export class ClientNodeRPCServer implements IClientNodeServer {
@@ -207,6 +209,9 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     call: ServerUnaryCall<GenerateCreateDataChainTxnRequest, GenerateCreateDataChainTxnResponse>,
     callback: sendUnaryData<GenerateCreateDataChainTxnResponse>,
   ): void {
+    if (this.config.noPrivileged) {
+      return callback({ code: Status.PERMISSION_DENIED, message: "No privileged calls" });
+    }
     const params: CreateDatachainParameters = {
       dataContractCID: CID.parse(call.request.getDataContractCid()),
       inputCID: CID.parse(call.request.getInputCid()),
@@ -223,6 +228,9 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     call: ServerUnaryCall<GenerateUpdateDataChainTxnRequest, GenerateUpdateDataChainTxnResponse>,
     callback: sendUnaryData<GenerateUpdateDataChainTxnResponse>,
   ): void {
+    if (this.config.noPrivileged) {
+      return callback({ code: Status.PERMISSION_DENIED, message: "No privileged calls" });
+    }
     const params: UpdateDatachainParameters = {
       dataContractCID: CID.parse(call.request.getDataContractCid()),
       inputCID: CID.parse(call.request.getInputCid()),
@@ -240,6 +248,9 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     call: ServerUnaryCall<SubmitTransactionRequest, SubmitTransactionResponse>,
     callback: sendUnaryData<SubmitTransactionResponse>,
   ): void {
+    if (this.config.noPrivileged) {
+      return callback({ code: Status.PERMISSION_DENIED, message: "No privileged calls" });
+    }
     const txn = transactionFromPB(call.request.getTransaction() as PBTransaction);
     this.handler.submitTransaction(txn).then(() => {
       callback(null, new SubmitTransactionResponse());
