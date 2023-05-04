@@ -22,7 +22,7 @@ interface IClientNodeService extends grpc.ServiceDefinition<grpc.UntypedServiceI
     getHealth: IClientNodeService_IGetHealth;
     generateCreateDataChainTxn: IClientNodeService_IGenerateCreateDataChainTxn;
     generateUpdateDataChainTxn: IClientNodeService_IGenerateUpdateDataChainTxn;
-    sumbitTransaction: IClientNodeService_ISumbitTransaction;
+    submitTransaction: IClientNodeService_ISubmitTransaction;
     getSyncStatus: IClientNodeService_IGetSyncStatus;
 }
 
@@ -134,8 +134,8 @@ interface IClientNodeService_IGenerateUpdateDataChainTxn extends grpc.MethodDefi
     responseSerialize: grpc.serialize<client_pb.GenerateUpdateDataChainTxnResponse>;
     responseDeserialize: grpc.deserialize<client_pb.GenerateUpdateDataChainTxnResponse>;
 }
-interface IClientNodeService_ISumbitTransaction extends grpc.MethodDefinition<client_pb.SubmitTransactionRequest, client_pb.SubmitTransactionResponse> {
-    path: "/client.ClientNode/SumbitTransaction";
+interface IClientNodeService_ISubmitTransaction extends grpc.MethodDefinition<client_pb.SubmitTransactionRequest, client_pb.SubmitTransactionResponse> {
+    path: "/client.ClientNode/SubmitTransaction";
     requestStream: false;
     responseStream: false;
     requestSerialize: grpc.serialize<client_pb.SubmitTransactionRequest>;
@@ -168,7 +168,7 @@ export interface IClientNodeServer extends grpc.UntypedServiceImplementation {
     getHealth: grpc.handleUnaryCall<node_pb.GetHealthRequest, node_pb.GetHealthResponse>;
     generateCreateDataChainTxn: grpc.handleUnaryCall<client_pb.GenerateCreateDataChainTxnRequest, client_pb.GenerateCreateDataChainTxnResponse>;
     generateUpdateDataChainTxn: grpc.handleUnaryCall<client_pb.GenerateUpdateDataChainTxnRequest, client_pb.GenerateUpdateDataChainTxnResponse>;
-    sumbitTransaction: grpc.handleUnaryCall<client_pb.SubmitTransactionRequest, client_pb.SubmitTransactionResponse>;
+    submitTransaction: grpc.handleUnaryCall<client_pb.SubmitTransactionRequest, client_pb.SubmitTransactionResponse>;
     getSyncStatus: grpc.handleUnaryCall<client_pb.GetSyncStatusRequest, client_pb.GetSyncStatusResponse>;
 }
 
@@ -209,9 +209,9 @@ export interface IClientNodeClient {
     generateUpdateDataChainTxn(request: client_pb.GenerateUpdateDataChainTxnRequest, callback: (error: grpc.ServiceError | null, response: client_pb.GenerateUpdateDataChainTxnResponse) => void): grpc.ClientUnaryCall;
     generateUpdateDataChainTxn(request: client_pb.GenerateUpdateDataChainTxnRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: client_pb.GenerateUpdateDataChainTxnResponse) => void): grpc.ClientUnaryCall;
     generateUpdateDataChainTxn(request: client_pb.GenerateUpdateDataChainTxnRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: client_pb.GenerateUpdateDataChainTxnResponse) => void): grpc.ClientUnaryCall;
-    sumbitTransaction(request: client_pb.SubmitTransactionRequest, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
-    sumbitTransaction(request: client_pb.SubmitTransactionRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
-    sumbitTransaction(request: client_pb.SubmitTransactionRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
+    submitTransaction(request: client_pb.SubmitTransactionRequest, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
+    submitTransaction(request: client_pb.SubmitTransactionRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
+    submitTransaction(request: client_pb.SubmitTransactionRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
     getSyncStatus(request: client_pb.GetSyncStatusRequest, callback: (error: grpc.ServiceError | null, response: client_pb.GetSyncStatusResponse) => void): grpc.ClientUnaryCall;
     getSyncStatus(request: client_pb.GetSyncStatusRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: client_pb.GetSyncStatusResponse) => void): grpc.ClientUnaryCall;
     getSyncStatus(request: client_pb.GetSyncStatusRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: client_pb.GetSyncStatusResponse) => void): grpc.ClientUnaryCall;
@@ -255,9 +255,9 @@ export class ClientNodeClient extends grpc.Client implements IClientNodeClient {
     public generateUpdateDataChainTxn(request: client_pb.GenerateUpdateDataChainTxnRequest, callback: (error: grpc.ServiceError | null, response: client_pb.GenerateUpdateDataChainTxnResponse) => void): grpc.ClientUnaryCall;
     public generateUpdateDataChainTxn(request: client_pb.GenerateUpdateDataChainTxnRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: client_pb.GenerateUpdateDataChainTxnResponse) => void): grpc.ClientUnaryCall;
     public generateUpdateDataChainTxn(request: client_pb.GenerateUpdateDataChainTxnRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: client_pb.GenerateUpdateDataChainTxnResponse) => void): grpc.ClientUnaryCall;
-    public sumbitTransaction(request: client_pb.SubmitTransactionRequest, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
-    public sumbitTransaction(request: client_pb.SubmitTransactionRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
-    public sumbitTransaction(request: client_pb.SubmitTransactionRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
+    public submitTransaction(request: client_pb.SubmitTransactionRequest, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
+    public submitTransaction(request: client_pb.SubmitTransactionRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
+    public submitTransaction(request: client_pb.SubmitTransactionRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: client_pb.SubmitTransactionResponse) => void): grpc.ClientUnaryCall;
     public getSyncStatus(request: client_pb.GetSyncStatusRequest, callback: (error: grpc.ServiceError | null, response: client_pb.GetSyncStatusResponse) => void): grpc.ClientUnaryCall;
     public getSyncStatus(request: client_pb.GetSyncStatusRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: client_pb.GetSyncStatusResponse) => void): grpc.ClientUnaryCall;
     public getSyncStatus(request: client_pb.GetSyncStatusRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: client_pb.GetSyncStatusResponse) => void): grpc.ClientUnaryCall;

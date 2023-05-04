@@ -55,7 +55,7 @@ export interface RequestHandler {
   getStakerList(stakeType: StakeType): Promise<Account[]>;
   getDataChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined>;
   getDataChainList(): Promise<DataChain[]>;
-  getHeadBblockHash(): Promise<Uint8Array>;
+  getHeadBlockHash(): Promise<Uint8Array>;
   getBLSPublicKey(): Promise<Uint8Array>;
   getIPFSBootstrap(): Promise<string[]>;
   generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction>;
@@ -175,7 +175,7 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     call: ServerUnaryCall<GetHeadBlockHashRequest, GetDataChainListResponse>,
     callback: sendUnaryData<GetHeadBlockHashResponse>,
   ): void {
-    this.handler.getHeadBblockHash().then((blockHash) => {
+    this.handler.getHeadBlockHash().then((blockHash) => {
       callback(null, new GetHeadBlockHashResponse().setBlockHash(blockHash));
     });
   }
@@ -244,7 +244,7 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     });
   }
 
-  public sumbitTransaction(
+  public submitTransaction(
     call: ServerUnaryCall<SubmitTransactionRequest, SubmitTransactionResponse>,
     callback: sendUnaryData<SubmitTransactionResponse>,
   ): void {

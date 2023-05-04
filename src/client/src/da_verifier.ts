@@ -49,14 +49,14 @@ export class DAVerifier {
   private readonly ipfs: IPFS;
   private readonly drandBeaconInfo: DrandBeaconInfo;
 
-  // TODO: Is allowed only to read from blockahin storage (seprate interface?);
+  // TODO: Is allowed only to read from blockchain storage (separate interface?);
   private readonly blockchain: BlockchainStorage;
 
   private daInfoCache: Record<string, DAInfo> = {};
 
   constructor(
     blsSecKey: Uint8Array,
-    cooridnatorPubKey: Uint8Array,
+    coordinatorPubKey: Uint8Array,
     daCommitteeSampleSize: number,
     config: DAVerifierConfig,
     log: Logger,
@@ -67,7 +67,7 @@ export class DAVerifier {
     this.blsSecKey = blsSecKey;
     this.blsPubKey = Buffer.from(BLS.getPublicKey(this.blsSecKey));
 
-    this.coordinatorPubKey = cooridnatorPubKey;
+    this.coordinatorPubKey = coordinatorPubKey;
 
     this.daCommitteeSampleSize = daCommitteeSampleSize;
     this.drandBeaconInfo = drandBeaconInfo;

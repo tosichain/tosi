@@ -16,7 +16,7 @@ service CoordinatorNode {
     rpc GetBLSPublicKey(node.GetBLSPublicKeyRequest) returns (node.GetBLSPublicKeyResponse);
     rpc GetIPFSBootstrap(node.GetIPFSBootstrapRequest) returns (node.GetIPFSBootstrapResponse);
     rpc GetHealth(node.GetHealthRequest) returns (node.GetHealthResponse);
-    rpc SumbitSignedTransaction(SubmitSignedTransactionRequest) returns (SubmitSignedTransactionResponse);
+    rpc SubmitSignedTransaction(SubmitSignedTransactionRequest) returns (SubmitSignedTransactionResponse);
     rpc GetBlockMetadata(GetBlockMetadataRequest) returns (GetBlockMetadataResponse);
 }
 

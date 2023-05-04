@@ -94,7 +94,7 @@ export async function verifyBlockProof(
   }
 
   // Verify aggregated signature of responses from state verifiers.
-  const [aggStateCheckResultSigValid, aggStateCheckResultSig] = await verifyStateCheckResultsAggergatedSignature(
+  const [aggStateCheckResultSigValid, aggStateCheckResultSig] = await verifyStateCheckResultsAggregatedSignature(
     proof.txnBundleHash,
     proof.randomnessProof,
     proof.stateCheckResults[0].claims, // For now we expect full consensus among state verifiers.
@@ -177,7 +177,7 @@ export async function verifyStateCheckResultSignature(
   return await BLS.verify(signature, hash, signer);
 }
 
-export async function verifyStateCheckResultsAggergatedSignature(
+export async function verifyStateCheckResultsAggregatedSignature(
   txnBundleHash: Uint8Array,
   randomnessProof: Uint8Array,
   claimResults: ClaimStateCheckResult[],

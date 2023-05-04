@@ -21,7 +21,7 @@ export interface ClientNodeConfig {
   coordinator: CoordinatorRPCConfig;
   ipfs: IpfsHttpClient.Options;
   storage: BlockchainStorageConfig;
-  blokchainSync: BlockchainClientSyncConfig;
+  blockchainSync: BlockchainClientSyncConfig;
   rpc: ClientNodeRPCServerConfig;
   blsSecKey: Uint8Array;
   coordinatorPubKey: Uint8Array;
@@ -81,7 +81,7 @@ export class ClientNode {
     this.blockchainSync = new BlockchainClientSync(
       this.config.DACommitteeSampleSize,
       this.config.stateCommitteeSampleSize,
-      this.config.blokchainSync,
+      this.config.blockchainSync,
       this.log,
       this.coordinator,
       this.ipfs,
@@ -224,7 +224,7 @@ export class ClientNode {
     return await this.storage.getDataChainList();
   }
 
-  public async getHeadBblockHash(): Promise<Uint8Array> {
+  public async getHeadBlockHash(): Promise<Uint8Array> {
     return await this.storage.getHeadBlockHash();
   }
 

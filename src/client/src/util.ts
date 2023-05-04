@@ -68,11 +68,7 @@ export interface CommandResult {
   stdout: string;
 }
 
-export async function execCommand(
-  log: Logger,
-  command: string,
-  env?: NodeJS.ProcessEnv,
-): Promise<CommandResult> {
+export async function execCommand(log: Logger, command: string, env?: NodeJS.ProcessEnv): Promise<CommandResult> {
   const ssh = new NodeSSH();
   await ssh.connect({
     host: process.env.VERIFIER_HOST,

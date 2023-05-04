@@ -18,7 +18,7 @@ service ClientNode {
     rpc GetHealth(node.GetHealthRequest) returns (node.GetHealthResponse);
     rpc GenerateCreateDataChainTxn (GenerateCreateDataChainTxnRequest) returns (GenerateCreateDataChainTxnResponse);
     rpc GenerateUpdateDataChainTxn (GenerateUpdateDataChainTxnRequest) returns (GenerateUpdateDataChainTxnResponse);
-    rpc SumbitTransaction(SubmitTransactionRequest) returns (SubmitTransactionResponse);
+    rpc SubmitTransaction(SubmitTransactionRequest) returns (SubmitTransactionResponse);
     rpc GetSyncStatus(GetSyncStatusRequest) returns (GetSyncStatusResponse);
 }
 

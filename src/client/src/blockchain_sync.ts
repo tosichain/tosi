@@ -87,7 +87,7 @@ export class BlockchainClientSync {
         this.log.info("starting block sync");
 
         // Starting from head block fetch, all blocks, until
-        // block, already committed to local stroage, is found.
+        // block, already committed to local storage, is found.
 
         // Check if local copy of blockchain is up-to-date.
         const headBlockHash = await this.getContractBlockHash();

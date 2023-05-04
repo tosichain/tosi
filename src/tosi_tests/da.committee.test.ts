@@ -335,7 +335,7 @@ describe("DA verification is performed correctly", function () {
     await verifyHeadClaim(rootClaimHash, headClaim);
   });
 
-  it("client tries to add compute claim with unvailable data to existing chain", async () => {
+  it("client tries to add compute claim with unavailable data to existing chain", async () => {
     // Generate valid valid UpdateDatachain transaction.
     const txn = await client.generateUpdateDatachainTxn({
       dataContractCID: CID.parse(FUNCTION_CID),

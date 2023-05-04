@@ -180,7 +180,7 @@ export class CoordinatorRPC {
   public async submitSignedTransaction(txn: SignedTransaction): Promise<void> {
     const req = new SubmitSignedTransactionRequest().setTransaction(signedTransactionToPB(txn));
     return new Promise<void>((resolve, reject) => {
-      this.grpc.sumbitSignedTransaction(req, (err, resp) => {
+      this.grpc.submitSignedTransaction(req, (err, resp) => {
         if (err) {
           return reject(err);
         }
