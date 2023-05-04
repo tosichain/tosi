@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import * as BLS from "@noble/bls12-381";
+import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 
 async function init() {
   const privateKey = BLS.utils.randomPrivateKey();

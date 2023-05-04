@@ -1,6 +1,6 @@
 import keccak256 from "keccak256";
 import MerkleTree from "merkletreejs";
-import * as BLS from "@noble/bls12-381";
+import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 
 import { SignedTransaction, Transaction, WorldState, Block, BlockProof } from "./types";
 import { applyTransaction } from "./transaction";

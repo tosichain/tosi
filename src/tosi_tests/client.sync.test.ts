@@ -3,7 +3,7 @@
 import { expect } from "chai";
 import chai from "chai";
 import chaiAsPromised from "chai-as-promised";
-import * as BLS from "@noble/bls12-381";
+import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 
 chai.use(chaiAsPromised);
 
