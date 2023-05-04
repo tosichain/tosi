@@ -61,8 +61,11 @@ export function decodeCBOR(cbor: Uint8Array): any {
 }
 
 // https://stackoverflow.com/questions/58570325/how-to-turn-child-process-spawns-promise-syntax-to-async-await-syntax
-export async function spawnChildProcess(cmd: string, args: string[],
-                                        stdin: Buffer | undefined = undefined): Promise<Buffer> {
+export async function spawnChildProcess(
+  cmd: string,
+  args: string[],
+  stdin: Buffer | undefined = undefined,
+): Promise<Buffer> {
   const child = child_process.spawn(cmd, args);
 
   // Handle stdin.
@@ -74,22 +77,22 @@ export async function spawnChildProcess(cmd: string, args: string[],
   // Handle stdout.
   let stdout_chunks = Array<Buffer>();
   for await (const chunk of child.stdout) {
-      stdout_chunks.push(chunk);
+    stdout_chunks.push(chunk);
   }
 
   // Handle stderr.
   let stderr_chunks = Array<Buffer>();
   for await (const chunk of child.stderr) {
-      stderr_chunks.push(chunk);
+    stderr_chunks.push(chunk);
   }
 
   // Handle exit code.
-  const exitCode = await new Promise( (resolve, reject) => {
-      child.on('close', resolve);
+  const exitCode = await new Promise((resolve, reject) => {
+    child.on("close", resolve);
   });
-  if(exitCode) {
-    const stderr = Buffer.concat(stderr_chunks).toString()
-    throw new Error( `subprocess error exit ${exitCode}, ${stderr}`);
+  if (exitCode) {
+    const stderr = Buffer.concat(stderr_chunks).toString();
+    throw new Error(`subprocess error exit ${exitCode}, ${stderr}`);
   }
 
   return Buffer.concat(stdout_chunks);
@@ -97,13 +100,13 @@ export async function spawnChildProcess(cmd: string, args: string[],
 
 export async function execChildProcess(shell_cmd: string): Promise<Buffer | string> {
   const exec = util.promisify(child_process.exec);
-  const {stdout, stderr} = await exec(shell_cmd);
+  const { stdout, stderr } = await exec(shell_cmd);
   return stdout;
 }
 
 export function removeCarriageReturn(str: string): string {
   const new_str = str.replace("\n", "").replace("\r", "").trim();
-  return new_str
+  return new_str;
 }
 
 export function currentUnixTime(): number {

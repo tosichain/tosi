@@ -181,7 +181,7 @@ export class BlockchainStorage {
   }
 
   private async initDB(state: WorldState): Promise<void> {
-    // TODO: some general metdata must be put into this.db
+    // TODO: some general metadata must be put into this.db
     const rawState = serializeWorldState(state);
 
     const genesisBlock: Block = {

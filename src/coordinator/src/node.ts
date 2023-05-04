@@ -470,7 +470,7 @@ export class CoordinatorNode {
     return await this.storage.getDataChainList();
   }
 
-  public async getHeadBblockHash(): Promise<Uint8Array> {
+  public async getHeadBlockHash(): Promise<Uint8Array> {
     return await this.storage.getHeadBlockHash();
   }
 

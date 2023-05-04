@@ -20,7 +20,7 @@ import { fetchDrandBeaconInfo } from "../../blockchain/block_randomness";
       db: String(process.env.DB_DB),
       initialState: createInitialStateFromEnv(),
     },
-    blokchainSync: {
+    blockchainSync: {
       eth: {
         rpc: String(process.env.SYNC_ETH_RPC),
         claimContractAddress: String(process.env.SYNC_ETH_CLAIM_CONTRACT_ADDRESS),

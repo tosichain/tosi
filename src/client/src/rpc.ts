@@ -213,7 +213,7 @@ export class ClientRPC {
   public async submitTransaction(txn: Transaction): Promise<void> {
     const req = new SubmitTransactionRequest().setTransaction(transactionToPB(txn));
     return new Promise<void>((resolve, reject) => {
-      this.grpc.sumbitTransaction(req, (err, resp) => {
+      this.grpc.submitTransaction(req, (err, resp) => {
         if (err) {
           return reject(err);
         }

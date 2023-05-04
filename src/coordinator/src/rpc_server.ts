@@ -58,7 +58,7 @@ export interface RequestHandler {
   getStakerList(stakeType: StakeType): Promise<Account[]>;
   getDataChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined>;
   getDataChainList(): Promise<DataChain[]>;
-  getHeadBblockHash(): Promise<Uint8Array>;
+  getHeadBlockHash(): Promise<Uint8Array>;
   getBLSPublicKey(): Promise<Uint8Array>;
   getIPFSBootstrap(): Promise<string[]>;
   submitSignedTransaction(txn: SignedTransaction): Promise<void>;
@@ -175,7 +175,7 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
     call: ServerUnaryCall<GetHeadBlockHashRequest, GetDataChainListResponse>,
     callback: sendUnaryData<GetHeadBlockHashResponse>,
   ): void {
-    this.handler.getHeadBblockHash().then((blockHash) => {
+    this.handler.getHeadBlockHash().then((blockHash) => {
       callback(null, new GetHeadBlockHashResponse().setBlockHash(blockHash));
     });
   }
@@ -205,7 +205,7 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
     callback(null, new GetHealthResponse().setIsHealthy(true));
   }
 
-  public sumbitSignedTransaction(
+  public submitSignedTransaction(
     call: ServerUnaryCall<SubmitSignedTransactionRequest, SubmitSignedTransactionResponse>,
     callback: sendUnaryData<SubmitSignedTransactionResponse>,
   ): void {

@@ -448,8 +448,8 @@ var ClientNodeService = exports.ClientNodeService = {
     responseSerialize: serialize_client_GenerateUpdateDataChainTxnResponse,
     responseDeserialize: deserialize_client_GenerateUpdateDataChainTxnResponse,
   },
-  sumbitTransaction: {
-    path: '/client.ClientNode/SumbitTransaction',
+  submitTransaction: {
+    path: '/client.ClientNode/SubmitTransaction',
     requestStream: false,
     responseStream: false,
     requestType: client_pb.SubmitTransactionRequest,

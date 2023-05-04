@@ -382,8 +382,8 @@ var CoordinatorNodeService = exports.CoordinatorNodeService = {
     responseSerialize: serialize_node_GetHealthResponse,
     responseDeserialize: deserialize_node_GetHealthResponse,
   },
-  sumbitSignedTransaction: {
-    path: '/client.CoordinatorNode/SumbitSignedTransaction',
+  submitSignedTransaction: {
+    path: '/client.CoordinatorNode/SubmitSignedTransaction',
     requestStream: false,
     responseStream: false,
     requestType: coordinator_pb.SubmitSignedTransactionRequest,

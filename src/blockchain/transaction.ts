@@ -273,11 +273,11 @@ function applyStateVerifierUnstakeTokenTxn(
 }
 
 export function applyAddComputeChainTxn(state: WorldState, txFrom: Uint8Array, txn: CreateDataChain): void {
-  const calimerAddrHex = bytesToHex(txn.rootClaim.claimer);
+  const claimerAddrHex = bytesToHex(txn.rootClaim.claimer);
   const rootClaimHash = hashComputeClaim(txn.rootClaim);
   const rootClaimHashHex = bytesToHex(rootClaimHash);
 
-  if (state.accounts[calimerAddrHex] == undefined) {
+  if (state.accounts[claimerAddrHex] == undefined) {
     throw new Error("claimer account does not exist");
   }
   if (!bytesEqual(txFrom, txn.rootClaim.claimer)) {

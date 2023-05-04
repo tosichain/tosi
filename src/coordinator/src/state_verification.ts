@@ -3,7 +3,7 @@ import { IPFS } from "../../node/ipfs";
 import { Account, ComputeClaim, SignedTransaction, StateCheckResult, TransactionBundle } from "../../blockchain/types";
 import { computeClaimToPB, stateCheckResultFromPB } from "../../blockchain/serde";
 import {
-  verifyStateCheckResultsAggergatedSignature,
+  verifyStateCheckResultsAggregatedSignature,
   verifyStateCheckResultSignature,
 } from "../../blockchain/block_proof";
 import {
@@ -36,7 +36,7 @@ interface StateCheckProcess {
   txnBundleHash: Uint8Array;
   claims: ComputeClaim[];
   randomnessProof: Uint8Array;
-  commitee: Account[];
+  committee: Account[];
   results: Record<string, StateCheckResult>;
   resolve: any; // Promise resolve function.
   reject: any; // Promise reject function.
@@ -61,7 +61,7 @@ export class StateVerificationManager {
       txnBundleHash: new Uint8Array(),
       claims: [],
       randomnessProof: new Uint8Array(),
-      commitee: [],
+      committee: [],
       results: {},
       resolve: undefined,
       reject: undefined,
@@ -131,12 +131,12 @@ export class StateVerificationManager {
 
     // Sanity check of number of received responses.
     const responseCount = Object.keys(this.process.results).length;
-    if (responseCount < this.process.commitee.length) {
+    if (responseCount < this.process.committee.length) {
       // Reset State check state to stop request broadcast.
       this.resetStateCheckProcess();
       // That means coding error in message processing or callbacks.
       throw new Error("Number of unique State verification responses is less then size of State committee");
-    } else if (responseCount > this.process.commitee.length) {
+    } else if (responseCount > this.process.committee.length) {
       // Reset State check state to stop request broadcast.
       this.resetStateCheckProcess();
       // That means coding error in message processing callback.
@@ -156,7 +156,7 @@ export class StateVerificationManager {
     // Check of aggregated signature of received State check verification responses.
     // For now this also ensures that State checkers have reached consensus.
     const responseSigners = result.responses.map((response) => response.signer);
-    const [validAggSig, aggSig] = await verifyStateCheckResultsAggergatedSignature(
+    const [validAggSig, aggSig] = await verifyStateCheckResultsAggregatedSignature(
       this.process.txnBundleHash,
       this.process.randomnessProof,
       claimResults,
@@ -229,7 +229,7 @@ export class StateVerificationManager {
     this.process.randomnessProof = blockRandProof;
 
     // Setup State committee sample.
-    this.process.commitee = committee;
+    this.process.committee = committee;
 
     // Clear responses for previous transaction bundle.
     this.process.results = {};
@@ -255,7 +255,7 @@ export class StateVerificationManager {
       }
       // Current transaction bundle haven't received enough responses.
       const responseCount = Object.keys(this.process.results).length;
-      if (responseCount < this.process.commitee.length) {
+      if (responseCount < this.process.committee.length) {
         this.log.info(`did not receive enough responses for ${bytesToHex(txnBundleHash)}`);
         this.process.reject(
           new Error("State verification timeout - no response for " + this.config.RequestTimeout + "ms"),
@@ -298,7 +298,7 @@ export class StateVerificationManager {
     this.process.txnBundleHash = new Uint8Array();
     this.process.claims = [];
     this.process.randomnessProof = new Uint8Array();
-    this.process.commitee = [];
+    this.process.committee = [];
     this.process.results = {};
     this.process.resolve = undefined;
     this.process.reject = undefined;
@@ -356,7 +356,7 @@ export class StateVerificationManager {
     }
 
     // Check if sender is part of committee.
-    const inCommittee = this.process.commitee.find((s) => bytesEqual(s.address, result.signer));
+    const inCommittee = this.process.committee.find((s) => bytesEqual(s.address, result.signer));
     if (!inCommittee) {
       this.log.error("State verification response signer does not belong to current State committee sample");
       return;
@@ -372,7 +372,7 @@ export class StateVerificationManager {
 
     // If not enough responses received wait for more responses.
     const responseCount = Object.keys(this.process.results).length;
-    if (responseCount < this.process.commitee.length) {
+    if (responseCount < this.process.committee.length) {
       return;
     }
     this.log.info("Received all responses for State check");

@@ -20,7 +20,7 @@ interface ICoordinatorNodeService extends grpc.ServiceDefinition<grpc.UntypedSer
     getBLSPublicKey: ICoordinatorNodeService_IGetBLSPublicKey;
     getIPFSBootstrap: ICoordinatorNodeService_IGetIPFSBootstrap;
     getHealth: ICoordinatorNodeService_IGetHealth;
-    sumbitSignedTransaction: ICoordinatorNodeService_ISumbitSignedTransaction;
+    submitSignedTransaction: ICoordinatorNodeService_ISubmitSignedTransaction;
     getBlockMetadata: ICoordinatorNodeService_IGetBlockMetadata;
 }
 
@@ -114,8 +114,8 @@ interface ICoordinatorNodeService_IGetHealth extends grpc.MethodDefinition<node_
     responseSerialize: grpc.serialize<node_pb.GetHealthResponse>;
     responseDeserialize: grpc.deserialize<node_pb.GetHealthResponse>;
 }
-interface ICoordinatorNodeService_ISumbitSignedTransaction extends grpc.MethodDefinition<coordinator_pb.SubmitSignedTransactionRequest, coordinator_pb.SubmitSignedTransactionResponse> {
-    path: "/client.CoordinatorNode/SumbitSignedTransaction";
+interface ICoordinatorNodeService_ISubmitSignedTransaction extends grpc.MethodDefinition<coordinator_pb.SubmitSignedTransactionRequest, coordinator_pb.SubmitSignedTransactionResponse> {
+    path: "/client.CoordinatorNode/SubmitSignedTransaction";
     requestStream: false;
     responseStream: false;
     requestSerialize: grpc.serialize<coordinator_pb.SubmitSignedTransactionRequest>;
@@ -146,7 +146,7 @@ export interface ICoordinatorNodeServer extends grpc.UntypedServiceImplementatio
     getBLSPublicKey: grpc.handleUnaryCall<node_pb.GetBLSPublicKeyRequest, node_pb.GetBLSPublicKeyResponse>;
     getIPFSBootstrap: grpc.handleUnaryCall<node_pb.GetIPFSBootstrapRequest, node_pb.GetIPFSBootstrapResponse>;
     getHealth: grpc.handleUnaryCall<node_pb.GetHealthRequest, node_pb.GetHealthResponse>;
-    sumbitSignedTransaction: grpc.handleUnaryCall<coordinator_pb.SubmitSignedTransactionRequest, coordinator_pb.SubmitSignedTransactionResponse>;
+    submitSignedTransaction: grpc.handleUnaryCall<coordinator_pb.SubmitSignedTransactionRequest, coordinator_pb.SubmitSignedTransactionResponse>;
     getBlockMetadata: grpc.handleUnaryCall<coordinator_pb.GetBlockMetadataRequest, coordinator_pb.GetBlockMetadataResponse>;
 }
 
@@ -181,9 +181,9 @@ export interface ICoordinatorNodeClient {
     getHealth(request: node_pb.GetHealthRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
     getHealth(request: node_pb.GetHealthRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
     getHealth(request: node_pb.GetHealthRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
-    sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
-    sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
-    sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
+    submitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
+    submitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
+    submitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
     getBlockMetadata(request: coordinator_pb.GetBlockMetadataRequest, callback: (error: grpc.ServiceError | null, response: coordinator_pb.GetBlockMetadataResponse) => void): grpc.ClientUnaryCall;
     getBlockMetadata(request: coordinator_pb.GetBlockMetadataRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: coordinator_pb.GetBlockMetadataResponse) => void): grpc.ClientUnaryCall;
     getBlockMetadata(request: coordinator_pb.GetBlockMetadataRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: coordinator_pb.GetBlockMetadataResponse) => void): grpc.ClientUnaryCall;
@@ -221,9 +221,9 @@ export class CoordinatorNodeClient extends grpc.Client implements ICoordinatorNo
     public getHealth(request: node_pb.GetHealthRequest, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
     public getHealth(request: node_pb.GetHealthRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
     public getHealth(request: node_pb.GetHealthRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: node_pb.GetHealthResponse) => void): grpc.ClientUnaryCall;
-    public sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
-    public sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
-    public sumbitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
+    public submitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
+    public submitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
+    public submitSignedTransaction(request: coordinator_pb.SubmitSignedTransactionRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: coordinator_pb.SubmitSignedTransactionResponse) => void): grpc.ClientUnaryCall;
     public getBlockMetadata(request: coordinator_pb.GetBlockMetadataRequest, callback: (error: grpc.ServiceError | null, response: coordinator_pb.GetBlockMetadataResponse) => void): grpc.ClientUnaryCall;
     public getBlockMetadata(request: coordinator_pb.GetBlockMetadataRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: coordinator_pb.GetBlockMetadataResponse) => void): grpc.ClientUnaryCall;
     public getBlockMetadata(request: coordinator_pb.GetBlockMetadataRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: coordinator_pb.GetBlockMetadataResponse) => void): grpc.ClientUnaryCall;
