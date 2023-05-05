@@ -75,7 +75,7 @@ FROM alpine:3.16.0 as image
 
 ARG KERNEL_VERSION="5.5.19"
 
-RUN apk --no-cache add qemu-system-x86_64 qemu-accel-tcg-x86_64 openssh-server e2tools xxd libgomp boost1.77-serialization wget
+RUN apk --no-cache add qemu-system-x86_64 qemu-accel-tcg-x86_64 openssh-server e2tools xxd libgomp boost1.77-serialization wget jq
 COPY --from=go-ipfs-build "/app/kubo/cmd/ipfs/ipfs" "/usr/bin/ipfs"
 RUN sed -i '/^#Port 22/s/^#//' /etc/ssh/sshd_config \
     && sed -i '/^#PasswordAuthentication/s/^#//' /etc/ssh/sshd_config \

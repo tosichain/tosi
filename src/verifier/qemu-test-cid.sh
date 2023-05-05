@@ -17,5 +17,9 @@ sleep 4
 mkdir -p empty
 
 
-IPFS_API="/ip4/127.0.0.1/tcp/5001" ./qemu-run-task.sh $1 $2 $3
+OUTPUT=$(IPFS_API="/ip4/127.0.0.1/tcp/5001" ./qemu-run-task.sh $1 $2 $3)
 
+OUTPUT_CID=$(echo -n "${OUTPUT}" | jq -r .outputCID)
+ipfs dag export $OUTPUT_CID > /data/ext-car/output-$OUTPUT_CID.car
+
+echo -n $OUTPUT
