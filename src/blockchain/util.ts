@@ -20,7 +20,7 @@ export function bytesToHex(bytes: Uint8Array): string {
 }
 
 export function bytesFromHex(hex: string): Uint8Array {
-  return Buffer.from(hex, "hex");
+  return Uint8Array.from(Buffer.from(hex, "hex"));
 }
 
 export function createInitialStateFromEnv(): WorldState {
