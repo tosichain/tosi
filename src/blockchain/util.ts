@@ -37,6 +37,10 @@ export function createInitialStateFromEnv(): WorldState {
     },
     minter: minterAddr,
     dataChains: {},
+    offchainComputation: {
+      DACommitteeSampleSize: 3,
+      stateCommitteeSampleSize: 3,
+    },
   };
   state.accounts[minterAddrHex] = createAccount(minterAddr, 0n, 0n, 0n);
 

@@ -44,8 +44,6 @@ export class DAVerifier {
 
   private readonly coordinatorPubKey: Uint8Array;
 
-  private readonly daCommitteeSampleSize: number;
-
   private readonly config: DAVerifierConfig;
   private readonly log: Logger;
 
@@ -60,7 +58,6 @@ export class DAVerifier {
   constructor(
     blsSecKey: Uint8Array,
     coordinatorPubKey: Uint8Array,
-    daCommitteeSampleSize: number,
     config: DAVerifierConfig,
     log: Logger,
     ipfs: IPFS,
@@ -72,7 +69,6 @@ export class DAVerifier {
 
     this.coordinatorPubKey = coordinatorPubKey;
 
-    this.daCommitteeSampleSize = daCommitteeSampleSize;
     this.drandBeaconInfo = drandBeaconInfo;
     this.config = config;
 
@@ -179,12 +175,7 @@ export class DAVerifier {
     }
     // Check if no is in current DA commitee sample and is expected to process request.
     const randSeed = getSeedFromBlockRandomnessProof(daReq.getRandomnessProof() as Uint8Array);
-    const committee = await getVerificationCommitteeSample(
-      this.blockchain,
-      StakeType.DAVerifier,
-      this.daCommitteeSampleSize,
-      randSeed,
-    );
+    const committee = await getVerificationCommitteeSample(this.blockchain, StakeType.DAVerifier, randSeed);
 
     const inCommittee = committee.find((s) => bytesEqual(s.address, this.blsPubKey)) != undefined;
     if (!inCommittee) {

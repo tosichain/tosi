@@ -66,7 +66,6 @@ export interface CoordinatorNodeConfig {
     coordinatorSmartContract?: string;
   };
   blsSecKey: Uint8Array;
-  DACommitteeSampleSize: number; // TODO: must be sealed in blockchain.
   DAVerification: DAVerificationManagerConfig;
   stateVerification: StateVerificationManagerConfig;
 }
@@ -251,12 +250,7 @@ export class CoordinatorNode {
         const blockRandSeed = getSeedFromBlockRandomnessProof(blockRandProof);
 
         // Check transaction data availability.
-        const daCommittee = await getVerificationCommitteeSample(
-          this.storage,
-          StakeType.DAVerifier,
-          this.config.DACommitteeSampleSize,
-          blockRandSeed,
-        );
+        const daCommittee = await getVerificationCommitteeSample(this.storage, StakeType.DAVerifier, blockRandSeed);
         const daCheckResult = await this.daManager.checkTxnBundleDA(txnBundle, blockRandProof, daCommittee);
         for (const txn of daCheckResult.rejectedTxns) {
           await this.storage.removePendingTransaction(txn);
@@ -273,7 +267,6 @@ export class CoordinatorNode {
         const stateCommittee = await getVerificationCommitteeSample(
           this.storage,
           StakeType.StateVerifier,
-          this.config.DACommitteeSampleSize,
           blockRandSeed,
         );
         const stateCheckResult = await this.stateManager.checkTxnBundleState(txnBundle, blockRandProof, stateCommittee);
@@ -471,7 +464,7 @@ export class CoordinatorNode {
   }
 
   public async getDataChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined> {
-    return await this.storage.getComputeChain(rootClaimHash);
+    return await this.storage.getDataChain(rootClaimHash);
   }
 
   public async getDataChainList(): Promise<DataChain[]> {

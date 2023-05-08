@@ -32,9 +32,6 @@ export interface BlockchainClientSyncConfig {
 }
 
 export class BlockchainClientSync {
-  private readonly daCommiteeSampleSize: number;
-  private readonly stateCommiteeSampleSize: number;
-
   private readonly config: BlockchainClientSyncConfig;
 
   private readonly log: Logger;
@@ -50,8 +47,6 @@ export class BlockchainClientSync {
   private readonly drandBeaconInfo: DrandBeaconInfo;
 
   constructor(
-    daCommitteeSampleSize: number,
-    stateCommitteeSampleSize: number,
     config: BlockchainClientSyncConfig,
     log: Logger,
     coordinator: CoordinatorRPC,
@@ -59,9 +54,6 @@ export class BlockchainClientSync {
     storage: BlockchainStorage,
     drandBeaconInfo: DrandBeaconInfo,
   ) {
-    this.daCommiteeSampleSize = daCommitteeSampleSize;
-    this.stateCommiteeSampleSize = stateCommitteeSampleSize;
-
     this.config = config;
 
     this.log = log;
@@ -199,15 +191,7 @@ export class BlockchainClientSync {
       );
     }
 
-    if (
-      !(await verifyBlockProof(
-        block,
-        this.storage,
-        this.daCommiteeSampleSize,
-        this.stateCommiteeSampleSize,
-        this.drandBeaconInfo,
-      ))
-    ) {
+    if (!(await verifyBlockProof(block, this.storage, this.drandBeaconInfo))) {
       throw new Error(`block proof is invalid`);
     }
 

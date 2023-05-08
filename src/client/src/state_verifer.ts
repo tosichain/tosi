@@ -42,8 +42,6 @@ export class StateVerifier {
 
   private readonly coordinatorPubKey: Uint8Array;
 
-  private readonly stateCommitteeSampleSize: number;
-
   private readonly config: StateVerifierConfig;
   private readonly log: Logger;
 
@@ -56,7 +54,6 @@ export class StateVerifier {
   constructor(
     blsSecKey: Uint8Array,
     cooridnatorPubKey: Uint8Array,
-    stateCommitteeSampleSize: number,
     config: StateVerifierConfig,
     log: Logger,
     ipfs: IPFS,
@@ -67,8 +64,6 @@ export class StateVerifier {
     this.blsPubKey = BLS.getPublicKey(this.blsSecKey);
 
     this.coordinatorPubKey = cooridnatorPubKey;
-
-    this.stateCommitteeSampleSize = stateCommitteeSampleSize;
 
     this.config = config;
 
@@ -178,12 +173,7 @@ export class StateVerifier {
     }
     // Check if no is in current State commitee sample and is expected to process request.
     const randSeed = getSeedFromBlockRandomnessProof(stateReq.getRandomnessProof() as Uint8Array);
-    const committee = await getVerificationCommitteeSample(
-      this.blockchain,
-      StakeType.StateVerifier,
-      this.stateCommitteeSampleSize,
-      randSeed,
-    );
+    const committee = await getVerificationCommitteeSample(this.blockchain, StakeType.StateVerifier, randSeed);
 
     const inCommittee = committee.find((s) => bytesEqual(s.address, this.blsPubKey)) != undefined;
     if (!inCommittee) {

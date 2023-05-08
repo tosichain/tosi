@@ -57,6 +57,7 @@ message WorldState {
     StakePool stake_pool = 2;
     bytes minter = 3;
     repeated DataChain data_chains = 4;
+    OffchainComputationParameters offchain_computation = 5;
 }
 
 message Account {
@@ -99,6 +100,11 @@ message ClaimDataRef {
 message DAInfo {
     uint32 size = 1;
     bytes cartesi_merkle_root = 2;
+}
+
+message OffchainComputationParameters {
+    uint32 da_committee_sample_size = 1;
+    uint32 state_committee_sample_size = 2;
 }
 
 message Block {

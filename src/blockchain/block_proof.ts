@@ -21,8 +21,6 @@ import { getVerificationCommitteeSample } from "./block_commitee";
 export async function verifyBlockProof(
   block: Block,
   blockchain: BlockchainStorage,
-  daCommitteeSampleSzie: number,
-  stateCommitteeSampleSzie: number,
   beaconInfo: DrandBeaconInfo,
 ): Promise<boolean> {
   const proof = block.proof;
@@ -53,12 +51,7 @@ export async function verifyBlockProof(
 
   // Check that proof carries responses from all verifiers of DA committee sample.
   const randSeed = getSeedFromBlockRandomnessProof(proof.randomnessProof);
-  const daCommittee = await getVerificationCommitteeSample(
-    blockchain,
-    StakeType.DAVerifier,
-    daCommitteeSampleSzie,
-    randSeed,
-  );
+  const daCommittee = await getVerificationCommitteeSample(blockchain, StakeType.DAVerifier, randSeed);
   for (const staker of daCommittee) {
     if (!proof.DACheckResults.find((daResult) => bytesEqual(daResult.signer, staker.address))) {
       return false;
@@ -81,12 +74,7 @@ export async function verifyBlockProof(
   }
 
   // Check that proof carries responses from all verifiers of State committee sample.
-  const stateCommittee = await getVerificationCommitteeSample(
-    blockchain,
-    StakeType.StateVerifier,
-    stateCommitteeSampleSzie,
-    randSeed,
-  );
+  const stateCommittee = await getVerificationCommitteeSample(blockchain, StakeType.StateVerifier, randSeed);
   for (const staker of stateCommittee) {
     if (!proof.stateCheckResults.find((stateResult) => bytesEqual(stateResult.signer, staker.address))) {
       return false;

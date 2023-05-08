@@ -261,6 +261,11 @@ export class WorldState extends jspb.Message {
     setDataChainsList(value: Array<DataChain>): WorldState;
     addDataChains(value?: DataChain, index?: number): DataChain;
 
+    hasOffchainComputation(): boolean;
+    clearOffchainComputation(): void;
+    getOffchainComputation(): OffchainComputationParameters | undefined;
+    setOffchainComputation(value?: OffchainComputationParameters): WorldState;
+
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): WorldState.AsObject;
     static toObject(includeInstance: boolean, msg: WorldState): WorldState.AsObject;
@@ -277,6 +282,7 @@ export namespace WorldState {
         stakePool?: StakePool.AsObject,
         minter: Uint8Array | string,
         dataChainsList: Array<DataChain.AsObject>,
+        offchainComputation?: OffchainComputationParameters.AsObject,
     }
 }
 
@@ -488,6 +494,29 @@ export namespace DAInfo {
     export type AsObject = {
         size: number,
         cartesiMerkleRoot: Uint8Array | string,
+    }
+}
+
+export class OffchainComputationParameters extends jspb.Message { 
+    getDaCommitteeSampleSize(): number;
+    setDaCommitteeSampleSize(value: number): OffchainComputationParameters;
+    getStateCommitteeSampleSize(): number;
+    setStateCommitteeSampleSize(value: number): OffchainComputationParameters;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): OffchainComputationParameters.AsObject;
+    static toObject(includeInstance: boolean, msg: OffchainComputationParameters): OffchainComputationParameters.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: OffchainComputationParameters, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): OffchainComputationParameters;
+    static deserializeBinaryFromReader(message: OffchainComputationParameters, reader: jspb.BinaryReader): OffchainComputationParameters;
+}
+
+export namespace OffchainComputationParameters {
+    export type AsObject = {
+        daCommitteeSampleSize: number,
+        stateCommitteeSampleSize: number,
     }
 }
 

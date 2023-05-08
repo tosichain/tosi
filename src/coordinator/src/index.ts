@@ -34,7 +34,6 @@ import Logger from "../../log/logger";
       coordinatorSmartContract: process.env.COORDINATOR_SMART_CONTRACT,
     },
     blsSecKey: bytesFromHex(String(process.env.BLS_SECRET)),
-    DACommitteeSampleSize: Number(process.env.OFFCHAIN_DA_COMMITEE_SAMPLE_SIZE),
     DAVerification: {
       RequestBroadcastPeriod: Number(process.env.OFFCHAIN_DAS_REQUEST_BROADCAST_PERIOD),
       RequestTimeout: Number(process.env.OFFCHAIN_DAS_REQUEST_TIEMOUT),

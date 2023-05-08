@@ -27,8 +27,6 @@ export interface ClientNodeConfig {
   rpc: ClientNodeRPCServerConfig;
   blsSecKey: Uint8Array;
   coordinatorPubKey: Uint8Array;
-  DACommitteeSampleSize: number; // TODO: must be sealed in blockchain.
-  stateCommitteeSampleSize: number; // TODO: must be sealed in blockchain.
   roles: {
     daVerifier: DAVerifierConfig | undefined;
     stateVerifier: StateVerifierConfig | undefined;
@@ -81,8 +79,6 @@ export class ClientNode {
 
     this.storage = new BlockchainStorage(this.config.storage, this.log);
     this.blockchainSync = new BlockchainClientSync(
-      this.config.DACommitteeSampleSize,
-      this.config.stateCommitteeSampleSize,
       this.config.blockchainSync,
       this.log,
       this.coordinator,
@@ -95,7 +91,6 @@ export class ClientNode {
       this.daVerifier = new DAVerifier(
         this.config.blsSecKey,
         this.config.coordinatorPubKey,
-        this.config.DACommitteeSampleSize,
         this.config.roles.daVerifier,
         this.log,
         this.ipfs,
@@ -108,7 +103,6 @@ export class ClientNode {
       this.stateVerifier = new StateVerifier(
         this.config.blsSecKey,
         this.config.coordinatorPubKey,
-        this.config.stateCommitteeSampleSize,
         this.config.roles.stateVerifier,
         this.log,
         this.ipfs,
@@ -219,7 +213,7 @@ export class ClientNode {
   }
 
   public async getDataChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined> {
-    return await this.storage.getComputeChain(rootClaimHash);
+    return await this.storage.getDataChain(rootClaimHash);
   }
 
   public async getDataChainList(): Promise<DataChain[]> {
@@ -271,7 +265,7 @@ export class ClientNode {
   }
 
   public async generateUpdateDatachainTxn(params: UpdateDatachainParameters): Promise<Transaction> {
-    const chain = await this.storage.getComputeChain(params.rootClaimHash);
+    const chain = await this.storage.getDataChain(params.rootClaimHash);
     if (chain == undefined) {
       throw new Error(`can not find datachain with root claim ${params.rootClaimHash}`);
     }

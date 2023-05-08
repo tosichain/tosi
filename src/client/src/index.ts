@@ -41,8 +41,6 @@ import { fetchDrandBeaconInfo } from "../../blockchain/block_randomness";
     },
     blsSecKey: bytesFromHex(String(process.env.BLS_SEC_KEY)),
     coordinatorPubKey: bytesFromHex(String(process.env.COORDINATOR_PUB_KEY)),
-    DACommitteeSampleSize: Number(process.env.OFFCHAIN_DA_COMMITEE_SAMPLE_SIZE),
-    stateCommitteeSampleSize: Number(process.env.OFFCHAIN_STATE_COMMITEE_SAMPLE_SIZE),
   };
 
   const isDAVerifier = JSON.parse(String(process.env.ROLE_IS_DA_VERIFIER));
