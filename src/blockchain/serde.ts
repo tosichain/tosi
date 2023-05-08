@@ -18,6 +18,7 @@ import {
   ComputeClaim as PBComputeClaim,
   DAInfo as PBDAInfo,
   ClaimDataRef as PBClaimDataRef,
+  OffchainComputationParameters as PBOffchainComputationParameters,
   Block as PBBlock,
   BlockProof as PBBlockProof,
   DACheckResult as PBDACheckResult,
@@ -43,6 +44,7 @@ import {
   DataChain,
   ComputeClaim,
   DAInfo,
+  OffchainComputationParameters,
   Block,
   BlockProof,
   DACheckResult,
@@ -254,11 +256,13 @@ export function worldStateToPB(state: WorldState): PBWorldState {
   const accounts = Object.values(state.accounts).map((account) => accountToPB(account));
   const stakePool = stakePoolToPB(state.stakePool);
   const chains = Object.values(state.dataChains).map((chain) => dataChainToPB(chain));
+  const offchainComputation = offchainComputationParametersToPB(state.offchainComputation);
   return new PBWorldState()
     .setAccountsList(accounts)
     .setStakePool(stakePool)
     .setMinter(state.minter)
-    .setDataChainsList(chains);
+    .setDataChainsList(chains)
+    .setOffchainComputation(offchainComputation);
 }
 
 export function worldStateFromPB(pb: PBWorldState): WorldState {
@@ -277,6 +281,7 @@ export function worldStateFromPB(pb: PBWorldState): WorldState {
     stakePool: stakePoolFromPB(pb.getStakePool() as PBStakePool),
     minter: pb.getMinter() as Uint8Array,
     dataChains: chains,
+    offchainComputation: offchainComputationFromPB(pb.getOffchainComputation() as PBOffchainComputationParameters),
   };
 }
 
@@ -431,6 +436,23 @@ export function daInfoFromPB(pb: PBDAInfo): DAInfo {
   return {
     size: pb.getSize(),
     cartesiMerkleRoot: pb.getCartesiMerkleRoot() as Uint8Array,
+  };
+}
+
+// OffchainComputationParameters
+
+export function offchainComputationParametersToPB(
+  params: OffchainComputationParameters,
+): PBOffchainComputationParameters {
+  return new PBOffchainComputationParameters()
+    .setDaCommitteeSampleSize(params.DACommitteeSampleSize)
+    .setStateCommitteeSampleSize(params.stateCommitteeSampleSize);
+}
+
+export function offchainComputationFromPB(pb: PBOffchainComputationParameters): OffchainComputationParameters {
+  return {
+    DACommitteeSampleSize: pb.getDaCommitteeSampleSize(),
+    stateCommitteeSampleSize: pb.getStateCommitteeSampleSize(),
   };
 }
 

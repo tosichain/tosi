@@ -1,6 +1,6 @@
 import mysql from "mysql";
 
-import { WorldState, SignedTransaction, Block, Account, DataChain, ComputeClaim, StakePool } from "./types";
+import { WorldState, SignedTransaction, Block, Account, DataChain, ComputeClaim, StakePool, OffchainComputationParameters } from "./types";
 import { accountsMerkleTree } from "./block";
 import { bytesToHex, hashBlock, hashSignedTransaction } from "./util";
 import {
@@ -312,7 +312,7 @@ export class BlockchainStorage {
     return state.stakePool;
   }
 
-  public async getComputeChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined> {
+  public async getDataChain(rootClaimHash: Uint8Array): Promise<DataChain | undefined> {
     const rawState = await this.getValue("state", DB_KEY_STATE_VALUE);
     if (!rawState) {
       throw new Error("world state does not exist in database");
@@ -344,6 +344,15 @@ export class BlockchainStorage {
       }
     }
     return undefined;
+  }
+
+  public async getOffchainComputationParameters(): Promise<OffchainComputationParameters> {
+    const rawState = await this.getValue("state", DB_KEY_STATE_VALUE);
+    if (!rawState) {
+      throw new Error("world state does not exist in database");
+    }
+    const state = deserializeWorldState(rawState);
+    return state.offchainComputation;
   }
 
   public async getHeadBlockHash(): Promise<Uint8Array> {

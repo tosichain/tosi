@@ -56,6 +56,7 @@ export interface WorldState {
   readonly stakePool: StakePool;
   readonly minter: Uint8Array; // account address
   readonly dataChains: Record<string, DataChain>; // data chains by hex encoded hash of root claim
+  readonly offchainComputation: OffchainComputationParameters;
 }
 
 export interface Account {
@@ -109,6 +110,11 @@ export interface ClaimDataRef {
 export interface DAInfo {
   size: number;
   cartesiMerkleRoot: Uint8Array;
+}
+
+export interface OffchainComputationParameters {
+  DACommitteeSampleSize: number;
+  stateCommitteeSampleSize: number;
 }
 
 export interface Block {

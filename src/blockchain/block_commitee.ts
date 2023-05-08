@@ -9,18 +9,21 @@ import { STAKE_AMOUNT_TO_NUMBER_DENOMINATOR } from "./constant";
 export async function getVerificationCommitteeSample(
   blockchain: BlockchainStorage,
   committeeType: StakeType,
-  sampleSize: number,
   randomness: string,
 ): Promise<Account[]> {
   const stakePool = await blockchain.getStakePool();
+  const offchainParams = await blockchain.getOffchainComputationParameters();
 
   let stakerAddresses: Uint8Array[] = [];
+  let sampleSize: number;
   switch (committeeType) {
     case StakeType.DAVerifier:
       stakerAddresses = stakePool.daVerifiers;
+      sampleSize = offchainParams.DACommitteeSampleSize;
       break;
     case StakeType.StateVerifier:
       stakerAddresses = stakePool.stateVerifiers;
+      sampleSize = offchainParams.stateCommitteeSampleSize;
       break;
     default:
       throw new Error("invalid stake type");
