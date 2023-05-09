@@ -19,7 +19,7 @@ import { hashComputeClaim } from "../blockchain/util";
 import Logger from "../log/logger";
 
 const FAKE_CID = "bafybeibnikymft2ikuygct6phxedz7x623cqlvcwxztedds5fzbb5mhdk4";
-const FUNCTION_CID = "bafybeihnujjp7cll46wrpw4tjxjfzphwzob6suzymfjswoparozveeh7zi";
+const FUNCTION_CID = "bafybeidvs2dduzanozwowagcgme33bokhiwqffzolhla4ixj2k3mwdiize";
 const SAMPLE_CID = "bafybeigyqpsfepjipxrz2m5e47rqwpgtkd526sn4z53fnis674gqb66c4e";
 const EMPTY_DIR_CID = "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354";
 const EMPTY_16KB_CID = "bafkreicp462zv5w6hntfwz3yrtbptgesvobh56xdurttikz3wtr3zds37y";

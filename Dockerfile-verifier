@@ -136,8 +136,8 @@ RUN sed -i '/^#Port 22/s/^#//' /etc/ssh/sshd_config \
     && echo "root:Docker!" | chpasswd
 
 WORKDIR /app
+COPY --from=ghcr.io/tosichain/standard-loader:master@sha256:531624c20bce8e19fd976462f682d1972c2ed9dd1da5ecc7f8eb69d1fddf9dee /loader.squashfs /data/prepopulate/loader.squashfs
 
-RUN --mount=type=cache,target=/fetchcache36 wget -c -P /fetchcache36 https://web3.link/loaderv3.squashfs && mkdir -p /data/prepopulate && cp /fetchcache36/* /data/prepopulate
 RUN --mount=type=cache,target=/fetchcache36-car wget -c -P /fetchcache36-car https://web3.link/init_image.car && mkdir -p /data/prepopulate-car && cp /fetchcache36-car/* /data/prepopulate-car
 RUN truncate -s 16384 /data/prepopulate/empty.16kb
 
