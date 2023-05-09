@@ -137,8 +137,7 @@ RUN sed -i '/^#Port 22/s/^#//' /etc/ssh/sshd_config \
 
 WORKDIR /app
 COPY --from=ghcr.io/tosichain/standard-loader:master@sha256:531624c20bce8e19fd976462f682d1972c2ed9dd1da5ecc7f8eb69d1fddf9dee /loader.squashfs /data/prepopulate/loader.squashfs
-
-RUN --mount=type=cache,target=/fetchcache36-car wget -c -P /fetchcache36-car https://web3.link/init_image.car && mkdir -p /data/prepopulate-car && cp /fetchcache36-car/* /data/prepopulate-car
+COPY --from=ghcr.io/tosichain/sample-typescript-function-car:master@sha256:86f3c510d80930230c8be423a15e2d2e069dc08c313f5010ece0f4fd3b0f02db /init_image.car /data/prepopulate-car/sample-typescript.car
 RUN truncate -s 16384 /data/prepopulate/empty.16kb
 
 COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" /app

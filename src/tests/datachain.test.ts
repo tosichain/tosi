@@ -20,10 +20,13 @@ import Logger from "../log/logger";
 
 const FAKE_CID = "bafybeibnikymft2ikuygct6phxedz7x623cqlvcwxztedds5fzbb5mhdk4";
 const FUNCTION_CID = "bafybeidvs2dduzanozwowagcgme33bokhiwqffzolhla4ixj2k3mwdiize";
-const SAMPLE_CID = "bafybeigyqpsfepjipxrz2m5e47rqwpgtkd526sn4z53fnis674gqb66c4e";
+const SAMPLE_CID = "bafybeietcds2gyhjyodl47qecsfl37zhvabamvdt36gthxysajrmjzpypi";
+const SAMPLE_OUTPUT_CID = "bafybeickur26qcwfqrsv34lr7n73dyo7tp7uet6cyjh5twzanwb32usltu";
 const EMPTY_DIR_CID = "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354";
 const EMPTY_16KB_CID = "bafkreicp462zv5w6hntfwz3yrtbptgesvobh56xdurttikz3wtr3zds37y";
 const EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+const HELLO_WORLD_SHA256 = "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e";
+
 const INVALID_TXN_WAIT_PERIOD = 25000; // 25 seconds
 
 const minterPrivKey = Buffer.from("2d1c0d704322c0386cc7bead93298a48ee22325e967567ebe4dbcd4a2f4482f1", "hex");
@@ -293,8 +296,8 @@ describe("DA verification is performed correctly", function () {
     const txn = await client.generateCreateDatachainTxn({
       dataContractCID: CID.parse(FUNCTION_CID),
       inputCID: CID.parse(SAMPLE_CID),
-      outputCID: CID.parse(EMPTY_DIR_CID),
-      outputFileHash: Buffer.from(EMPTY_SHA256, "hex"),
+      outputCID: CID.parse(SAMPLE_OUTPUT_CID),
+      outputFileHash: Buffer.from(HELLO_WORLD_SHA256, "hex"),
     });
     if (!txn.createChain) {
       throw new Error("invalid CreateDatachain transaction");
@@ -317,9 +320,9 @@ describe("DA verification is performed correctly", function () {
     const txn = await client.generateUpdateDatachainTxn({
       dataContractCID: CID.parse(FUNCTION_CID),
       inputCID: await getDummyData(),
-      outputCID: CID.parse(EMPTY_DIR_CID),
+      outputCID: CID.parse(SAMPLE_OUTPUT_CID),
       rootClaimHash: rootClaimHash,
-      outputFileHash: Buffer.from(EMPTY_SHA256, "hex"),
+      outputFileHash: Buffer.from(HELLO_WORLD_SHA256, "hex"),
     });
     if (!txn.updateChain) {
       throw new Error("invalid UpdateDatachain transaction");
