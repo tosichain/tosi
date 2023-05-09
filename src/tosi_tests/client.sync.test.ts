@@ -17,14 +17,17 @@ import Logger from "../log/logger";
 
 const INAVLID_TXN_WAIT_PERIOD = 10000; // 10 seconds (it depends on block period, specified in docker compose)
 
-const minterlPrivKey = Buffer.from("2d1c0d704322c0386cc7bead93298a48ee22325e967567ebe4dbcd4a2f4482f1", "hex");
-const minterPubKey = BLS.getPublicKey(minterlPrivKey);
+const minterPrivKey = Buffer.from("2d1c0d704322c0386cc7bead93298a48ee22325e967567ebe4dbcd4a2f4482f1", "hex");
+const minterPubKey = BLS.getPublicKey(minterPrivKey);
 
 const accOnePrivKey = Buffer.from(BLS.utils.randomPrivateKey());
 const accOnePubKey = Buffer.from(BLS.getPublicKey(accOnePrivKey));
 
 const accTwoPrivKey = Buffer.from(BLS.utils.randomPrivateKey());
 const accTwoPubKey = Buffer.from(BLS.getPublicKey(accTwoPrivKey));
+
+const accThreePirvKey = Buffer.from(BLS.utils.randomPrivateKey());
+const accThreePubKey = Buffer.from(BLS.getPublicKey(accThreePirvKey));
 
 let log: Logger;
 let coordinator: CoordinatorRPC;
@@ -197,7 +200,7 @@ describe("client node correctly replays MintToken transactions", function () {
       },
       nonce: 0,
     };
-    await coordinator.submitSignedTransaction(await signTransaction(txn1, minterlPrivKey));
+    await coordinator.submitSignedTransaction(await signTransaction(txn1, minterPrivKey));
 
     // Create second account with 15000 tokens.
     const txn2 = {
@@ -207,7 +210,7 @@ describe("client node correctly replays MintToken transactions", function () {
       },
       nonce: 1,
     };
-    await coordinator.submitSignedTransaction(await signTransaction(txn2, minterlPrivKey));
+    await coordinator.submitSignedTransaction(await signTransaction(txn2, minterPrivKey));
 
     // Ensure that invalid (from non-existent account) transaction doesn't break client sync.
     const txn3 = {
@@ -217,7 +220,7 @@ describe("client node correctly replays MintToken transactions", function () {
       },
       nonce: 0,
     };
-    await coordinator.submitSignedTransaction(await signTransaction(txn3, accOnePrivKey));
+    await coordinator.submitSignedTransaction(await signTransaction(txn3, accThreePirvKey));
 
     const accountNonces: Record<string, number> = {};
     accountNonces[bytesToHex(minterPubKey)] = 1;
@@ -253,7 +256,7 @@ describe("client node correctly replays MintToken transactions", function () {
       },
       nonce: 2,
     };
-    await coordinator.submitSignedTransaction(await signTransaction(txn1, minterlPrivKey));
+    await coordinator.submitSignedTransaction(await signTransaction(txn1, minterPrivKey));
 
     // Mint 10000 tokens and send it to second account.
     const txn2 = {
@@ -263,7 +266,7 @@ describe("client node correctly replays MintToken transactions", function () {
       },
       nonce: 3,
     };
-    await coordinator.submitSignedTransaction(await signTransaction(txn2, minterlPrivKey));
+    await coordinator.submitSignedTransaction(await signTransaction(txn2, minterPrivKey));
 
     // Ensure that invalid (insufficient balance) transaction doesn't break client sync.
     const txn3: Transaction = {
@@ -388,6 +391,86 @@ describe("client node correctly replays TransferToken transactions", function ()
     ];
     await checkAccounts(accounts);
   });
+
+  it("transfer creates new receiver account", async () => {
+    // Transfer 100 tokens to non-existent account
+    // New account must be created with balance of 100 tokens.
+    const txn1: Transaction = {
+      transfer: {
+        receiver: accThreePubKey,
+        amount: 1000n,
+      },
+      nonce: 2,
+    };
+    await coordinator.submitSignedTransaction(await signTransaction(txn1, accOnePrivKey));
+
+    // Transfer 100 tokens from second account to third account.
+    const txn2: Transaction = {
+      transfer: {
+        receiver: accThreePubKey,
+        amount: 1000n,
+      },
+      nonce: 2,
+    };
+    await coordinator.submitSignedTransaction(await signTransaction(txn2, accTwoPrivKey));
+
+    // There is no expection on the order of txn1 and txn2.
+    // In any case - one of them must create new account, while
+    // another must transfer tokens to existing account.
+
+    // Invalid transaction #1 - insufficient balance.
+    const txn3: Transaction = {
+      transfer: {
+        receiver: accThreePubKey,
+        amount: 100000n,
+      },
+      nonce: 3,
+    };
+    await coordinator.submitSignedTransaction(await signTransaction(txn3, accOnePrivKey));
+
+    // Invalid transaction #2 - insufficient balance.
+    const txn4: Transaction = {
+      transfer: {
+        receiver: accThreePubKey,
+        amount: 100000n,
+      },
+      nonce: 3,
+    };
+    await coordinator.submitSignedTransaction(await signTransaction(txn4, accTwoPrivKey));
+
+    const accountNonces: Record<string, number> = {};
+    accountNonces[bytesToHex(accOnePubKey)] = 2;
+    accountNonces[bytesToHex(accTwoPubKey)] = 2;
+    accountNonces[bytesToHex(accThreePubKey)] = -1;
+    await waitForAccountNonce(accountNonces);
+
+    await checkHeadBlock();
+
+    const accounts: Account[] = [
+      {
+        address: accOnePubKey,
+        nonce: 2,
+        balance: 20600n,
+        daVerifierStake: 0n,
+        stateVerifierStake: 0n,
+      },
+      {
+        address: accTwoPubKey,
+        nonce: 2,
+        balance: 17400n,
+        daVerifierStake: 0n,
+        stateVerifierStake: 0n,
+      },
+      {
+        address: accThreePubKey,
+        nonce: -1,
+        balance: 2000n,
+        daVerifierStake: 0n,
+        stateVerifierStake: 0n,
+      },
+    ];
+    await checkAccounts(accounts);
+  });
 });
 
 describe("client node correctly replays StakeToken transactions", function () {
@@ -398,7 +481,7 @@ describe("client node correctly replays StakeToken transactions", function () {
         stakeType: StakeType.DAVerifier,
         amount: 600n,
       },
-      nonce: 2,
+      nonce: 3,
     };
     await coordinator.submitSignedTransaction(await signTransaction(txn1, accOnePrivKey));
 
@@ -408,7 +491,7 @@ describe("client node correctly replays StakeToken transactions", function () {
         stakeType: StakeType.DAVerifier,
         amount: 400n,
       },
-      nonce: 2,
+      nonce: 3,
     };
     await coordinator.submitSignedTransaction(await signTransaction(txn2, accTwoPrivKey));
 
@@ -416,65 +499,6 @@ describe("client node correctly replays StakeToken transactions", function () {
     const txn3: Transaction = {
       stake: {
         stakeType: StakeType.DAVerifier,
-        amount: 100000n,
-      },
-      nonce: 3,
-    };
-    await coordinator.submitSignedTransaction(await signTransaction(txn3, accTwoPrivKey));
-
-    const accountNonces: Record<string, number> = {};
-    accountNonces[bytesToHex(accOnePubKey)] = 2;
-    accountNonces[bytesToHex(accTwoPubKey)] = 2;
-    await waitForAccountNonce(accountNonces);
-
-    await checkHeadBlock();
-
-    const accounts: Account[] = [
-      {
-        address: accOnePubKey,
-        nonce: 2,
-        balance: 21000n,
-        daVerifierStake: 600n,
-        stateVerifierStake: 0n,
-      },
-      {
-        address: accTwoPubKey,
-        nonce: 2,
-        balance: 18000n,
-        daVerifierStake: 400n,
-        stateVerifierStake: 0n,
-      },
-    ];
-    await checkAccounts(accounts);
-
-    await checkDAVerifiers([accOnePubKey, accTwoPubKey]);
-  });
-
-  it("putting tokens into state verifier stake pool", async () => {
-    // First account puts 600 tokens at stake.
-    const txn1: Transaction = {
-      stake: {
-        stakeType: StakeType.StateVerifier,
-        amount: 600n,
-      },
-      nonce: 3,
-    };
-    await coordinator.submitSignedTransaction(await signTransaction(txn1, accOnePrivKey));
-
-    // Second account puts 400 tokens at stake.
-    const txn2: Transaction = {
-      stake: {
-        stakeType: StakeType.StateVerifier,
-        amount: 400n,
-      },
-      nonce: 3,
-    };
-    await coordinator.submitSignedTransaction(await signTransaction(txn2, accTwoPrivKey));
-
-    // Invalid transaction - insufficient balance.
-    const txn3: Transaction = {
-      stake: {
-        stakeType: StakeType.StateVerifier,
         amount: 100000n,
       },
       nonce: 4,
@@ -492,14 +516,73 @@ describe("client node correctly replays StakeToken transactions", function () {
       {
         address: accOnePubKey,
         nonce: 3,
-        balance: 20400n,
+        balance: 20000n,
+        daVerifierStake: 600n,
+        stateVerifierStake: 0n,
+      },
+      {
+        address: accTwoPubKey,
+        nonce: 3,
+        balance: 17000n,
+        daVerifierStake: 400n,
+        stateVerifierStake: 0n,
+      },
+    ];
+    await checkAccounts(accounts);
+
+    await checkDAVerifiers([accOnePubKey, accTwoPubKey]);
+  });
+
+  it("putting tokens into state verifier stake pool", async () => {
+    // First account puts 600 tokens at stake.
+    const txn1: Transaction = {
+      stake: {
+        stakeType: StakeType.StateVerifier,
+        amount: 600n,
+      },
+      nonce: 4,
+    };
+    await coordinator.submitSignedTransaction(await signTransaction(txn1, accOnePrivKey));
+
+    // Second account puts 400 tokens at stake.
+    const txn2: Transaction = {
+      stake: {
+        stakeType: StakeType.StateVerifier,
+        amount: 400n,
+      },
+      nonce: 4,
+    };
+    await coordinator.submitSignedTransaction(await signTransaction(txn2, accTwoPrivKey));
+
+    // Invalid transaction - insufficient balance.
+    const txn3: Transaction = {
+      stake: {
+        stakeType: StakeType.StateVerifier,
+        amount: 100000n,
+      },
+      nonce: 5,
+    };
+    await coordinator.submitSignedTransaction(await signTransaction(txn3, accTwoPrivKey));
+
+    const accountNonces: Record<string, number> = {};
+    accountNonces[bytesToHex(accOnePubKey)] = 4;
+    accountNonces[bytesToHex(accTwoPubKey)] = 4;
+    await waitForAccountNonce(accountNonces);
+
+    await checkHeadBlock();
+
+    const accounts: Account[] = [
+      {
+        address: accOnePubKey,
+        nonce: 4,
+        balance: 19400n,
         daVerifierStake: 600n,
         stateVerifierStake: 600n,
       },
       {
         address: accTwoPubKey,
-        nonce: 3,
-        balance: 17600n,
+        nonce: 4,
+        balance: 16600n,
         daVerifierStake: 400n,
         stateVerifierStake: 400n,
       },
@@ -518,65 +601,6 @@ describe("client node correctly replays UnstakeToken transactions", function () 
         stakeType: StakeType.DAVerifier,
         amount: 300n,
       },
-      nonce: 4,
-    };
-    await coordinator.submitSignedTransaction(await signTransaction(txn1, accOnePrivKey));
-
-    // Second account takes 200 token from stake pool.
-    const txn2: Transaction = {
-      unstake: {
-        stakeType: StakeType.DAVerifier,
-        amount: 400n,
-      },
-      nonce: 4,
-    };
-    await coordinator.submitSignedTransaction(await signTransaction(txn2, accTwoPrivKey));
-
-    // Invalid transaction - insufficient amount of staked tokens.
-    const txn3: Transaction = {
-      unstake: {
-        stakeType: StakeType.DAVerifier,
-        amount: 100000n,
-      },
-      nonce: 5,
-    };
-    await coordinator.submitSignedTransaction(await signTransaction(txn3, accTwoPrivKey));
-
-    const accountNonces: Record<string, number> = {};
-    accountNonces[bytesToHex(accOnePubKey)] = 4;
-    accountNonces[bytesToHex(accTwoPubKey)] = 4;
-    await waitForAccountNonce(accountNonces);
-
-    await checkHeadBlock();
-
-    const accounts: Account[] = [
-      {
-        address: accOnePubKey,
-        nonce: 4,
-        balance: 20700n,
-        daVerifierStake: 300n,
-        stateVerifierStake: 600n,
-      },
-      {
-        address: accTwoPubKey,
-        nonce: 4,
-        balance: 18000n,
-        daVerifierStake: 0n,
-        stateVerifierStake: 400n,
-      },
-    ];
-    await checkAccounts(accounts);
-
-    await checkDAVerifiers([accOnePubKey]);
-  });
-
-  it("taking tokens out of state verifier stake pool", async () => {
-    // First account takes 300 tokens from stake pool.
-    const txn1: Transaction = {
-      unstake: {
-        stakeType: StakeType.StateVerifier,
-        amount: 300n,
-      },
       nonce: 5,
     };
     await coordinator.submitSignedTransaction(await signTransaction(txn1, accOnePrivKey));
@@ -584,7 +608,7 @@ describe("client node correctly replays UnstakeToken transactions", function () 
     // Second account takes 200 token from stake pool.
     const txn2: Transaction = {
       unstake: {
-        stakeType: StakeType.StateVerifier,
+        stakeType: StakeType.DAVerifier,
         amount: 400n,
       },
       nonce: 5,
@@ -607,19 +631,77 @@ describe("client node correctly replays UnstakeToken transactions", function () 
     await waitForAccountNonce(accountNonces);
 
     await checkHeadBlock();
-    5;
+
     const accounts: Account[] = [
       {
         address: accOnePubKey,
         nonce: 5,
-        balance: 21000n,
+        balance: 19700n,
+        daVerifierStake: 300n,
+        stateVerifierStake: 600n,
+      },
+      {
+        address: accTwoPubKey,
+        nonce: 5,
+        balance: 17000n,
+        daVerifierStake: 0n,
+        stateVerifierStake: 400n,
+      },
+    ];
+    await checkAccounts(accounts);
+
+    await checkDAVerifiers([accOnePubKey]);
+  });
+
+  it("taking tokens out of state verifier stake pool", async () => {
+    // First account takes 300 tokens from stake pool.
+    const txn1: Transaction = {
+      unstake: {
+        stakeType: StakeType.StateVerifier,
+        amount: 300n,
+      },
+      nonce: 6,
+    };
+    await coordinator.submitSignedTransaction(await signTransaction(txn1, accOnePrivKey));
+
+    // Second account takes 200 token from stake pool.
+    const txn2: Transaction = {
+      unstake: {
+        stakeType: StakeType.StateVerifier,
+        amount: 400n,
+      },
+      nonce: 6,
+    };
+    await coordinator.submitSignedTransaction(await signTransaction(txn2, accTwoPrivKey));
+
+    // Invalid transaction - insufficient amount of staked tokens.
+    const txn3: Transaction = {
+      unstake: {
+        stakeType: StakeType.DAVerifier,
+        amount: 100000n,
+      },
+      nonce: 7,
+    };
+    await coordinator.submitSignedTransaction(await signTransaction(txn3, accTwoPrivKey));
+
+    const accountNonces: Record<string, number> = {};
+    accountNonces[bytesToHex(accOnePubKey)] = 6;
+    accountNonces[bytesToHex(accTwoPubKey)] = 6;
+    await waitForAccountNonce(accountNonces);
+
+    await checkHeadBlock();
+    const accounts: Account[] = [
+      {
+        address: accOnePubKey,
+        nonce: 6,
+        balance: 20000n,
         daVerifierStake: 300n,
         stateVerifierStake: 300n,
       },
       {
         address: accTwoPubKey,
-        nonce: 5,
-        balance: 18400n,
+        nonce: 6,
+        balance: 17400n,
         daVerifierStake: 0n,
         stateVerifierStake: 0n,
       },
@@ -654,15 +736,15 @@ describe("client node does not replay invalid transactions", function () {
     const accounts: Account[] = [
       {
         address: accOnePubKey,
-        nonce: 5,
-        balance: 21000n,
+        nonce: 6,
+        balance: 20000n,
         daVerifierStake: 300n,
         stateVerifierStake: 300n,
       },
       {
         address: accTwoPubKey,
-        nonce: 5,
-        balance: 18400n,
+        nonce: 6,
+        balance: 17400n,
         daVerifierStake: 0n,
         stateVerifierStake: 0n,
       },
@@ -690,15 +772,15 @@ describe("client node does not replay invalid transactions", function () {
     const accounts: Account[] = [
       {
         address: accOnePubKey,
-        nonce: 5,
-        balance: 21000n,
+        nonce: 6,
+        balance: 20000n,
         daVerifierStake: 300n,
         stateVerifierStake: 300n,
       },
       {
         address: accTwoPubKey,
-        nonce: 5,
-        balance: 18400n,
+        nonce: 6,
+        balance: 17400n,
         daVerifierStake: 0n,
         stateVerifierStake: 0n,
       },
@@ -712,7 +794,7 @@ describe("client node does not replay invalid transactions", function () {
         receiver: accTwoPubKey,
         amount: 100n,
       },
-      nonce: 7,
+      nonce: 8,
     };
     await coordinator.submitSignedTransaction(await signTransaction(txn, accOnePrivKey));
 
@@ -726,15 +808,15 @@ describe("client node does not replay invalid transactions", function () {
     const accounts: Account[] = [
       {
         address: accOnePubKey,
-        nonce: 5,
-        balance: 21000n,
+        nonce: 6,
+        balance: 20000n,
         daVerifierStake: 300n,
         stateVerifierStake: 300n,
       },
       {
         address: accTwoPubKey,
-        nonce: 5,
-        balance: 18400n,
+        nonce: 6,
+        balance: 17400n,
         daVerifierStake: 0n,
         stateVerifierStake: 0n,
       },

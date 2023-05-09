@@ -43,7 +43,9 @@ export function applyTransaction(state: WorldState, txFrom: Uint8Array, tx: Tran
         createdAccountAddr = tx.mint.receiver;
       }
     } else if (tx.transfer) {
-      applyTransferTokenTxn(state, txFrom, tx.transfer);
+      if (applyTransferTokenTxn(state, txFrom, tx.transfer)) {
+        createdAccountAddr = tx.transfer.receiver;
+      }
     } else if (tx.stake) {
       applyStakeTokenTxn(state, txFrom, tx.stake);
     } else if (tx.unstake) {
@@ -97,15 +99,12 @@ export function applyMintTokenTxn(state: WorldState, txFrom: Uint8Array, tx: Min
   return receiverCreated;
 }
 
-export function applyTransferTokenTxn(state: WorldState, txFrom: Uint8Array, tx: TransferToken): void {
-  const txFromHex = bytesToHex(txFrom);
-  const txReceiverHex = bytesToHex(tx.receiver);
+export function applyTransferTokenTxn(state: WorldState, txFrom: Uint8Array, tx: TransferToken): boolean {
+  const senderAddrHex = bytesToHex(txFrom);
+  const sender = state.accounts[senderAddrHex];
 
-  const sender = state.accounts[txFromHex];
-  const receiver = state.accounts[txReceiverHex];
-
-  if (!receiver) {
-    throw new Error("receiver account does not exist");
+  if (!sender) {
+    throw new Error("sender account does not exist");
   }
   if (bytesEqual(tx.receiver, state.minter)) {
     throw new Error("transfer to minter account is forbidden");
@@ -117,14 +116,28 @@ export function applyTransferTokenTxn(state: WorldState, txFrom: Uint8Array, tx:
     throw new Error("insufficient amount of token to transfer");
   }
 
-  state.accounts[txFromHex] = {
+  // Update sender's balance.
+  state.accounts[senderAddrHex] = {
     ...sender,
     balance: BigInt(sender.balance) - BigInt(tx.amount),
   };
-  state.accounts[txReceiverHex] = {
-    ...receiver,
-    balance: BigInt(receiver.balance) + BigInt(tx.amount),
-  };
+
+  // Create receiver account if necessary and update its balance;
+  const receiverAddrHex = bytesToHex(tx.receiver);
+  let receiverCreated = false;
+  let receiver = state.accounts[receiverAddrHex];
+  if (receiver) {
+    state.accounts[receiverAddrHex] = {
+      ...receiver,
+      balance: BigInt(receiver.balance) + BigInt(tx.amount),
+    };
+  } else {
+    state.accounts[receiverAddrHex] = createAccount(tx.receiver, tx.amount, 0n, 0n);
+    receiver = state.accounts[receiverAddrHex];
+    receiverCreated = true;
+  }
+
+  return receiverCreated;
 }
 
 export function applyStakeTokenTxn(state: WorldState, txFrom: Uint8Array, tx: StakeToken): void {
