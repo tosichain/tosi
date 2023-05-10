@@ -120,7 +120,7 @@ export class StateVerifier {
         await this.handleStateVerificationRequest(protoMsg.getStateVerificationRequest() as StateVerificationRequest);
       }
     } catch (err: any) {
-      this.log.error(err.stack, err, LOG_NETWORK);
+      this.log.error("failed to process pubsub message", err, LOG_NETWORK);
     }
   }
 

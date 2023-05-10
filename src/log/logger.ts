@@ -61,6 +61,9 @@ export default class Logger {
 
 function formatter(info: winston.Logform.TransformableInfo) {
   let str = `${info.level}: ${info.message}`;
+  if (info.err) {
+    str = str.concat(`\n${info.err.stack}`);
+  }
   if (info.tags) {
     str = str.concat(` | tags: ${info.tags}`);
   }

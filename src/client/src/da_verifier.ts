@@ -124,7 +124,7 @@ export class DAVerifier {
         await this.handleDAVerificationRequest(protoMsg.getDaVerificationRequest() as DAVerificationRequest);
       }
     } catch (err: any) {
-      this.log.error(err.stack, err, LOG_NETWORK);
+      this.log.error("failed to process pubsub message", err, LOG_NETWORK);
     }
   }
 
