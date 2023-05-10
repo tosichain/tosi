@@ -205,7 +205,10 @@ export class BlockchainClientSync {
       block.time,
     );
     for (const [txn, err] of rejectedTxns) {
-      this.log.error("transaction rejected", err, LOG_STATE, { txn: txn, txnHash: hashSignedTransaction(txn) });
+      this.log.error("transaction, approved by, chain, was rejected", err, LOG_STATE, {
+        txn: txn,
+        txnHash: hashSignedTransaction(txn),
+      });
     }
     if (rejectedTxns.length > 0) {
       throw new Error(`failed to apply 1 or more transactions from new block`);
