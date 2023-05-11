@@ -1,6 +1,15 @@
 import mysql from "mysql";
 
-import { WorldState, SignedTransaction, Block, Account, DataChain, ComputeClaim, StakePool, OffchainComputationParameters } from "./types";
+import {
+  WorldState,
+  SignedTransaction,
+  Block,
+  Account,
+  DataChain,
+  ComputeClaim,
+  StakePool,
+  OffchainComputationParameters,
+} from "./types";
 import { accountsMerkleTree } from "./block";
 import { bytesToHex, hashBlock, hashSignedTransaction } from "./util";
 import {
