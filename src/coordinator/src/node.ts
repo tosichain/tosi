@@ -1,6 +1,6 @@
 import * as IpfsHttpClient from "ipfs-http-client";
 import * as ethers from "ethers";
-import { IPFS } from "../../node/ipfs";
+import { IPFS } from "../../p2p/ipfs";
 import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 
 import { currentUnixTime } from "../../util";
@@ -33,7 +33,6 @@ import { UUPSProxy__factory } from "../../contracts/factories/UUPSProxy__factory
 import { CoordinatorRPCServerConfig, CoordinatorRPCServer } from "./rpc_server";
 import { DAVerificationManagerConfig, DAVerificationManager } from "./da_verification";
 import { COORDINATOR_BLOCK_VERSION, SWARM_PING_INTERVAL } from "./constant";
-import { keepConnectedToSwarm } from "../../p2p/util";
 import { NULL_HASH } from "../../blockchain/constant";
 import { StateVerificationManager, StateVerificationManagerConfig } from "./state_verification";
 
@@ -133,7 +132,7 @@ export class CoordinatorNode {
     }
 
     await this.storage.init();
-    await this.ipfs.up(this.log);
+    await this.ipfs.up();
     while (true) {
       const peers = await this.ipfs.getIPFS().swarm.peers();
       if (peers.length > 0) {
@@ -173,7 +172,7 @@ export class CoordinatorNode {
       await this.rpc.start();
     }
     const genesisBlockHash = await this.storage.getGenesisBlockHash();
-    await keepConnectedToSwarm("tosi-" + genesisBlockHash, this.ipfs, this.log, SWARM_PING_INTERVAL);
+    await this.ipfs.keepConnectedToSwarm("tosi-" + genesisBlockHash, SWARM_PING_INTERVAL);
     await this.daManager.start();
     await this.stateManager.start();
 

@@ -1,4 +1,4 @@
-import { IPFS } from "../node/ipfs";
+import { IPFS } from "./ipfs";
 
 import { computeClaimFromPB, daCheckResultFromPB, stateCheckResultFromPB } from "../blockchain/serde";
 import { IPFSPubSubMessage } from "./types";
@@ -13,32 +13,6 @@ import {
   StateVerificationRequest,
 } from "../../src/proto/grpcjs/p2p_pb";
 import Logger from "../log/logger";
-
-const LOG_NETWORK = "network";
-
-export async function keepConnectedToSwarm(
-  swarmPrefix: string,
-  ipfs: IPFS,
-  log: Logger,
-  interval: number,
-): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  await ipfs.getIPFSforPubSub().pubsub.subscribe(swarmPrefix, () => {});
-  setInterval(async () => {
-    await ipfs.getIPFS().pubsub.publish(swarmPrefix, Buffer.alloc(0));
-    // this is intentionally on the normal getIPFS()
-    const peers = await ipfs.getIPFS().pubsub.peers(swarmPrefix);
-    for (let i = 0; i < peers.length; i++) {
-      log.info("peer seen on pubsub", LOG_NETWORK, { address: peers[i] });
-      ipfs
-        .getIPFS()
-        .swarm.connect("/p2p/" + peers[i])
-        .catch((err: any) => {
-          log.error("failed to connect to peer", err, LOG_NETWORK, { address: peers[i] });
-        });
-    }
-  }, interval);
-}
 
 export function logPubSubMessage(msg: IPFSPubSubMessage): any {
   return {

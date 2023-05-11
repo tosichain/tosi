@@ -1,7 +1,7 @@
 import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 import { CID } from "ipfs-http-client";
 
-import { IPFS } from "../../node/ipfs";
+import { IPFS } from "../../p2p/ipfs";
 import {
   ComputeClaim,
   ClaimStateCheckResult,
@@ -18,12 +18,7 @@ import { BlockchainStorage } from "../../blockchain/storage";
 import { bytesEqual, bytesFromHex, hashComputeClaim } from "../../blockchain/util";
 import { IPFS_PUB_SUB_STATE_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
-import {
-  keepConnectedToSwarm,
-  logPubSubMessage,
-  logStateVerificationRequest,
-  logStateVerificationResponse,
-} from "../../p2p/util";
+import { logPubSubMessage, logStateVerificationRequest, logStateVerificationResponse } from "../../p2p/util";
 import { execTask } from "./util";
 import { P2PPubSubMessage, StateVerificationRequest, StateVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 import Logger from "../../log/logger";
@@ -97,7 +92,7 @@ export class StateVerifier {
 
   public async start(): Promise<void> {
     await this.setupPubSub();
-    await keepConnectedToSwarm(IPFS_PUB_SUB_STATE_VERIFICATION, this.ipfs, this.log, 10000);
+    await this.ipfs.keepConnectedToSwarm(IPFS_PUB_SUB_STATE_VERIFICATION, 10000);
   }
 
   private async handlePubSubMessage(msg: IPFSPubSubMessage) {

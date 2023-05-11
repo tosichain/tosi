@@ -1,7 +1,7 @@
 import { NodeSSH } from "node-ssh";
 import { CID } from "ipfs-http-client";
 
-import { IPFS } from "../../node/ipfs";
+import { IPFS } from "../../p2p/ipfs";
 
 import { DAInfo } from "../../blockchain/types";
 import { bytesFromHex } from "../../blockchain/util";

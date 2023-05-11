@@ -2,7 +2,7 @@ import * as ethers from "ethers";
 import { CID } from "ipfs-http-client";
 import * as Digest from "multiformats/hashes/digest";
 
-import { IPFS } from "../../node/ipfs";
+import { IPFS } from "../../p2p/ipfs";
 
 import { DatachainV1__factory } from "../../contracts/factories/DatachainV1__factory";
 import { DatachainV1 } from "../../contracts/DatachainV1";

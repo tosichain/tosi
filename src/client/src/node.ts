@@ -2,7 +2,7 @@ import * as IpfsHttpClient from "ipfs-http-client";
 import { CID } from "ipfs-http-client";
 import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 
-import { IPFS } from "../../node/ipfs";
+import { IPFS } from "../../p2p/ipfs";
 import { Transaction, Account, DAInfo, Block, DataChain, StakeType, DrandBeaconInfo } from "../../blockchain/types";
 import { bytesEqual } from "../../blockchain/util";
 import { CoordinatorRPCConfig, CoordinatorRPC } from "../../coordinator/src/rpc";
@@ -13,7 +13,6 @@ import { ClientNodeRPCServerConfig, ClientNodeRPCServer } from "./rpc_server";
 import { DAVerifierConfig, DAVerifier } from "./da_verifier";
 import { createDAInfo, prepopulate } from "./util";
 import { DEFAULT_CARTESI_VM_MAX_CYCLES, SWARM_PING_INTERVAL } from "./constant";
-import { keepConnectedToSwarm } from "../../p2p/util";
 import { StateVerifier, StateVerifierConfig } from "./state_verifer";
 import Logger from "../../log/logger";
 
@@ -115,7 +114,7 @@ export class ClientNode {
   }
 
   public async start(): Promise<void> {
-    await this.ipfs.up(this.log);
+    await this.ipfs.up();
     const bootstrap = await this.coordinator.getIPFSBootstrap();
     if (bootstrap) {
       for (let i = 0; i < bootstrap.length; i++) {
@@ -145,7 +144,7 @@ export class ClientNode {
     await this.apiServer.start();
 
     const genesisBlockHash = await this.storage.getGenesisBlockHash();
-    await keepConnectedToSwarm("tosi-" + genesisBlockHash, this.ipfs, this.log, SWARM_PING_INTERVAL);
+    await this.ipfs.keepConnectedToSwarm("tosi-" + genesisBlockHash, SWARM_PING_INTERVAL);
   }
 
   // RPC methods.

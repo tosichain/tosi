@@ -4,25 +4,27 @@ import { encode, decode } from "@ipld/dag-cbor";
 
 import Logger from "../log/logger";
 
+const LOG_NETWORK = ["network", "ipfs"];
+
 export type IPFSOptions = IpfsHttpClient.Options;
-export type PubSubMessage = { from: string; seqno: Uint8Array; data: Uint8Array; topicIDs: Array<string> };
 
 export class IPFS {
   private ipfs: IpfsHttpClient.IPFSHTTPClient;
   private ipfsForPubSub: IpfsHttpClient.IPFSHTTPClient;
 
-  private logger: Logger;
+  private log: Logger;
+
   id: string | undefined;
 
-  constructor(options: IpfsHttpClient.Options, logger: Logger) {
+  constructor(options: IpfsHttpClient.Options, log: Logger) {
     this.ipfs = IpfsHttpClient.create(options);
     this.ipfsForPubSub = IpfsHttpClient.create(options);
 
-    this.logger = logger;
+    this.log = log;
   }
 
   async getFromIPFS(cid: string): Promise<Buffer> {
-    this.logger.debug("getting from IPFS: " + cid);
+    this.log.debug("getting from IPFS: " + cid);
     const chunks = [];
 
     for await (const buf of this.ipfs.cat(cid)) {
@@ -34,7 +36,7 @@ export class IPFS {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getDAGfromIPFS(cid: CID): Promise<any> {
-    this.logger.debug("getting DAG from IPFS: " + cid);
+    this.log.debug("getting DAG from IPFS: " + cid);
     return (await this.ipfs.dag.get(cid)).value;
   }
 
@@ -56,8 +58,8 @@ export class IPFS {
     return this.ipfsForPubSub;
   }
 
-  async up(logger: Logger): Promise<void> {
-    logger.info("Waiting for IPFS..");
+  async up(): Promise<void> {
+    this.log.info("waiting for IPFS..", LOG_NETWORK);
     while (true) {
       try {
         this.id = (await this.ipfs.id()).id;
@@ -67,7 +69,7 @@ export class IPFS {
     await this.ipfs.config.set("Pubsub.Enabled", true);
     await this.ipfs.config.set("Swarm.DisableBandwidthMetrics", true);
 
-    logger.info("Waiting for IPFS pubsub connection.");
+    this.log.info("waiting for IPFS pubsub connection..", LOG_NETWORK);
     while (true) {
       try {
         await this.ipfsForPubSub.id();
@@ -77,5 +79,21 @@ export class IPFS {
     await this.ipfsForPubSub.config.set("Pubsub.Enabled", true);
     await this.ipfsForPubSub.config.set("Swarm.DisableBandwidthMetrics", true);
     return;
+  }
+
+  async keepConnectedToSwarm(swarmPrefix: string, interval: number): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    await this.getIPFSforPubSub().pubsub.subscribe(swarmPrefix, () => {});
+    setInterval(async () => {
+      await this.ipfsForPubSub.pubsub.publish(swarmPrefix, Buffer.alloc(0));
+      // this is intentionally on the normal getIPFS()
+      const peers = await this.ipfs.pubsub.peers(swarmPrefix);
+      for (let i = 0; i < peers.length; i++) {
+        this.log.info("peer seen on pubsub", LOG_NETWORK, { address: peers[i] });
+        this.ipfs.swarm.connect("/p2p/" + peers[i]).catch((err: any) => {
+          this.log.error("failed to connect to peer", err, LOG_NETWORK, { address: peers[i] });
+        });
+      }
+    }, interval);
   }
 }

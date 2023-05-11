@@ -1,4 +1,4 @@
-import { IPFS } from "../../node/ipfs";
+import { IPFS } from "../../p2p/ipfs";
 
 import { Account, ComputeClaim, DACheckResult, SignedTransaction, TransactionBundle } from "../../blockchain/types";
 import { computeClaimToPB, daCheckResultFromPB } from "../../blockchain/serde";
@@ -8,7 +8,7 @@ import { IPFS_PUB_SUB_DA_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
 import { DACheckResult as PBDACheckResult } from "../../proto/grpcjs/blockchain_pb";
 import { P2PPubSubMessage, DAVerificationRequest, DAVerificationResponse } from "../../proto/grpcjs/p2p_pb";
-import { logPubSubMessage, logDAVerificationResponse, keepConnectedToSwarm } from "../../p2p/util";
+import { logPubSubMessage, logDAVerificationResponse } from "../../p2p/util";
 import Logger from "../../log/logger";
 
 const LOG_VERIFIER = "da-verifier";
@@ -83,7 +83,7 @@ export class DAVerificationManager {
 
   public async start(): Promise<void> {
     await this.setupPubSub();
-    await keepConnectedToSwarm(IPFS_PUB_SUB_DA_VERIFICATION, this.ipfs, this.log, 10000);
+    await this.ipfs.keepConnectedToSwarm(IPFS_PUB_SUB_DA_VERIFICATION, 10000);
   }
 
   public async checkTxnBundleDA(
