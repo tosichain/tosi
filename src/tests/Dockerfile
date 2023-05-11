@@ -19,6 +19,3 @@ COPY .mocharc.json ./.mocharc.json
 RUN apk update && apk add --virtual build-dependencies build-base gcc wget git python3 cmake
 
 RUN yarn install
-
-CMD [ "yarn", "test:integration" ]
-
