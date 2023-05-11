@@ -4,9 +4,7 @@ WORKDIR /computechain
 RUN apk add curl python3
 
 # "Direct" dependencies from computechain source.
-COPY [ "proto/", "./proto" ]
 COPY [ "src/util.ts", "./src/util.ts" ]
-COPY [ "src/node/ipfs.ts", "./src/node/ipfs.ts"]
 COPY [ "src/blockchain", "./src/blockchain" ]
 COPY [ "src/contracts", "./src/contracts" ]
 COPY [ "src/coordinator/src/rpc.ts", "./src/coordinator/src/rpc.ts" ]

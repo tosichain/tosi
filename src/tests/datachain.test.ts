@@ -14,7 +14,7 @@ import { bytesToHex, bytesFromHex } from "../blockchain/util";
 import { signTransaction } from "../blockchain/block";
 import { CoordinatorRPC } from "../coordinator/src/rpc";
 import { ClientRPC } from "../client/src/rpc";
-import { IPFS } from "../node/ipfs";
+import { IPFS } from "../p2p/ipfs";
 import { hashComputeClaim } from "../blockchain/util";
 import Logger from "../log/logger";
 
@@ -71,7 +71,7 @@ before(async () => {
   });
 
   ipfs = new IPFS({ host: "127.0.0.1", port: 50011 }, log);
-  await ipfs.up(log);
+  await ipfs.up();
 
   await setupDACommittee();
 });

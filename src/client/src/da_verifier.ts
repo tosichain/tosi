@@ -1,7 +1,7 @@
 import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 import { CID } from "ipfs-http-client";
 
-import { IPFS } from "../../node/ipfs";
+import { IPFS } from "../../p2p/ipfs";
 
 import {
   DAInfo,
@@ -20,12 +20,7 @@ import { BlockchainStorage } from "../../blockchain/storage";
 import { bytesEqual, bytesFromHex, hashComputeClaim } from "../../blockchain/util";
 import { IPFS_PUB_SUB_DA_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
-import {
-  logPubSubMessage,
-  logDAVerificationRequest,
-  logDAVerificationResponse,
-  keepConnectedToSwarm,
-} from "../../p2p/util";
+import { logPubSubMessage, logDAVerificationRequest, logDAVerificationResponse } from "../../p2p/util";
 import { createDAInfo } from "./util";
 import { P2PPubSubMessage, DAVerificationRequest, DAVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 import Logger from "../../log/logger";
@@ -101,7 +96,7 @@ export class DAVerifier {
 
   public async start(): Promise<void> {
     await this.setupPubSub();
-    await keepConnectedToSwarm(IPFS_PUB_SUB_DA_VERIFICATION, this.ipfs, this.log, 10000);
+    await this.ipfs.keepConnectedToSwarm(IPFS_PUB_SUB_DA_VERIFICATION, 10000);
   }
 
   private async handlePubSubMessage(msg: IPFSPubSubMessage) {
