@@ -6,19 +6,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: "client sync on localnet"
+          - name: "test:core on localnet"
             citest: test:core
             logfile: client
             composefile: docker-compose-tosi-chain.yml
-          - name: "da committee on localnet"
+          - name: "test:datachain on localnet"
             citest: test:datachain
             logfile: da
             composefile: docker-compose-tosi-chain.yml
-          - name: "simul client sync on localnet"
+          - name: "simul test:core on localnet"
             citest: test:core
             logfile: client
             composefile: docker-compose-tosi-chain-testnet-simul.yml
-          - name: "simul da committee on localnet"
+          - name: "simul test:datachain on localnet"
             citest: test:datachain
             logfile: da
             composefile: docker-compose-tosi-chain-testnet-simul.yml
@@ -80,7 +80,7 @@ jobs:
           sudo docker buildx build -f src/tests/Dockerfile -t test:1.0 .
       - name: Test contracts
         run: docker run --network=host test:1.0 npx hardhat test --network localhost
-        if: ${{ matrix.name == 'client sync on localnet' }}
+        if: ${{ matrix.name == 'test:core on localnet' }}
       - name: Check IPFS peers before running tests
         run: |
           echo "ipfs-1" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-1 ipfs swarm peers
