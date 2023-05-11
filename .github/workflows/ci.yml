@@ -7,19 +7,19 @@ jobs:
       matrix:
         include:
           - name: "client sync on localnet"
-            citest: test:tosi.client.sync
+            citest: test:core
             logfile: client
             composefile: docker-compose-tosi-chain.yml
           - name: "da committee on localnet"
-            citest: test:tosi.da.committee.test
+            citest: test:datachain
             logfile: da
             composefile: docker-compose-tosi-chain.yml
           - name: "simul client sync on localnet"
-            citest: test:tosi.client.sync
+            citest: test:core
             logfile: client
             composefile: docker-compose-tosi-chain-testnet-simul.yml
           - name: "simul da committee on localnet"
-            citest: test:tosi.da.committee.test
+            citest: test:datachain
             logfile: da
             composefile: docker-compose-tosi-chain-testnet-simul.yml
     runs-on: [self-hosted, linux, x64]
@@ -77,7 +77,7 @@ jobs:
           ALCHEMY_ARBITRUM_GOERLI_RPC=${{ secrets.ALCHEMY_ARBITRUM_GOERLI_RPC }} docker compose -p tosi-chain -f ${{ matrix.composefile }} up --remove-orphans --detach --wait
       - name: Build the test containers
         run: |
-          sudo docker buildx build -f src/tosi_tests/Dockerfile -t test:1.0 .
+          sudo docker buildx build -f src/tests/Dockerfile -t test:1.0 .
       - name: Test contracts
         run: docker run --network=host test:1.0 npx hardhat test --network localhost
         if: ${{ matrix.name == 'client sync on localnet' }}
