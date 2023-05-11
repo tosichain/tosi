@@ -8,6 +8,7 @@
     "test:contracts": "forge test",
     "test:core": "mocha --exit --timeout 500000 src/tests/core.test.ts",
     "test:datachain": "mocha --exit --timeout 500000 src/tests/datachain.test.ts",
+    "fuzz:core": "ts-node --script-mode src/tests/fuzzers/core.fuzzer.ts",
     "lint": "eslint src/ --ext .ts"
   },
   "nyc": {
