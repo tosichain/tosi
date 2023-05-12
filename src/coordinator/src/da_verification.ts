@@ -43,12 +43,14 @@ export class DAVerificationManager {
   private ipfs: IPFS;
 
   private readonly process: DACheckProcess;
+  private readonly coordinatorPublicKey: Uint8Array;
 
-  constructor(config: DAVerificationManagerConfig, log: Logger, ipfs: IPFS) {
+  constructor(config: DAVerificationManagerConfig, log: Logger, ipfs: IPFS, coordinatorPublicKey: Uint8Array) {
     this.config = config;
     this.log = log;
 
     this.ipfs = ipfs;
+    this.coordinatorPublicKey = coordinatorPublicKey;
 
     this.process = {
       txnBundleHash: new Uint8Array(),
@@ -64,7 +66,7 @@ export class DAVerificationManager {
   private async setupPubSub() {
     try {
       await this.ipfs.getIPFSforPubSub().pubsub.subscribe(
-        IPFS_PUB_SUB_DA_VERIFICATION,
+        IPFS_PUB_SUB_DA_VERIFICATION + "-" + bytesToHex(this.coordinatorPublicKey),
         (msg: IPFSPubSubMessage) => {
           this.handlePubSubMessage(msg);
         },
@@ -75,7 +77,9 @@ export class DAVerificationManager {
           },
         },
       );
-      await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_DA_VERIFICATION, new Uint8Array(0));
+      await this.ipfs
+        .getIPFS()
+        .pubsub.publish(IPFS_PUB_SUB_DA_VERIFICATION + "-" + bytesToHex(this.coordinatorPublicKey), new Uint8Array(0));
     } catch (err: any) {
       this.log.error("failed to setup pubsub", err, LOG_NETWORK);
     }
@@ -83,7 +87,10 @@ export class DAVerificationManager {
 
   public async start(): Promise<void> {
     await this.setupPubSub();
-    await this.ipfs.keepConnectedToSwarm(IPFS_PUB_SUB_DA_VERIFICATION, 10000);
+    await this.ipfs.keepConnectedToSwarm(
+      IPFS_PUB_SUB_DA_VERIFICATION + "-" + bytesToHex(this.coordinatorPublicKey),
+      10000,
+    );
   }
 
   public async checkTxnBundleDA(
@@ -284,7 +291,12 @@ export class DAVerificationManager {
         .setClaimsList(this.process.claims.map(computeClaimToPB))
         .setRandomnessProof(this.process.randomnessProof);
       const msg = new P2PPubSubMessage().setDaVerificationRequest(request);
-      this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_DA_VERIFICATION, msg.serializeBinary());
+      this.ipfs
+        .getIPFS()
+        .pubsub.publish(
+          IPFS_PUB_SUB_DA_VERIFICATION + "-" + bytesToHex(this.coordinatorPublicKey),
+          msg.serializeBinary(),
+        );
 
       await new Promise((resolve, _) => {
         setTimeout(resolve, this.config.RequestBroadcastPeriod);

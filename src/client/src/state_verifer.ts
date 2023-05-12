@@ -15,7 +15,7 @@ import { signStateCheckResult } from "../../blockchain/block_proof";
 import { getSeedFromBlockRandomnessProof, verifyBlockRandomnessProof } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { BlockchainStorage } from "../../blockchain/storage";
-import { bytesEqual, bytesFromHex, hashComputeClaim } from "../../blockchain/util";
+import { bytesEqual, bytesFromHex, bytesToHex, hashComputeClaim } from "../../blockchain/util";
 import { IPFS_PUB_SUB_STATE_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
 import { logPubSubMessage, logStateVerificationRequest, logStateVerificationResponse } from "../../p2p/util";
@@ -73,7 +73,7 @@ export class StateVerifier {
   private async setupPubSub() {
     try {
       await this.ipfs.getIPFSforPubSub().pubsub.subscribe(
-        IPFS_PUB_SUB_STATE_VERIFICATION,
+        IPFS_PUB_SUB_STATE_VERIFICATION + "-" + bytesToHex(this.coordinatorPubKey),
         (msg: IPFSPubSubMessage) => {
           this.handlePubSubMessage(msg);
         },
@@ -84,7 +84,9 @@ export class StateVerifier {
           },
         },
       );
-      await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, new Uint8Array(0));
+      await this.ipfs
+        .getIPFS()
+        .pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION + "-" + bytesToHex(this.coordinatorPubKey), new Uint8Array(0));
     } catch (err: any) {
       this.log.error("failed to setup pubsub", err, LOG_NETWORK);
     }
@@ -92,7 +94,10 @@ export class StateVerifier {
 
   public async start(): Promise<void> {
     await this.setupPubSub();
-    await this.ipfs.keepConnectedToSwarm(IPFS_PUB_SUB_STATE_VERIFICATION, 10000);
+    await this.ipfs.keepConnectedToSwarm(
+      IPFS_PUB_SUB_STATE_VERIFICATION + "-" + bytesToHex(this.coordinatorPubKey),
+      10000,
+    );
   }
 
   private async handlePubSubMessage(msg: IPFSPubSubMessage) {
@@ -149,7 +154,12 @@ export class StateVerifier {
       response: logStateVerificationResponse(response),
     });
     const msg = new P2PPubSubMessage().setStateVerificationResponse(response);
-    await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, msg.serializeBinary());
+    await this.ipfs
+      .getIPFS()
+      .pubsub.publish(
+        IPFS_PUB_SUB_STATE_VERIFICATION + "-" + bytesToHex(this.coordinatorPubKey),
+        msg.serializeBinary(),
+      );
   }
 
   private async acceptStateVerificationRequest(stateReq: StateVerificationRequest): Promise<boolean> {
