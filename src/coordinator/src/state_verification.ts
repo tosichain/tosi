@@ -47,12 +47,14 @@ export class StateVerificationManager {
   private ipfs: IPFS;
 
   private readonly process: StateCheckProcess;
+  private readonly coordinatorPublicKey: Uint8Array;
 
-  constructor(config: StateVerificationManagerConfig, log: Logger, ipfs: IPFS) {
+  constructor(config: StateVerificationManagerConfig, log: Logger, ipfs: IPFS, coordinatorPubKey: Uint8Array) {
     this.config = config;
     this.log = log;
 
     this.ipfs = ipfs;
+    this.coordinatorPublicKey = coordinatorPubKey;
 
     this.process = {
       txnBundleHash: new Uint8Array(),
@@ -68,7 +70,7 @@ export class StateVerificationManager {
   private async setupPubSub() {
     try {
       await this.ipfs.getIPFSforPubSub().pubsub.subscribe(
-        IPFS_PUB_SUB_STATE_VERIFICATION,
+        IPFS_PUB_SUB_STATE_VERIFICATION + "-" + bytesToHex(this.coordinatorPublicKey),
         (msg: IPFSPubSubMessage) => {
           this.handlePubSubMessage(msg);
         },
@@ -79,7 +81,12 @@ export class StateVerificationManager {
           },
         },
       );
-      await this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, new Uint8Array(0));
+      await this.ipfs
+        .getIPFS()
+        .pubsub.publish(
+          IPFS_PUB_SUB_STATE_VERIFICATION + "-" + bytesToHex(this.coordinatorPublicKey),
+          new Uint8Array(0),
+        );
     } catch (err: any) {
       this.log.error("failed to setup pubsub", err, LOG_NETWORK);
     }
@@ -87,7 +94,10 @@ export class StateVerificationManager {
 
   public async start(): Promise<void> {
     await this.setupPubSub();
-    await this.ipfs.keepConnectedToSwarm(IPFS_PUB_SUB_STATE_VERIFICATION, 10000);
+    await this.ipfs.keepConnectedToSwarm(
+      IPFS_PUB_SUB_STATE_VERIFICATION + "-" + bytesToHex(this.coordinatorPublicKey),
+      10000,
+    );
   }
   public async checkTxnBundleState(
     txnBundle: TransactionBundle,
@@ -290,7 +300,12 @@ export class StateVerificationManager {
         .setClaimsList(this.process.claims.map(computeClaimToPB))
         .setRandomnessProof(this.process.randomnessProof);
       const msg = new P2PPubSubMessage().setStateVerificationRequest(request);
-      this.ipfs.getIPFS().pubsub.publish(IPFS_PUB_SUB_STATE_VERIFICATION, msg.serializeBinary());
+      this.ipfs
+        .getIPFS()
+        .pubsub.publish(
+          IPFS_PUB_SUB_STATE_VERIFICATION + "-" + bytesToHex(this.coordinatorPublicKey),
+          msg.serializeBinary(),
+        );
 
       await new Promise((resolve, _) => {
         setTimeout(resolve, this.config.RequestBroadcastPeriod);

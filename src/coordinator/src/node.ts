@@ -103,8 +103,13 @@ export class CoordinatorNode {
     }
     this.ethProvider = new ethers.providers.JsonRpcProvider(this.config.eth.rpc);
 
-    this.daManager = new DAVerificationManager(this.config.DAVerification, this.log, this.ipfs);
-    this.stateManager = new StateVerificationManager(this.config.stateVerification, this.log, this.ipfs);
+    this.daManager = new DAVerificationManager(this.config.DAVerification, this.log, this.ipfs, this.blsPubKey);
+    this.stateManager = new StateVerificationManager(
+      this.config.stateVerification,
+      this.log,
+      this.ipfs,
+      this.blsPubKey,
+    );
   }
 
   public async start(): Promise<void> {
