@@ -25,8 +25,8 @@ export type TransactionConfig = {
 };
 
 export type AirdropConfig = {
-  maxAmount: bigint;
   minAmount: bigint;
+  maxAmount: bigint;
   receiverCount: number;
 };
 
