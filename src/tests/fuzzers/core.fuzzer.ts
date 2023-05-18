@@ -1,6 +1,7 @@
-import { Block } from "../../blockchain/types";
-import { bytesEqual, bytesFromHex } from "../../blockchain/util";
-import { ClientRPC } from "../../client/src/rpc";
+// docker compose --profile build -p tosi-chain -f docker-compose-tosi-chain.yml up
+
+import { SignedTransaction, Block } from "../../blockchain/types";
+import { bytesEqual, bytesToHex, bytesFromHex, hashSignedTransaction } from "../../blockchain/util";
 import { CoordinatorRPC } from "../../coordinator/src/rpc";
 import Logger from "../../log/logger";
 import { currentUnixTime } from "../../util";
@@ -32,11 +33,24 @@ async function run(): Promise<void> {
   const engine = new Engine(config.engine, log);
 
   const coordinator = new CoordinatorRPC({ serverAddr: config.coordinatorAddr });
-  const clients = config.clientAddrs.map((addr) => new ClientRPC({ serverAddr: addr }));
+
+  const genesisBlockHash = await coordinator.getHeadBlockHash();
+
+  const airdropTxns = await engine.generateAirdropTxns();
+  for (const txn of airdropTxns) {
+    await coordinator.submitSignedTransaction(txn);
+  }
+  const airdropBlockHash = await waitForBlockTransactions(
+    genesisBlockHash,
+    engine,
+    coordinator,
+    airdropTxns,
+    config.blockWatcher,
+  );
 
   await Promise.all([
     generateTransactions(config.duration, engine, coordinator, config.txnGenerator),
-    watchBlocks(config.duration, engine, coordinator, clients, config.blockWatcher),
+    watchBlocks(config.duration, airdropBlockHash, engine, coordinator, config.blockWatcher),
   ]);
 }
 
@@ -79,8 +93,8 @@ function loadConfig(): FuzzerConfig {
   };
 
   const txnGenerator: TransactionGeneratorConfig = {
-    intervalMin: 0.5,
-    intervalMax: 5,
+    intervalMin: 3,
+    intervalMax: 6,
   };
 
   const blockWatcher: BlockWatcherConfig = {
@@ -107,7 +121,9 @@ async function generateTransactions(
 
   while (currentUnixTime() - startTime < duration) {
     const txn = (await engine.generateTxns(1))[1];
-    await coordinator.submitSignedTransaction(txn);
+
+    //!!!
+    //await coordinator.submitSignedTransaction(txn);
 
     const interval = config.intervalMin + Math.random() * (config.intervalMax - config.intervalMin);
     await new Promise((resolve, reject) => {
@@ -116,48 +132,106 @@ async function generateTransactions(
   }
 }
 
-async function watchBlocks(
-  duration: number,
+async function waitForBlockTransactions(
+  startFromBlockHash: Uint8Array,
   engine: Engine,
   coordinator: CoordinatorRPC,
-  clients: ClientRPC[],
+  txns: SignedTransaction[],
+  config: BlockWatcherConfig,
+): Promise<Uint8Array> {
+  const txnHashes = new Set<string>();
+  for (const txn of txns) {
+    const txnHashHex = bytesToHex(hashSignedTransaction(txn));
+    txnHashes.add(txnHashHex);
+  }
+
+  let lastHeadBlockHash = startFromBlockHash;
+
+  while (true) {
+    await new Promise((resolve, reject) => {
+      setTimeout(resolve, config.queryInterval * 1000);
+    });
+
+    // Check if coordinator's head block hash has changed.
+    const curHeadBlockHash = await coordinator.getHeadBlockHash();
+    if (bytesEqual(lastHeadBlockHash, curHeadBlockHash)) {
+      continue;
+    }
+
+    // Confirm all transactons from new blocks and mark them as found.
+    const newBlocks = await getBlocks(curHeadBlockHash, lastHeadBlockHash, coordinator);
+    for (const block of newBlocks) {
+      await engine.confirmTxns(block.transactions, block.time);
+      for (const txn of block.transactions) {
+        const txnHashHex = bytesToHex(hashSignedTransaction(txn));
+        txnHashes.delete(txnHashHex);
+      }
+    }
+
+    lastHeadBlockHash = curHeadBlockHash;
+
+    // Terminate in case all transactions are marked as found.
+    if (txnHashes.size == 0) {
+      return lastHeadBlockHash;
+    }
+  }
+}
+
+async function watchBlocks(
+  duration: number,
+  startFromBlockHash: Uint8Array,
+  engine: Engine,
+  coordinator: CoordinatorRPC,
   config: BlockWatcherConfig,
 ): Promise<void> {
   const startTime = currentUnixTime();
-  let lastHeadBlockHash = await coordinator.getHeadBlockHash();
+  let lastHeadBlockHash = startFromBlockHash;
 
   while (currentUnixTime() - startTime < duration) {
     await new Promise((resolve, reject) => {
       setTimeout(resolve, config.queryInterval * 1000);
     });
 
-    // Check if coordinator's head block hash has changed.
-    const coordiantorHeadBlockHash = await coordinator.getHeadBlockHash();
-    if (bytesEqual(lastHeadBlockHash, coordiantorHeadBlockHash)) {
+    // Check if head block hash has changed.
+    const curHeadBlockHash = await coordinator.getHeadBlockHash();
+    if (bytesEqual(lastHeadBlockHash, curHeadBlockHash)) {
       continue;
     }
 
-    // In case of new head block hash at coordinator fetch all new blocks (there can be more then one).
-    const newBlocks: Block[] = [];
-    let newBlockHash = coordiantorHeadBlockHash;
-    let newBlock = await coordinator.getBlock(newBlockHash);
-    while (true) {
-      if (!newBlock) {
-        throw new Error("can not fetch block by its hash from coordinator");
-      }
-      newBlocks.push(newBlock);
-      newBlockHash = newBlock.prevBlockHash;
-      if (bytesEqual(newBlockHash, lastHeadBlockHash)) {
-        break;
-      }
-      newBlock = await coordinator.getBlock(newBlockHash);
-    }
-
     // Confirm all transactons from new blocks.
+    const newBlocks = await getBlocks(curHeadBlockHash, lastHeadBlockHash, coordinator);
     for (const block of newBlocks) {
-      await engine.confirmTxns(block.transactions);
+      await engine.confirmTxns(block.transactions, block.time);
     }
 
-    lastHeadBlockHash = coordiantorHeadBlockHash;
+    lastHeadBlockHash = curHeadBlockHash;
   }
 }
+
+async function getBlocks(
+  fromBlockHash: Uint8Array,
+  toBlockHash: Uint8Array,
+  coordinator: CoordinatorRPC,
+): Promise<Block[]> {
+  const blocks: Block[] = [];
+
+  let curBlockHash = fromBlockHash;
+  let newBlock = await coordinator.getBlock(curBlockHash);
+  while (true) {
+    if (!newBlock) {
+      throw new Error("can not fetch block by its hash from coordinator");
+    }
+    blocks.push(newBlock);
+    curBlockHash = newBlock.prevBlockHash;
+    if (bytesEqual(curBlockHash, toBlockHash)) {
+      break;
+    }
+    newBlock = await coordinator.getBlock(curBlockHash);
+  }
+
+  return blocks;
+}
+
+run().catch((err) => {
+  console.log(err);
+});

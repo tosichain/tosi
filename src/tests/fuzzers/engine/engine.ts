@@ -3,7 +3,7 @@ import Sampler from "weighted-reservoir-sampler";
 import { pickRandomItems } from "./util";
 
 import { SignedTransaction } from "../../../blockchain/types";
-import { bytesToHex } from "../../../blockchain/util";
+import { bytesToHex, hashSignedTransaction } from "../../../blockchain/util";
 import { createAccount } from "../../../blockchain/transaction";
 import Logger from "../../../log/logger";
 
@@ -130,6 +130,14 @@ export class Engine {
     for (const receiver of receivers) {
       txns.push(await this.minter.generateMint(receiver.getAccount().address));
     }
+
+    for (const txn of txns) {
+      this.log.info("transaction generated", "engine", {
+        txn: txn,
+        txnHash: hashSignedTransaction(txn),
+      });
+    }
+
     return txns;
   }
 
@@ -148,16 +156,27 @@ export class Engine {
 
     const txns: SignedTransaction[] = [];
     for (const txnType of txnsTypes) {
+      let txn: SignedTransaction;
       switch (txnType) {
         case TransactionType.Mint:
-          txns.push(await this.generateMint());
+          txn = await this.generateMint();
+          break;
         case TransactionType.Transfer:
-          txns.push(await this.generateTransfer());
+          txn = await this.generateTransfer();
+          break;
         case TransactionType.Stake:
-          txns.push(await this.generateStake());
+          txn = await this.generateStake();
+          break;
         case TransactionType.Unstake:
-          txns.push(await this.generateUnstake());
+          txn = await this.generateUnstake();
+          break;
       }
+      txns.push(txn);
+
+      this.log.info("transaction generated", "engine", {
+        txn: txn,
+        txnHash: hashSignedTransaction(txn),
+      });
     }
 
     return txns;
@@ -179,21 +198,28 @@ export class Engine {
     return this.getRandomVerifier().generateUnstake();
   }
 
-  public async confirmTxns(txns: SignedTransaction[]): Promise<void> {
-    for (const actor of this.actors.values()) {
-      for (const txn of txns) {
-        if (txn.txn.mint) {
-          await actor.confirmMint(txn);
-        } else if (txn.txn.transfer) {
-          await actor.confirmTransfer(txn);
-        } else if (txn.txn.stake) {
-          await actor.confirmStake(txn);
-        } else if (txn.txn.unstake) {
-          await actor.confirmUnstake(txn);
-        } else {
-          throw new Error("unknown transaction type");
-        }
+  public async confirmTxns(txns: SignedTransaction[], blockTime: number): Promise<void> {
+    for (const txn of txns) {
+      const addressHex = bytesToHex(txn.from);
+      const actor = this.actors.get(addressHex);
+      if (!actor) {
+        throw Error(`actor with account address ${addressHex} does not exist`);
       }
+      if (txn.txn.mint) {
+        await actor.confirmMint(txn, blockTime);
+      } else if (txn.txn.transfer) {
+        await actor.confirmTransfer(txn, blockTime);
+      } else if (txn.txn.stake) {
+        await actor.confirmStake(txn, blockTime);
+      } else if (txn.txn.unstake) {
+        await actor.confirmUnstake(txn, blockTime);
+      } else {
+        throw new Error("unknown transaction type");
+      }
+      this.log.info("transaction confirmed", "engine", {
+        txn: txn,
+        txnHash: hashSignedTransaction(txn),
+      });
     }
   }
 

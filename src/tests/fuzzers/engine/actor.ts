@@ -1,6 +1,7 @@
 import {
   SignedTransaction,
   Transaction,
+  MintToken,
   TransferToken,
   StakeType,
   StakeToken,
@@ -13,6 +14,13 @@ import Logger from "../../../log/logger";
 import { Engine } from "./engine";
 import { randomAbsAmount, randomRatioAmount, randomStakeType } from "./util";
 import { bytesEqual, bytesToHex, hashSignedTransaction } from "../../../blockchain/util";
+import { currentUnixTime } from "../../../util";
+
+export type ActorTransaction = {
+  txn: SignedTransaction;
+  generatedAt: number;
+  confirmedAt?: number;
+};
 
 export class Actor {
   private readonly privKey: Uint8Array;
@@ -21,8 +29,8 @@ export class Actor {
   private readonly engine: Engine;
   private readonly log: Logger;
 
-  private readonly generatedTxns: Map<string, SignedTransaction>;
-  private readonly confirmedTxns: SignedTransaction[];
+  private readonly generatedTxns: Map<string, ActorTransaction>;
+  private readonly confirmedTxns: ActorTransaction[];
 
   constructor(privKey: Uint8Array, account: Account, engine: Engine, log: Logger) {
     this.privKey = privKey;
@@ -31,7 +39,7 @@ export class Actor {
     this.engine = engine;
     this.log = log;
 
-    this.generatedTxns = new Map<string, SignedTransaction>();
+    this.generatedTxns = new Map<string, ActorTransaction>();
     this.confirmedTxns = [];
   }
 
@@ -48,12 +56,15 @@ export class Actor {
     } else {
       receiver = this.engine.getRandomActor().getAccount().address;
     }
+
+    const expectedAccount = this.getExpectedAccount();
+
     const amount = randomAbsAmount(
       this.engine.config.transactions.mint.minAmount,
       this.engine.config.transactions.mint.maxAmount,
     );
     const txn: Transaction = {
-      nonce: this.getNextNonce(),
+      nonce: expectedAccount.nonce + 1,
       mint: {
         receiver: receiver,
         amount: amount,
@@ -71,8 +82,8 @@ export class Actor {
       this.engine.config.transactions.transfer.maxRatio,
     );
     const txn: Transaction = {
-      nonce: this.getNextNonce(),
-      mint: {
+      nonce: expectedAccount.nonce + 1,
+      transfer: {
         receiver: receiver,
         amount: amount,
       },
@@ -88,7 +99,7 @@ export class Actor {
       this.engine.config.transactions.transfer.maxRatio,
     );
     const txn: Transaction = {
-      nonce: this.getNextNonce(),
+      nonce: expectedAccount.nonce + 1,
       stake: {
         stakeType: randomStakeType(),
         amount: amount,
@@ -120,7 +131,7 @@ export class Actor {
     );
 
     const txn: Transaction = {
-      nonce: this.getNextNonce(),
+      nonce: expectedAccount.nonce + 1,
       unstake: {
         stakeType: stakeType,
         amount: amount,
@@ -129,27 +140,28 @@ export class Actor {
     return await this.generateSignedTxn(txn);
   }
 
-  private getNextNonce(): number {
-    return this.getAccount().nonce + 1;
-  }
-
   private async generateSignedTxn(txn: Transaction): Promise<SignedTransaction> {
     const signedTxn = await signTransaction(txn, this.privKey);
     const txnHashHex = bytesToHex(hashSignedTransaction(signedTxn));
-    this.generatedTxns.set(txnHashHex, signedTxn);
+    this.generatedTxns.set(txnHashHex, {
+      txn: signedTxn,
+      generatedAt: currentUnixTime(),
+    });
     return signedTxn;
   }
 
   private getExpectedAccount(): Account {
     let result: Account = this.account;
-    for (const txn of this.generatedTxns.values()) {
-      if (txn.txn.mint) {
-      } else if (txn.txn.transfer) {
-        result = applyTransfer(this.account, txn.txn.transfer);
-      } else if (txn.txn.stake) {
-        result = applyStake(this.account, txn.txn.stake);
-      } else if (txn.txn.unstake) {
-        result = applyUnstake(this.account, txn.txn.unstake);
+    for (const actorTxn of this.generatedTxns.values()) {
+      const txn = actorTxn.txn.txn;
+      if (txn.mint) {
+        result = applyMint(this.account, txn.mint, txn.nonce);
+      } else if (txn.transfer) {
+        result = applyTransfer(this.account, txn.transfer, txn.nonce);
+      } else if (txn.stake) {
+        result = applyStake(this.account, txn.stake, txn.nonce);
+      } else if (txn.unstake) {
+        result = applyUnstake(this.account, txn.unstake, txn.nonce);
       } else {
         throw new Error("unknown transaction type");
       }
@@ -157,42 +169,42 @@ export class Actor {
     return result;
   }
 
-  public async confirmMint(txn: SignedTransaction): Promise<void> {
-    await this.checkConfirmedTxn(txn);
-    if (!txn.txn.mint) {
+  public async confirmMint(txn: SignedTransaction, blockTime: number): Promise<void> {
+    const actorTxn = await this.checkConfirmedTxn(txn);
+    if (!actorTxn.txn.txn.mint) {
       throw new Error("not MintToken trnansaction");
     }
-    this.confirmTxn(txn);
+    this.confirmTxn(actorTxn, blockTime);
   }
 
-  public async confirmTransfer(txn: SignedTransaction): Promise<void> {
-    await this.checkConfirmedTxn(txn);
-    if (!txn.txn.transfer) {
+  public async confirmTransfer(txn: SignedTransaction, blockTime: number): Promise<void> {
+    const actorTxn = await this.checkConfirmedTxn(txn);
+    if (!actorTxn.txn.txn.transfer) {
       throw new Error("not TransferToken trnansaction");
     }
-    this.account = applyTransfer(this.account, txn.txn.transfer);
-    this.confirmTxn(txn);
+    this.account = applyTransfer(this.account, actorTxn.txn.txn.transfer, actorTxn.txn.txn.nonce);
+    this.confirmTxn(actorTxn, blockTime);
   }
 
-  public async confirmStake(txn: SignedTransaction): Promise<void> {
-    await this.checkConfirmedTxn(txn);
-    if (!txn.txn.stake) {
+  public async confirmStake(txn: SignedTransaction, blockTime: number): Promise<void> {
+    const actorTxn = await this.checkConfirmedTxn(txn);
+    if (!actorTxn.txn.txn.stake) {
       throw new Error("not StakeToken trnansaction");
     }
-    this.account = applyStake(this.account, txn.txn.stake);
-    this.confirmTxn(txn);
+    this.account = applyStake(this.account, actorTxn.txn.txn.stake, actorTxn.txn.txn.nonce);
+    this.confirmTxn(actorTxn, blockTime);
   }
 
-  public async confirmUnstake(txn: SignedTransaction): Promise<void> {
-    await this.checkConfirmedTxn(txn);
-    if (!txn.txn.unstake) {
+  public async confirmUnstake(txn: SignedTransaction, blockTime: number): Promise<void> {
+    const actorTxn = await this.checkConfirmedTxn(txn);
+    if (!actorTxn.txn.txn.unstake) {
       throw new Error("not UnstakeToken trnansaction");
     }
-    this.account = applyStake(this.account, txn.txn.unstake);
-    this.confirmTxn(txn);
+    this.account = applyStake(this.account, actorTxn.txn.txn.unstake, actorTxn.txn.txn.nonce);
+    this.confirmTxn(actorTxn, blockTime);
   }
 
-  private async checkConfirmedTxn(txn: SignedTransaction): Promise<void> {
+  private async checkConfirmedTxn(txn: SignedTransaction): Promise<ActorTransaction> {
     if (!verifyTransactionSignature(txn)) {
       throw new Error("can not confirm transaction with invalid signature");
     }
@@ -200,36 +212,49 @@ export class Actor {
       throw new Error("can not confirm transaction from other actor");
     }
     const txnHashHex = bytesToHex(hashSignedTransaction(txn));
-    if (!this.generatedTxns.get(txnHashHex)) {
+    const actorTxn = this.generatedTxns.get(txnHashHex);
+    if (!actorTxn) {
       throw new Error("can not confirm transaction, which is not in generated transaction list");
     }
+    return actorTxn;
   }
 
-  private confirmTxn(txn: SignedTransaction): void {
-    const txnHashHex = bytesToHex(hashSignedTransaction(txn));
+  private confirmTxn(actorTxn: ActorTransaction, blockTime: number): void {
+    const txnHashHex = bytesToHex(hashSignedTransaction(actorTxn.txn));
     this.generatedTxns.delete(txnHashHex);
-    this.confirmedTxns.push(txn);
+    actorTxn.confirmedAt = blockTime;
+    this.confirmedTxns.push(actorTxn);
   }
 }
 
-function applyTransfer(account: Account, txn: TransferToken): Account {
+function applyMint(account: Account, txn: MintToken, txnNonce: number): Account {
   return {
     ...account,
+    nonce: txnNonce,
+  };
+}
+
+function applyTransfer(account: Account, txn: TransferToken, txnNonce: number): Account {
+  return {
+    ...account,
+    nonce: txnNonce,
     balance: account.balance - txn.amount,
   };
 }
 
-function applyStake(account: Account, txn: StakeToken): Account {
+function applyStake(account: Account, txn: StakeToken, txnNonce: number): Account {
   switch (txn.stakeType) {
     case StakeType.DAVerifier:
       return {
         ...account,
+        nonce: txnNonce,
         balance: account.balance - txn.amount,
         daVerifierStake: account.daVerifierStake + txn.amount,
       };
     case StakeType.StateVerifier:
       return {
         ...account,
+        nonce: txnNonce,
         balance: account.balance - txn.amount,
         stateVerifierStake: account.stateVerifierStake + txn.amount,
       };
@@ -238,17 +263,19 @@ function applyStake(account: Account, txn: StakeToken): Account {
   }
 }
 
-function applyUnstake(account: Account, txn: UnstakeToken): Account {
+function applyUnstake(account: Account, txn: UnstakeToken, txnNonce: number): Account {
   switch (txn.stakeType) {
     case StakeType.DAVerifier:
       return {
         ...account,
+        nonce: txnNonce,
         balance: account.balance - txn.amount,
         daVerifierStake: account.daVerifierStake + txn.amount,
       };
     case StakeType.StateVerifier:
       return {
         ...account,
+        nonce: txnNonce,
         balance: account.balance - txn.amount,
         stateVerifierStake: account.stateVerifierStake + txn.amount,
       };
