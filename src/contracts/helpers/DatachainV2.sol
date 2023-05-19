@@ -9,7 +9,7 @@ import "./CartesiMathMerkle.sol";
 
 /// @title On-chain contract for Tosi
 /// @dev This contract is used by Tosi, no manual calls needed
-contract DatachainV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, CartesiMathMerkle {
+contract DatachainV2example is Initializable, OwnableUpgradeable, UUPSUpgradeable, CartesiMathMerkle {
   uint256 private constant CARTESI_MERKLE_LOG2_SIZE = 18;
 
   uint256 public blockNumber;
