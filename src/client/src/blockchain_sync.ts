@@ -4,8 +4,8 @@ import * as Digest from "multiformats/hashes/digest";
 
 import { IPFS } from "../../p2p/ipfs";
 
-import { DatachainV1__factory } from "../../contracts/factories/DatachainV1__factory";
-import { DatachainV1 } from "../../contracts/DatachainV1";
+import { DatachainV2__factory } from "../../contracts/factories/DatachainV2__factory";
+import { DatachainV2 } from "../../contracts/DatachainV2";
 import { Block, DrandBeaconInfo } from "../../blockchain/types";
 import { NULL_HASH } from "../../blockchain/constant";
 import { hashSignedTransaction } from "../../blockchain/util";
@@ -43,7 +43,7 @@ export class BlockchainClientSync {
   private readonly storage: BlockchainStorage;
 
   private readonly ethProvider: ethers.providers.JsonRpcProvider;
-  private readonly claimContract: DatachainV1;
+  private readonly claimContract: DatachainV2;
   private readonly drandBeaconInfo: DrandBeaconInfo;
 
   constructor(
@@ -67,7 +67,7 @@ export class BlockchainClientSync {
     this.drandBeaconInfo = drandBeaconInfo;
 
     this.ethProvider = new ethers.providers.JsonRpcProvider(this.config.eth.rpc);
-    this.claimContract = DatachainV1__factory.connect(this.config.eth.claimContractAddress, this.ethProvider);
+    this.claimContract = DatachainV2__factory.connect(this.config.eth.claimContractAddress, this.ethProvider);
   }
 
   public async start(): Promise<void> {

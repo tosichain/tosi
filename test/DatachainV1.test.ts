@@ -143,8 +143,8 @@ describe("Token contract", function () {
 
   it("Can upgrade and have new impl", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const DatachainV2Factory = await ethers.getContractFactory("DatachainV2");
-    const upgraded = await upgrades.upgradeProxy(proxy.address, DatachainV2Factory);
+    const DatachainV2exampleFactory = await ethers.getContractFactory("DatachainV2example");
+    const upgraded = await upgrades.upgradeProxy(proxy.address, DatachainV2exampleFactory);
     await upgraded.deployed();
     expect(proxy.address).to.equal(upgraded.address);
     expect(await upgrades.erc1967.getImplementationAddress(upgraded.address)).to.not.equal(implementation);
@@ -152,8 +152,8 @@ describe("Token contract", function () {
 
   it("Can upgrade and have new function", async function () {
     const { proxy, implementation, owner, coordinator } = await loadFixture(proxyDeployFixture);
-    const DatachainV2Factory = await ethers.getContractFactory("DatachainV2");
-    const upgraded = await upgrades.upgradeProxy(proxy.address, DatachainV2Factory);
+    const DatachainV2exampleFactory = await ethers.getContractFactory("DatachainV2example");
+    const upgraded = await upgrades.upgradeProxy(proxy.address, DatachainV2exampleFactory);
     await upgraded.deployed();
     expect(await upgraded.upgraded()).to.equal(true);
   });

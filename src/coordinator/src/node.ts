@@ -27,8 +27,8 @@ import {
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
 import { bytesEqual, bytesToHex, hashSignedTransaction, hashTransactionBundle, hashBlock } from "../../blockchain/util";
 import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/storage";
-import { DatachainV1__factory } from "../../contracts/factories/DatachainV1__factory";
-import { DatachainV1 } from "../../contracts/DatachainV1";
+import { DatachainV2__factory } from "../../contracts/factories/DatachainV2__factory";
+import { DatachainV2 } from "../../contracts/DatachainV2";
 import { UUPSProxy__factory } from "../../contracts/factories/UUPSProxy__factory";
 import { CoordinatorRPCServerConfig, CoordinatorRPCServer } from "./rpc_server";
 import { DAVerificationManagerConfig, DAVerificationManager } from "./da_verification";
@@ -83,7 +83,7 @@ export class CoordinatorNode {
   private ethProvider: ethers.providers.JsonRpcProvider;
   private ethWallet: ethers.Signer | undefined;
 
-  private claimContract: DatachainV1 | null = null;
+  private claimContract: DatachainV2 | null = null;
 
   private daManager: DAVerificationManager;
   private stateManager: StateVerificationManager;
@@ -120,9 +120,9 @@ export class CoordinatorNode {
 
       this.log.info("deploying/upgrading smart contracts", LOG_ETH);
 
-      const contractFactory = new DatachainV1__factory(this.ethWallet);
+      const contractFactory = new DatachainV2__factory(this.ethWallet);
       const deployedContract = await contractFactory.deploy();
-      this.claimContract = DatachainV1__factory.connect(this.config.chain.coordinatorSmartContract, this.ethWallet);
+      this.claimContract = DatachainV2__factory.connect(this.config.chain.coordinatorSmartContract, this.ethWallet);
 
       await this.claimContract.setCoordinatorNode(await this.ethWallet.getAddress());
       await this.claimContract.upgradeTo(deployedContract.address);
@@ -193,7 +193,7 @@ export class CoordinatorNode {
     if (!this.config.chain.coordinatorSmartContract) {
       throw new Error("config.chain.coordinatorSmartContract not set");
     }
-    this.claimContract = DatachainV1__factory.connect(this.config.chain.coordinatorSmartContract, this.ethWallet);
+    this.claimContract = DatachainV2__factory.connect(this.config.chain.coordinatorSmartContract, this.ethWallet);
   }
 
   private async deployEthContracts(): Promise<void> {
@@ -203,22 +203,22 @@ export class CoordinatorNode {
     await this.ethProvider.send("hardhat_setBalance", [await this.ethWallet.getAddress(), "0x50000000000000000"]);
     await this.ethProvider.send("evm_setIntervalMining", [5000]);
 
-    // Deploy DatachainV1 contract to 0x78e875422BEDeD0655d5f4d3B80043639bf3da8C.
-    const contractFactory = new DatachainV1__factory(this.ethWallet);
+    // Deploy DatachainV2 contract to 0x78e875422BEDeD0655d5f4d3B80043639bf3da8C.
+    const contractFactory = new DatachainV2__factory(this.ethWallet);
     const deployedContract = await contractFactory.deploy();
-    this.log.info("Deployed DatachainV1 contract", LOG_ETH, { address: deployedContract.address });
+    this.log.info("Deployed DatachainV2 contract", LOG_ETH, { address: deployedContract.address });
 
     // Deploy UUPSProxy contract to 0xB249f874F74B8d873b3252759Caed4388cfe2492.
     const proxyFactory = new UUPSProxy__factory(this.ethWallet);
     const deployedProxy = await proxyFactory.deploy(deployedContract.address, "0x");
     this.log.info("Deployed UUPSProxy contract", LOG_ETH, { address: deployedProxy.address });
 
-    // DatachainV1 client.
-    this.claimContract = DatachainV1__factory.connect(deployedProxy.address, this.ethWallet);
+    // DatachainV2 client.
+    this.claimContract = DatachainV2__factory.connect(deployedProxy.address, this.ethWallet);
 
     // UUPSProxy client.
-    const proxyAsDatachainV1 = DatachainV1__factory.connect(deployedProxy.address, this.ethWallet);
-    await proxyAsDatachainV1.initialize(await this.ethWallet.getAddress());
+    const proxyAsDatachainV2 = DatachainV2__factory.connect(deployedProxy.address, this.ethWallet);
+    await proxyAsDatachainV2.initialize(await this.ethWallet.getAddress());
   }
 
   private async createNextBlock(): Promise<void> {

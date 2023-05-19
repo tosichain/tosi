@@ -3,7 +3,6 @@ build
 .app*
 .env*
 .ipfs*
-.openzeppelin
 .DS_store
 artifacts
 cache

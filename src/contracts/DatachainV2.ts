@@ -28,7 +28,7 @@ import type {
   PromiseOrValue,
 } from "./common";
 
-export interface DatachainV1Interface extends utils.Interface {
+export interface DatachainV2Interface extends utils.Interface {
   functions: {
     "blockHash(uint256)": FunctionFragment;
     "blockNumber()": FunctionFragment;
@@ -272,12 +272,12 @@ export type UpgradedEvent = TypedEvent<[string], UpgradedEventObject>;
 
 export type UpgradedEventFilter = TypedEventFilter<UpgradedEvent>;
 
-export interface DatachainV1 extends BaseContract {
+export interface DatachainV2 extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
 
-  interface: DatachainV1Interface;
+  interface: DatachainV2Interface;
 
   queryFilter<TEvent extends TypedEvent>(
     event: TypedEventFilter<TEvent>,

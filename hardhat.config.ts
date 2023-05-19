@@ -17,8 +17,10 @@ const PRIVATE_KEY = process.env["PRIVATE_KEY"] || "0".repeat(64);
 const config: HardhatUserConfig = {
   networks: {
     arbitrum_goerli: {
-      url: `https://arb-goerli.g.alchemy.com/v2/${RPC_KEY}`,
-      accounts: [PRIVATE_KEY],
+      url: `http://127.0.0.1:1248`,
+      accounts: "remote",
+      timeout: 100_000,
+      //accounts: [PRIVATE_KEY],
     },
     arbitrum: {
       url: `https://arb-mainnet.g.alchemy.com/v2/${RPC_KEY}`,
