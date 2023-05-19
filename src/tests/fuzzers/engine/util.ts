@@ -7,12 +7,12 @@ export function pickRandomItems<T extends unknown>(arr: T[], n: number): T[] {
 }
 
 export function randomAbsAmount(min: bigint, max: bigint): bigint {
-  return BigInt(Number(min) + Math.random() * Number(max - min));
+  return BigInt(Number(min) + Math.round(Math.random() * Number(max - min)));
 }
 
 export function randomRatioAmount(amount: bigint, minRatio: number, maxRatio: number): bigint {
-  const min = Number(amount) * minRatio;
-  const max = Number(amount) * maxRatio;
+  const min = Math.round(Number(amount) * minRatio);
+  const max = Math.round(Number(amount) * maxRatio);
   return randomAbsAmount(BigInt(min), BigInt(max));
 }
 

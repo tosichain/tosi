@@ -71,7 +71,7 @@ function loadConfig(): FuzzerConfig {
       },
       mint: {
         weight: 0.1,
-        minAmount: 100000n,
+        minAmount: 10000n,
         maxAmount: 100000n,
       },
       transfer: {
@@ -98,7 +98,7 @@ function loadConfig(): FuzzerConfig {
   };
 
   const blockWatcher: BlockWatcherConfig = {
-    queryInterval: 5,
+    queryInterval: 3,
   };
 
   return {
@@ -121,10 +121,6 @@ async function generateTransactions(
 
   while (currentUnixTime() - startTime < duration) {
     const txn = (await engine.generateTxns(1))[1];
-
-    //!!!
-    //await coordinator.submitSignedTransaction(txn);
-
     const interval = config.intervalMin + Math.random() * (config.intervalMax - config.intervalMin);
     await new Promise((resolve, reject) => {
       setTimeout(resolve, interval * 1000);
@@ -229,7 +225,7 @@ async function getBlocks(
     newBlock = await coordinator.getBlock(curBlockHash);
   }
 
-  return blocks;
+  return blocks.reverse();
 }
 
 run().catch((err) => {

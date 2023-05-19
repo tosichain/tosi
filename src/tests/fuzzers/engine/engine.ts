@@ -200,19 +200,19 @@ export class Engine {
 
   public async confirmTxns(txns: SignedTransaction[], blockTime: number): Promise<void> {
     for (const txn of txns) {
-      const addressHex = bytesToHex(txn.from);
-      const actor = this.actors.get(addressHex);
-      if (!actor) {
-        throw Error(`actor with account address ${addressHex} does not exist`);
-      }
       if (txn.txn.mint) {
-        await actor.confirmMint(txn, blockTime);
+        const receiver = this.actors.get(bytesToHex(txn.txn.mint.receiver));
+        await this.minter.confirmMint(txn, blockTime);
+        await receiver?.confirmMint(txn, blockTime);
       } else if (txn.txn.transfer) {
-        await actor.confirmTransfer(txn, blockTime);
+        const sender = this.actors.get(bytesToHex(txn.from));
+        const receiver = this.actors.get(bytesToHex(txn.txn.transfer.receiver));
+        await sender?.confirmTransfer(txn, blockTime);
+        await receiver?.confirmTransfer(txn, blockTime);
       } else if (txn.txn.stake) {
-        await actor.confirmStake(txn, blockTime);
+        await this.actors.get(bytesToHex(txn.from))?.confirmStake(txn, blockTime);
       } else if (txn.txn.unstake) {
-        await actor.confirmUnstake(txn, blockTime);
+        await this.actors.get(bytesToHex(txn.from))?.confirmUnstake(txn, blockTime);
       } else {
         throw new Error("unknown transaction type");
       }

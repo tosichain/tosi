@@ -8,7 +8,7 @@ import {
   UnstakeToken,
   Account,
 } from "../../../blockchain/types";
-import { signTransaction, verifyTransactionSignature } from "../../../blockchain/block";
+import { signTransaction } from "../../../blockchain/block";
 import Logger from "../../../log/logger";
 
 import { Engine } from "./engine";
@@ -76,6 +76,7 @@ export class Actor {
   public async generateTransfer(): Promise<SignedTransaction> {
     const receiver = this.engine.getRandomActor().getAccount().address;
     const expectedAccount = this.getExpectedAccount();
+
     const amount = randomRatioAmount(
       expectedAccount.balance,
       this.engine.config.transactions.transfer.minRatio,
@@ -155,13 +156,13 @@ export class Actor {
     for (const actorTxn of this.generatedTxns.values()) {
       const txn = actorTxn.txn.txn;
       if (txn.mint) {
-        result = applyMint(this.account, txn.mint, txn.nonce);
+        result = applyMint(this.account, actorTxn.txn.from, txn.nonce, txn.mint);
       } else if (txn.transfer) {
-        result = applyTransfer(this.account, txn.transfer, txn.nonce);
+        result = applyTransfer(this.account, actorTxn.txn.from, txn.nonce, txn.transfer);
       } else if (txn.stake) {
-        result = applyStake(this.account, txn.stake, txn.nonce);
+        result = applyStake(this.account, actorTxn.txn.from, txn.nonce, txn.stake);
       } else if (txn.unstake) {
-        result = applyUnstake(this.account, txn.unstake, txn.nonce);
+        result = applyUnstake(this.account, actorTxn.txn.from, txn.nonce, txn.unstake);
       } else {
         throw new Error("unknown transaction type");
       }
@@ -170,114 +171,148 @@ export class Actor {
   }
 
   public async confirmMint(txn: SignedTransaction, blockTime: number): Promise<void> {
-    const actorTxn = await this.checkConfirmedTxn(txn);
-    if (!actorTxn.txn.txn.mint) {
+    const mint = txn.txn.mint;
+    if (!mint) {
       throw new Error("not MintToken trnansaction");
     }
-    this.confirmTxn(actorTxn, blockTime);
+    this.account = applyMint(this.account, txn.from, txn.txn.nonce, mint);
+    this.confirmGeneratedTxn(txn, blockTime);
   }
 
   public async confirmTransfer(txn: SignedTransaction, blockTime: number): Promise<void> {
-    const actorTxn = await this.checkConfirmedTxn(txn);
-    if (!actorTxn.txn.txn.transfer) {
+    const transfer = txn.txn.transfer;
+    if (!transfer) {
       throw new Error("not TransferToken trnansaction");
     }
-    this.account = applyTransfer(this.account, actorTxn.txn.txn.transfer, actorTxn.txn.txn.nonce);
-    this.confirmTxn(actorTxn, blockTime);
+    if (!bytesEqual(txn.from, this.account.address) && !bytesEqual(transfer.receiver, this.account.address)) {
+      throw new Error("transaction does not reference account");
+    }
+    this.account = applyTransfer(this.account, txn.from, txn.txn.nonce, transfer);
+    this.confirmGeneratedTxn(txn, blockTime);
   }
 
   public async confirmStake(txn: SignedTransaction, blockTime: number): Promise<void> {
-    const actorTxn = await this.checkConfirmedTxn(txn);
-    if (!actorTxn.txn.txn.stake) {
+    const stake = txn.txn.stake;
+    if (!stake) {
       throw new Error("not StakeToken trnansaction");
     }
-    this.account = applyStake(this.account, actorTxn.txn.txn.stake, actorTxn.txn.txn.nonce);
-    this.confirmTxn(actorTxn, blockTime);
+    if (!bytesEqual(txn.from, this.account.address)) {
+      throw new Error("transaction does not reference account");
+    }
+    this.account = applyStake(this.account, txn.from, txn.txn.nonce, stake);
+    this.confirmGeneratedTxn(txn, blockTime);
   }
 
   public async confirmUnstake(txn: SignedTransaction, blockTime: number): Promise<void> {
-    const actorTxn = await this.checkConfirmedTxn(txn);
-    if (!actorTxn.txn.txn.unstake) {
+    const unstake = txn.txn.unstake;
+    if (!unstake) {
       throw new Error("not UnstakeToken trnansaction");
     }
-    this.account = applyStake(this.account, actorTxn.txn.txn.unstake, actorTxn.txn.txn.nonce);
-    this.confirmTxn(actorTxn, blockTime);
+    if (!bytesEqual(txn.from, this.account.address)) {
+      throw new Error("transaction does not reference account");
+    }
+    this.account = applyStake(this.account, txn.from, txn.txn.nonce, unstake);
+    this.confirmGeneratedTxn(txn, blockTime);
   }
 
-  private async checkConfirmedTxn(txn: SignedTransaction): Promise<ActorTransaction> {
-    if (!verifyTransactionSignature(txn)) {
-      throw new Error("can not confirm transaction with invalid signature");
-    }
-    if (!bytesEqual(txn.from, this.getAccount().address)) {
-      throw new Error("can not confirm transaction from other actor");
-    }
+  private confirmGeneratedTxn(txn: SignedTransaction, blockTime: number): void {
     const txnHashHex = bytesToHex(hashSignedTransaction(txn));
     const actorTxn = this.generatedTxns.get(txnHashHex);
-    if (!actorTxn) {
-      throw new Error("can not confirm transaction, which is not in generated transaction list");
+    if (actorTxn) {
+      this.generatedTxns.delete(txnHashHex);
+      actorTxn.confirmedAt = blockTime;
+      this.confirmedTxns.push(actorTxn);
     }
-    return actorTxn;
-  }
-
-  private confirmTxn(actorTxn: ActorTransaction, blockTime: number): void {
-    const txnHashHex = bytesToHex(hashSignedTransaction(actorTxn.txn));
-    this.generatedTxns.delete(txnHashHex);
-    actorTxn.confirmedAt = blockTime;
-    this.confirmedTxns.push(actorTxn);
   }
 }
 
-function applyMint(account: Account, txn: MintToken, txnNonce: number): Account {
+function applyMint(account: Account, from: Uint8Array, txNonce: number, mint: MintToken): Account {
+  if (!bytesEqual(from, account.address) && !bytesEqual(mint.receiver, account.address)) {
+    throw new Error("transaction does not reference account");
+  }
+
+  let nonce = account.nonce;
+  let balance = account.balance;
+
+  if (bytesEqual(account.address, from)) {
+    nonce = txNonce;
+  }
+  if (bytesEqual(account.address, mint.receiver)) {
+    balance += mint.amount;
+  }
+
   return {
     ...account,
-    nonce: txnNonce,
+    nonce: nonce,
+    balance: balance,
   };
 }
 
-function applyTransfer(account: Account, txn: TransferToken, txnNonce: number): Account {
+function applyTransfer(account: Account, from: Uint8Array, txNonce: number, transfer: TransferToken): Account {
+  if (!bytesEqual(from, account.address) && !bytesEqual(transfer.receiver, account.address)) {
+    throw new Error("transaction does not reference account");
+  }
+
+  let nonce = account.nonce;
+  let balance = account.balance;
+
+  if (bytesEqual(account.address, from)) {
+    nonce = txNonce;
+    balance -= transfer.amount;
+  }
+  if (bytesEqual(account.address, transfer.receiver)) {
+    balance += transfer.amount;
+  }
+
   return {
     ...account,
-    nonce: txnNonce,
-    balance: account.balance - txn.amount,
+    nonce: nonce,
+    balance: balance,
   };
 }
 
-function applyStake(account: Account, txn: StakeToken, txnNonce: number): Account {
-  switch (txn.stakeType) {
+function applyStake(account: Account, from: Uint8Array, nonce: number, stake: StakeToken): Account {
+  if (!bytesEqual(account.address, from)) {
+    throw Error("transaction does not reference account");
+  }
+  switch (stake.stakeType) {
     case StakeType.DAVerifier:
       return {
         ...account,
-        nonce: txnNonce,
-        balance: account.balance - txn.amount,
-        daVerifierStake: account.daVerifierStake + txn.amount,
+        nonce: nonce,
+        balance: account.balance - stake.amount,
+        daVerifierStake: account.daVerifierStake + stake.amount,
       };
     case StakeType.StateVerifier:
       return {
         ...account,
-        nonce: txnNonce,
-        balance: account.balance - txn.amount,
-        stateVerifierStake: account.stateVerifierStake + txn.amount,
+        nonce: nonce,
+        balance: account.balance - stake.amount,
+        stateVerifierStake: account.stateVerifierStake + stake.amount,
       };
     default:
       throw new Error("unknown stake type");
   }
 }
 
-function applyUnstake(account: Account, txn: UnstakeToken, txnNonce: number): Account {
-  switch (txn.stakeType) {
+function applyUnstake(account: Account, from: Uint8Array, nonce: number, unstake: UnstakeToken): Account {
+  if (!bytesEqual(account.address, from)) {
+    throw Error("transaction does not reference account");
+  }
+  switch (unstake.stakeType) {
     case StakeType.DAVerifier:
       return {
         ...account,
-        nonce: txnNonce,
-        balance: account.balance - txn.amount,
-        daVerifierStake: account.daVerifierStake + txn.amount,
+        nonce: nonce,
+        balance: account.balance - unstake.amount,
+        daVerifierStake: account.daVerifierStake + unstake.amount,
       };
     case StakeType.StateVerifier:
       return {
         ...account,
-        nonce: txnNonce,
-        balance: account.balance - txn.amount,
-        stateVerifierStake: account.stateVerifierStake + txn.amount,
+        nonce: nonce,
+        balance: account.balance - unstake.amount,
+        stateVerifierStake: account.stateVerifierStake + unstake.amount,
       };
     default:
       throw new Error("unknown stake type");
