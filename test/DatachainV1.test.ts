@@ -7,7 +7,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("Token contract", function () {
   const proxyDeployFixture = async () => {
-    const datachain = await ethers.getContractFactory("DatachainV1");
+    const datachain = await ethers.getContractFactory("DatachainV2");
     const proxy = await upgrades.deployProxy(datachain, [ethers.constants.AddressZero]);
     await proxy.deployed();
     const implementation = await proxy.getImplementation();
@@ -181,3 +181,4 @@ const fundWithEth = async (receiver) => {
     value: ethers.utils.parseEther("500.0"),
   });
 };
+
