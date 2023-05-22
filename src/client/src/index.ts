@@ -9,6 +9,7 @@ import { fetchDrandBeaconInfo } from "../../blockchain/block_randomness";
   const config: ClientNodeConfig = {
     coordinator: {
       serverAddr: String(process.env.COORDINATOR_RPC_SERVER_ADDR),
+      tls: process.env.COORDINATOR_TLS ? true : false,
     },
     ipfs: {
       host: process.env.IPFS_HTTP_API_HOST,

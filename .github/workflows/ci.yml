@@ -14,14 +14,6 @@ jobs:
             citest: test:datachain
             logfile: da
             composefile: docker-compose-tosi-chain.yml
-          - name: "simul test:core on localnet"
-            citest: test:core
-            logfile: client
-            composefile: docker-compose-tosi-chain-testnet-simul.yml
-          - name: "simul test:datachain on localnet"
-            citest: test:datachain
-            logfile: da
-            composefile: docker-compose-tosi-chain-testnet-simul.yml
     runs-on: [self-hosted, linux, x64]
     concurrency:
       group: '${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}'
