@@ -106,9 +106,6 @@ export function applyTransferTokenTxn(state: WorldState, txFrom: Uint8Array, tx:
   if (!sender) {
     throw new Error("sender account does not exist");
   }
-  if (bytesEqual(tx.receiver, state.minter)) {
-    throw new Error("transfer to minter account is forbidden");
-  }
   if (BigInt(tx.amount) <= 0n) {
     throw new Error("invalid amount of token to transfer");
   }
