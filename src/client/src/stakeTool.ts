@@ -11,6 +11,8 @@ async function init() {
     process.exit(1);
   }
 
+  const coordinatorTLS = process.env.COORDINATOR_TLS ? true : false;
+
   const coordinatorRPCServerAddr = process.env.COORDINATOR_RPC_SERVER_ADDR;
   if (!coordinatorRPCServerAddr) {
     console.error("COORDINATOR_RPC_SERVER_ADDR environment variable is not set.");
@@ -47,6 +49,7 @@ async function init() {
   // Send the signed transaction to the coordinator.
   const coordinator = new CoordinatorRPC({
     serverAddr: coordinatorRPCServerAddr,
+    tls: coordinatorTLS,
   });
   await coordinator.submitSignedTransaction(signature);
 }

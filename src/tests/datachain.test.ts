@@ -54,6 +54,7 @@ before(async () => {
 
   coordinator = new CoordinatorRPC({
     serverAddr: "127.0.0.1:20001",
+    tls: false,
   });
 
   client = new ClientRPC({

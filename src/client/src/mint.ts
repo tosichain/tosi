@@ -10,6 +10,8 @@ async function init() {
     console.error("MINTER_PRIV_KEY environment variable is not set.");
     process.exit(1);
   }
+  
+  const coordinatorTLS = process.env.COORDINATOR_TLS ? true : false;
 
   const coordinatorRPCServerAddr = process.env.COORDINATOR_RPC_SERVER_ADDR;
   if (!coordinatorRPCServerAddr) {
@@ -54,6 +56,7 @@ async function init() {
   // Send the signed transaction to the coordinator.
   const coordinator = new CoordinatorRPC({
     serverAddr: coordinatorRPCServerAddr,
+    tls: coordinatorTLS,
   });
   await coordinator.submitSignedTransaction(signature);
 }

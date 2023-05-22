@@ -35,6 +35,7 @@ import { GetBlockMetadataRequest, SubmitSignedTransactionRequest } from "../../p
 
 export interface CoordinatorRPCConfig {
   serverAddr: string;
+  tls: boolean;
 }
 
 export class CoordinatorRPC {
@@ -43,7 +44,11 @@ export class CoordinatorRPC {
 
   constructor(config: CoordinatorRPCConfig) {
     this.config = config;
-    this.grpc = new CoordinatorNodeClient(config.serverAddr, credentials.createInsecure());
+    if (config.tls) {
+      this.grpc = new CoordinatorNodeClient(config.serverAddr, credentials.createSsl());
+    } else {
+      this.grpc = new CoordinatorNodeClient(config.serverAddr, credentials.createInsecure());
+    }
   }
 
   public async getBlock(blockHash: Uint8Array): Promise<Block | undefined> {

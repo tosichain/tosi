@@ -49,7 +49,8 @@ services:
       IPFS_HTTP_API_HOST: "ipfs-2"
       STORAGE_DB_PATH: "./tosi-blockchain-db"
       COORDINATOR_PUB_KEY: "8ea14bd457eaa9d91a4ad862f6252d67462232a5e3d88ea8a752875725e6e3843b2d1533cc507f59f4c732c266e52417"
-      COORDINATOR_RPC_SERVER_ADDR: "https://coordinator.dev.tosichain.com/api"
+      COORDINATOR_RPC_SERVER_ADDR: "coordinator.dev.tosichain.com:443"
+      COORDINATOR_TLS: "1"
       VERIFIER_HOST: "client-verifier"
       SYNC_ETH_RPC: "https://goerli-rollup.arbitrum.io/rpc"
       SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x4731A0Dd87e637321D4E4980BeF351f992F14b77" # UUPSProxy contract.

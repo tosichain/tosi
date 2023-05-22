@@ -1,6 +1,6 @@
 name: Testnet Sync CI
 
-on: [workflow_dispatch]
+on: [push]
 
 jobs:
   testnet-sync:
@@ -13,7 +13,6 @@ jobs:
         include:
           - name: "testnet sync"
             compose-file: docker-compose-tosi-node-testnet.yml
-            sync-api-url: ["http://localhost:30001/api/syncStatus"]          
             logfile: testnet-sync
     steps:
       - name: Checkout
@@ -56,10 +55,10 @@ jobs:
           docker compose -p tosi-chain -f ${{ matrix.compose-file }} logs --timestamps -f &> ${{ matrix.logfile }}.log &
       - name: Wait for sync
         env: 
-          SYNC_API_URL: ${{ matrix.sync-api-url[0] }}
+          COMPOSE_FILE: ${{ matrix.compose-file }}
         run: |
           COUNTER=0
-          until [[ "$(curl -s $SYNC_API_URL | jq -r '.isSynced')" = "true" ]]; do
+          until [[ "$(docker compose -p tosi-chain -f $COMPOSE_FILE exec client npx ts-node --files ./src/checkSync.ts)" = "true" ]]; do
             echo "Waiting for sync to complete..."
             docker compose -p tosi-chain -f ${{ matrix.compose-file }} exec ipfs-2 ipfs swarm peers
             sleep 5
