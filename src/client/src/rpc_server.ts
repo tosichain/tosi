@@ -1,6 +1,7 @@
 import { CID } from "ipfs-http-client";
 import { Server, ServerCredentials, ServerUnaryCall, sendUnaryData } from "@grpc/grpc-js";
-
+import { Status } from "@grpc/grpc-js/build/src/constants";
+import process from "process";
 import { Transaction, Account, StakeType, DataChain, Block } from "../../blockchain/types";
 import {
   transactionToPB,
@@ -46,7 +47,6 @@ import {
 import { ClientNodeService, IClientNodeServer } from "../../proto/grpcjs/client_grpc_pb";
 import { CreateDatachainParameters, UpdateDatachainParameters } from "./node";
 import Logger from "../../log/logger";
-import { Status } from "@grpc/grpc-js/build/src/constants";
 
 export interface RequestHandler {
   getBlock(blockHash: Uint8Array): Promise<Block | undefined>;
@@ -109,6 +109,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
         resp.setBlock(blockToPB(block));
       }
       callback(null, resp);
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -122,6 +126,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
         resp.setAccount(accountToPB(account));
       }
       callback(null, resp);
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -136,6 +144,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
         resp.setTransactionsList(pbTxns);
       }
       callback(null, resp);
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -147,6 +159,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     this.handler.getStakerList(stakeType).then((stakers) => {
       const pbStakers = stakers.map((staker) => accountToPB(staker));
       callback(null, new GetStakerListResponse().setStakersList(pbStakers));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -160,6 +176,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
         resp.setDataChain(dataChainToPB(chain));
       }
       callback(null, resp);
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -170,6 +190,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     this.handler.getDataChainList().then((chains) => {
       const pbChains = chains.map((chain) => dataChainToPB(chain));
       callback(null, new GetDataChainListResponse().setDataChainsList(pbChains));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -179,6 +203,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
   ): void {
     this.handler.getHeadBlockHash().then((blockHash) => {
       callback(null, new GetHeadBlockHashResponse().setBlockHash(blockHash));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -188,6 +216,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
   ): void {
     this.handler.getBLSPublicKey().then((pubKey) => {
       callback(null, new GetBLSPublicKeyResponse().setPublicKey(pubKey));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -197,6 +229,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
   ): void {
     this.handler.getIPFSBootstrap().then((multiaddrs) => {
       callback(null, new GetIPFSBootstrapResponse().setMultiaddrsList(multiaddrs));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -223,6 +259,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     this.handler.generateCreateDatachainTxn(params).then((txn) => {
       const pbTxn = transactionToPB(txn);
       callback(null, new GenerateCreateDataChainTxnResponse().setTransaction(pbTxn));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -243,6 +283,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     this.handler.generateUpdateDatachainTxn(params).then((txn) => {
       const pbTxn = transactionToPB(txn);
       callback(null, new GenerateUpdateDataChainTxnResponse().setTransaction(pbTxn));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -256,6 +300,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     const txn = transactionFromPB(call.request.getTransaction() as PBTransaction);
     this.handler.submitTransaction(txn).then(() => {
       callback(null, new SubmitTransactionResponse());
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -265,6 +313,10 @@ export class ClientNodeRPCServer implements IClientNodeServer {
   ): void {
     this.handler.getSyncStatus().then((is_synced) => {
       callback(null, new GetSyncStatusResponse().setIsSynced(is_synced));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 }
