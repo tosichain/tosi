@@ -1,5 +1,6 @@
 import { Server, ServerCredentials, ServerUnaryCall, sendUnaryData } from "@grpc/grpc-js";
-
+import { Status } from "@grpc/grpc-js/build/src/constants";
+import process from "process";
 import Logger from "../../log/logger";
 
 import {
@@ -109,6 +110,10 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
         resp.setBlock(blockToPB(block));
       }
       callback(null, resp);
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -122,6 +127,10 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
         resp.setAccount(accountToPB(account));
       }
       callback(null, resp);
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -136,6 +145,10 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
         resp.setTransactionsList(pbTxns);
       }
       callback(null, resp);
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -147,6 +160,10 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
     this.handler.getStakerList(stakeType).then((stakers) => {
       const pbStakers = stakers.map((staker) => accountToPB(staker));
       callback(null, new GetStakerListResponse().setStakersList(pbStakers));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -160,6 +177,10 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
         resp.setDataChain(dataChainToPB(chain));
       }
       callback(null, resp);
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -170,6 +191,10 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
     this.handler.getDataChainList().then((chains) => {
       const pbChains = chains.map((chain) => dataChainToPB(chain));
       callback(null, new GetDataChainListResponse().setDataChainsList(pbChains));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -179,6 +204,10 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
   ): void {
     this.handler.getHeadBlockHash().then((blockHash) => {
       callback(null, new GetHeadBlockHashResponse().setBlockHash(blockHash));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -188,6 +217,10 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
   ): void {
     this.handler.getBLSPublicKey().then((pubKey) => {
       callback(null, new GetBLSPublicKeyResponse().setPublicKey(pubKey));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -197,6 +230,10 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
   ): void {
     this.handler.getIPFSBootstrap().then((multiaddrs) => {
       callback(null, new GetIPFSBootstrapResponse().setMultiaddrsList(multiaddrs));
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -214,6 +251,10 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
     const txn = signedTransactionFromPB(call.request.getTransaction() as PBSignedTransaction);
     this.handler.submitSignedTransaction(txn).then(() => {
       callback(null, new SubmitSignedTransactionResponse());
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 
@@ -227,6 +268,10 @@ export class CoordinatorRPCServer implements ICoordinatorNodeServer {
         resp.setBlockMetadata(blockMetadataToPB(meta));
       }
       callback(null, resp);
+    }).catch((err: any) => {
+      this.log.error("grpc handler error", err);
+      callback({ code: Status.INTERNAL }, null);
+      process.exit(200);
     });
   }
 }

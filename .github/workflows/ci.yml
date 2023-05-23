@@ -87,7 +87,7 @@ jobs:
         if: ${{ always() }}
         run: |
           mkdir -p logs/
-          for x in $(docker compose -p tosi-chain -f ${{ matrix.composefile }} ps | cut -d " " -f 1 | grep tosi-chain); do
+          for x in $(docker compose -p tosi-chain -f ${{ matrix.composefile }} ps -a | cut -d " " -f 1 | grep tosi-chain); do
             docker logs --timestamps $x &> logs/${{ matrix.composefile }}.${{ matrix.logfile }}.$x.txt
           done
           tar -jcf logs.${{ matrix.composefile }}.${{ matrix.logfile }}.tar.gz logs
