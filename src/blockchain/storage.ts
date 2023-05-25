@@ -121,6 +121,8 @@ export class BlockchainStorage {
             }
             reject(commitErr);
           });
+
+          conn.release();
         });
       });
     });
