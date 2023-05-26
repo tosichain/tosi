@@ -49,7 +49,8 @@ services:
       IPFS_HTTP_API_HOST: "ipfs-2"
       STORAGE_DB_PATH: "./tosi-blockchain-db"
       COORDINATOR_PUB_KEY: "aee7ecc1c86bfb526a3940dc2b1065f7ec436db34ea74022cb8934224ac97b6fa2eba1da0f5344d474f8a7816ec8e650"
-      COORDINATOR_RPC_SERVER_ADDR: "https://coordinator.tosichain.com/api"
+      COORDINATOR_RPC_SERVER_ADDR: "coordinator.tosichain.com:443"
+      COORDINATOR_TLS: "1"
       VERIFIER_HOST: "client-verifier"
       SYNC_ETH_RPC: "https://arb1.arbitrum.io/rpc"
       SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x630809d980b66B36ea733bE3899615339E428C55" # UUPSProxy contract.
