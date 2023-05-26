@@ -23,8 +23,9 @@ const config: HardhatUserConfig = {
       //accounts: [PRIVATE_KEY],
     },
     arbitrum: {
-      url: `https://arb-mainnet.g.alchemy.com/v2/${RPC_KEY}`,
-      accounts: [PRIVATE_KEY],
+      url: `http://127.0.0.1:1248`,
+      accounts: "remote",
+      timeout: 100_000,
     },
     goerli: {
       url: `https://eth-goerli.g.alchemy.com/v2/${RPC_KEY}`,
