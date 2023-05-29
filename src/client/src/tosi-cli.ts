@@ -4,7 +4,7 @@ import { CoordinatorRPC } from "../../coordinator/src/rpc";
 import { ClientRPC } from "../../client/src/rpc";
 import { bytesFromHex } from "../../blockchain/util";
 import { signTransaction } from "../../blockchain/block";
-import { Transaction } from "../../blockchain/types";
+import { Transaction, StakeType as ProtoStakeType } from "../../blockchain/types";
 
 dotenv.config();
 
@@ -89,4 +89,65 @@ program
       console.error(`Error during balance fetch: ${error}`);
     }
   });
+
+program
+  .command("stake <stakeType> <amount> <nonce>")
+  .description("Stake TOSI tokens")
+  .action(async (stakeType: keyof typeof ProtoStakeType, amount: string, nonce: string) => {
+    try {
+      if (!process.env.SENDER_PRIV_KEY) {
+        console.error("Error: SENDER_PRIV_KEY environment variable is not set.");
+        return;
+      }
+
+      const stakeTypeProto = ProtoStakeType[stakeType as keyof typeof ProtoStakeType];
+
+      const txn: Transaction = {
+        stake: {
+          stakeType: stakeTypeProto,
+          amount: BigInt(amount),
+        },
+        nonce: parseInt(nonce, 10),
+      };
+
+      const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
+
+      await coordinator.submitSignedTransaction(signedTxn);
+
+      console.log("Staking transaction submitted successfully");
+    } catch (error) {
+      console.error(`Error during staking: ${error}`);
+    }
+  });
+
+program
+  .command("unstake <stakeType> <amount> <nonce>")
+  .description("Unstake TOSI tokens")
+  .action(async (stakeType: keyof typeof ProtoStakeType, amount: string, nonce: string) => {
+    try {
+      if (!process.env.SENDER_PRIV_KEY) {
+        console.error("Error: SENDER_PRIV_KEY environment variable is not set.");
+        return;
+      }
+
+      const stakeTypeProto = ProtoStakeType[stakeType as keyof typeof ProtoStakeType];
+
+      const txn: Transaction = {
+        unstake: {
+          stakeType: stakeTypeProto,
+          amount: BigInt(amount),
+        },
+        nonce: parseInt(nonce, 10),
+      };
+
+      const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
+
+      await coordinator.submitSignedTransaction(signedTxn);
+
+      console.log("Unstaking transaction submitted successfully");
+    } catch (error) {
+      console.error(`Error during unstaking: ${error}`);
+    }
+  });
+
 program.parse(process.argv);
