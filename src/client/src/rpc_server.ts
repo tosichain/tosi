@@ -58,8 +58,8 @@ export interface RequestHandler {
   getHeadBlockHash(): Promise<Uint8Array>;
   getBLSPublicKey(): Promise<Uint8Array>;
   getIPFSBootstrap(): Promise<string[]>;
-  generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction>;
-  generateUpdateDatachainTxn(params: UpdateDatachainParameters): Promise<Transaction>;
+  generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction | string>;
+  generateUpdateDatachainTxn(params: UpdateDatachainParameters): Promise<Transaction | string>;
   submitTransaction(txn: Transaction): Promise<void>;
   getSyncStatus(): Promise<boolean>;
 }
@@ -103,52 +103,61 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     call: ServerUnaryCall<GetBlockRequest, GetBlockResponse>,
     callback: sendUnaryData<GetBlockResponse>,
   ): void {
-    this.handler.getBlock(call.request.getBlockHash() as Uint8Array).then((block) => {
-      const resp = new GetBlockResponse();
-      if (block) {
-        resp.setBlock(blockToPB(block));
-      }
-      callback(null, resp);
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .getBlock(call.request.getBlockHash() as Uint8Array)
+      .then((block) => {
+        const resp = new GetBlockResponse();
+        if (block) {
+          resp.setBlock(blockToPB(block));
+        }
+        callback(null, resp);
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public getAccount(
     call: ServerUnaryCall<GetAccountRequest, GetAccountResponse>,
     callback: sendUnaryData<GetAccountResponse>,
   ): void {
-    this.handler.getAccount(call.request.getAccountAddress() as Uint8Array).then((account) => {
-      const resp = new GetAccountResponse();
-      if (account) {
-        resp.setAccount(accountToPB(account));
-      }
-      callback(null, resp);
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .getAccount(call.request.getAccountAddress() as Uint8Array)
+      .then((account) => {
+        const resp = new GetAccountResponse();
+        if (account) {
+          resp.setAccount(accountToPB(account));
+        }
+        callback(null, resp);
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public getAccountTransactions(
     call: ServerUnaryCall<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
     callback: sendUnaryData<GetAccountTransactionsResponse>,
   ): void {
-    this.handler.getAccountTransactions(call.request.getAccountAddress() as Uint8Array).then((txns) => {
-      const resp = new GetAccountTransactionsResponse();
-      if (txns) {
-        const pbTxns = txns.map((txn) => transactionToPB(txn));
-        resp.setTransactionsList(pbTxns);
-      }
-      callback(null, resp);
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .getAccountTransactions(call.request.getAccountAddress() as Uint8Array)
+      .then((txns) => {
+        const resp = new GetAccountTransactionsResponse();
+        if (txns) {
+          const pbTxns = txns.map((txn) => transactionToPB(txn));
+          resp.setTransactionsList(pbTxns);
+        }
+        callback(null, resp);
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public getStakerList(
@@ -156,84 +165,102 @@ export class ClientNodeRPCServer implements IClientNodeServer {
     callback: sendUnaryData<GetStakerListResponse>,
   ): void {
     const stakeType = stakeTypeFromPB(call.request.getStakeType());
-    this.handler.getStakerList(stakeType).then((stakers) => {
-      const pbStakers = stakers.map((staker) => accountToPB(staker));
-      callback(null, new GetStakerListResponse().setStakersList(pbStakers));
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .getStakerList(stakeType)
+      .then((stakers) => {
+        const pbStakers = stakers.map((staker) => accountToPB(staker));
+        callback(null, new GetStakerListResponse().setStakersList(pbStakers));
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public getDataChain(
     call: ServerUnaryCall<GetDataChainRequest, GetDataChainResponse>,
     callback: sendUnaryData<GetDataChainResponse>,
   ): void {
-    this.handler.getDataChain(call.request.getRootClaimHash() as Uint8Array).then((chain) => {
-      const resp = new GetDataChainResponse();
-      if (chain) {
-        resp.setDataChain(dataChainToPB(chain));
-      }
-      callback(null, resp);
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .getDataChain(call.request.getRootClaimHash() as Uint8Array)
+      .then((chain) => {
+        const resp = new GetDataChainResponse();
+        if (chain) {
+          resp.setDataChain(dataChainToPB(chain));
+        }
+        callback(null, resp);
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public getDataChainList(
     call: ServerUnaryCall<GetDataChainListRequest, GetDataChainListResponse>,
     callback: sendUnaryData<GetDataChainListResponse>,
   ): void {
-    this.handler.getDataChainList().then((chains) => {
-      const pbChains = chains.map((chain) => dataChainToPB(chain));
-      callback(null, new GetDataChainListResponse().setDataChainsList(pbChains));
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .getDataChainList()
+      .then((chains) => {
+        const pbChains = chains.map((chain) => dataChainToPB(chain));
+        callback(null, new GetDataChainListResponse().setDataChainsList(pbChains));
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public getHeadBlockHash(
     call: ServerUnaryCall<GetHeadBlockHashRequest, GetDataChainListResponse>,
     callback: sendUnaryData<GetHeadBlockHashResponse>,
   ): void {
-    this.handler.getHeadBlockHash().then((blockHash) => {
-      callback(null, new GetHeadBlockHashResponse().setBlockHash(blockHash));
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .getHeadBlockHash()
+      .then((blockHash) => {
+        callback(null, new GetHeadBlockHashResponse().setBlockHash(blockHash));
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public getBLSPublicKey(
     call: ServerUnaryCall<GetBLSPublicKeyRequest, GetBLSPublicKeyResponse>,
     callback: sendUnaryData<GetBLSPublicKeyResponse>,
   ): void {
-    this.handler.getBLSPublicKey().then((pubKey) => {
-      callback(null, new GetBLSPublicKeyResponse().setPublicKey(pubKey));
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .getBLSPublicKey()
+      .then((pubKey) => {
+        callback(null, new GetBLSPublicKeyResponse().setPublicKey(pubKey));
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public getIPFSBootstrap(
     call: ServerUnaryCall<GetIPFSBootstrapRequest, GetIPFSBootstrapResponse>,
     callback: sendUnaryData<GetIPFSBootstrapResponse>,
   ): void {
-    this.handler.getIPFSBootstrap().then((multiaddrs) => {
-      callback(null, new GetIPFSBootstrapResponse().setMultiaddrsList(multiaddrs));
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .getIPFSBootstrap()
+      .then((multiaddrs) => {
+        callback(null, new GetIPFSBootstrapResponse().setMultiaddrsList(multiaddrs));
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public getHealth(
@@ -256,14 +283,22 @@ export class ClientNodeRPCServer implements IClientNodeServer {
       outputCID: CID.parse(call.request.getOutputCid()),
       outputFileHash: call.request.getOutputFileHash() as Uint8Array,
     };
-    this.handler.generateCreateDatachainTxn(params).then((txn) => {
-      const pbTxn = transactionToPB(txn);
-      callback(null, new GenerateCreateDataChainTxnResponse().setTransaction(pbTxn));
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .generateCreateDatachainTxn(params)
+      .then((txn) => {
+        if (txn instanceof String) {
+          this.log.error("generate datachain grpc call: " + txn);
+          callback({ code: Status.INTERNAL }, null);
+        } else {
+          const pbTxn = transactionToPB(txn as Transaction);
+          callback(null, new GenerateCreateDataChainTxnResponse().setTransaction(pbTxn));
+        }
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public generateUpdateDataChainTxn(
@@ -280,14 +315,22 @@ export class ClientNodeRPCServer implements IClientNodeServer {
       rootClaimHash: call.request.getRootClaimHash() as Uint8Array,
       outputFileHash: call.request.getOutputFileHash() as Uint8Array,
     };
-    this.handler.generateUpdateDatachainTxn(params).then((txn) => {
-      const pbTxn = transactionToPB(txn);
-      callback(null, new GenerateUpdateDataChainTxnResponse().setTransaction(pbTxn));
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .generateUpdateDatachainTxn(params)
+      .then((txn) => {
+        if (txn instanceof String) {
+          this.log.error("update datachain grpc call: " + txn);
+          callback({ code: Status.INTERNAL }, null);
+        } else {
+          const pbTxn = transactionToPB(txn as Transaction);
+          callback(null, new GenerateUpdateDataChainTxnResponse().setTransaction(pbTxn));
+        }
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public submitTransaction(
@@ -298,25 +341,31 @@ export class ClientNodeRPCServer implements IClientNodeServer {
       return callback({ code: Status.PERMISSION_DENIED, message: "No privileged calls" });
     }
     const txn = transactionFromPB(call.request.getTransaction() as PBTransaction);
-    this.handler.submitTransaction(txn).then(() => {
-      callback(null, new SubmitTransactionResponse());
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .submitTransaction(txn)
+      .then(() => {
+        callback(null, new SubmitTransactionResponse());
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 
   public getSyncStatus(
     call: ServerUnaryCall<GetSyncStatusRequest, GetSyncStatusResponse>,
     callback: sendUnaryData<GetSyncStatusResponse>,
   ): void {
-    this.handler.getSyncStatus().then((is_synced) => {
-      callback(null, new GetSyncStatusResponse().setIsSynced(is_synced));
-    }).catch((err: any) => {
-      this.log.error("grpc handler error", err);
-      callback({ code: Status.INTERNAL }, null);
-      process.exit(200);
-    });
+    this.handler
+      .getSyncStatus()
+      .then((is_synced) => {
+        callback(null, new GetSyncStatusResponse().setIsSynced(is_synced));
+      })
+      .catch((err: any) => {
+        this.log.error("grpc handler error", err);
+        callback({ code: Status.INTERNAL }, null);
+        process.exit(200);
+      });
   }
 }
