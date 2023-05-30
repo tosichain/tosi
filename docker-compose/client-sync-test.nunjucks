@@ -1,4 +1,4 @@
-
+{% set nodeConfigDir = ["./docker-compose/config/", composeFileName, "/"] | join %}
 
 version: "3.3"
 
@@ -19,16 +19,16 @@ services:
       file: docker-compose/base.yml
       service: db
     volumes:
-      
-      - ./client-db:/var/lib/mysql
+      {% set mysqlVolume = [clientDbDataPath, ":/var/lib/mysql"] | join %}
+      - {{ mysqlVolume }}
 
   client-ipfs:
     extends:
       file: docker-compose/base.yml
       service: ipfs-public
     volumes:
-      
-      - ./client-ipfs-db:/data/ipfs
+      {% set ipfsVolume = [ipfsDataPath, ":/data/ipfs"] | join %}
+      - {{ ipfsVolume }}
 
   client-verifier-service:
     extends:
@@ -43,8 +43,8 @@ services:
       client-ipfs:
         condition: service_healthy
     ports:
-      - "127.0.0.1:30001:30001" # For sync test.
+      - "127.0.0.1:{{ clientRpcPort }}:{{ clientRpcPort }}" # For sync test.
     volumes:
       - type: bind
-        source: ./docker-compose/config/docker-compose-tosi-node-testnet/client.yml
+        source: {{ [nodeConfigDir, "client.yml"] | join }}
         target: "/config/tosi-client.yml"

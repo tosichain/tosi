@@ -9,6 +9,7 @@
     "test:core": "mocha --exit --timeout 500000 src/tests/core.test.ts",
     "test:datachain": "mocha --exit --timeout 500000 src/tests/datachain.test.ts",
     "fuzz:core": "ts-node --script-mode src/tests/fuzzers/core.fuzzer.ts",
+    "generate:compose": "ts-node --script-mode scripts/generateDockerCompose.ts",
     "lint": "eslint src/ --ext .ts"
   },
   "nyc": {
@@ -75,7 +76,9 @@
     "weighted-reservoir-sampler": "^1.0.0",
     "winston": "^3.7.2",
     "ws": "^8.2.3",
-    "yargs": "^17.3.1"
+    "yargs": "^17.3.1",
+    "nunjucks": "3.2.4",
+    "@types/nunjucks": "3.2.2" 
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",

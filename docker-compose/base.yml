@@ -1,0 +1,102 @@
+services:
+
+  localnet-base:
+    build:
+      context: ../hardhat-env
+    command: "echo Build complete"
+    profiles: [ "build" ]
+    healthcheck:
+      test: ["NONE"]
+
+  localnet:
+    image: tosi-chain-localnet-base:latest
+    environment:
+      MNEMONIC: "test test test test test test test test test test test junk"
+    # fix later
+    #volumes:
+    #  - ./deps/descartes/deployments:/opt/cartesi/deployer/deployments
+    ports:
+      - "127.0.0.1:8545:8545"
+    healthcheck:
+      test: ["CMD-SHELL", "nc localhost 8545 < /dev/null" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  db:
+    image: mysql:debian
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: tosi
+    volumes:
+      - ../db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-uroot", "-pexample"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ipfs-base:
+    image: ipfs/kubo:v0.14.0
+    command:
+      [
+        "daemon",
+        "--migrate=true",
+        "--enable-pubsub-experiment",
+        "--enable-gc",
+        "--routing=dhtclient"
+      ]
+
+  ipfs-public:
+    extends:
+      service: ipfs-base
+    environment:
+      IPFS_PROFILE: "server"
+    ports:
+      - "4001:4001"
+
+  ipfs-private:
+    extends:
+      service: ipfs-base
+    environment:
+      IPFS_SWARM_KEY_FILE: /run/secrets/ipfs_swarm_key
+    secrets:
+      - ipfs_swarm_key
+
+  verifier-service-base:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: Dockerfile-verifier
+    command: "echo Build complete"
+    profiles: [ "build" ]
+
+  verifier-service:
+    image: tosi-chain-verifier-service-base:latest
+    command:
+      - "/app/ssh.sh"
+    healthcheck:
+      test: ["CMD-SHELL", "nc localhost 22 < /dev/null" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  coordinator-base:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: src/coordinator/Dockerfile
+    command: "echo Build complete"
+    profiles: [ "build" ]
+
+  client-base:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: src/client/Dockerfile
+    command: "echo Build complete"
+    profiles: [ "build" ]
