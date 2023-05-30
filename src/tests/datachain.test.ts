@@ -29,16 +29,16 @@ const INVALID_TXN_WAIT_PERIOD = 25000; // 25 seconds
 const minterPrivKey = Buffer.from("2d1c0d704322c0386cc7bead93298a48ee22325e967567ebe4dbcd4a2f4482f1", "hex");
 const minterPubKey = BLS.getPublicKey(minterPrivKey);
 
-const clientPrivKey = Buffer.from("4d5a78da4f26be1d69593b19fac383abe5344668ae5671b1e6a8d72c1507f509", "hex");
+const clientPrivKey = Buffer.from("6fc1204e9099ead77587ad8a7ea4b660be8d642de719e8a946ca1370208011a7", "hex");
 const clientPubKey = BLS.getPublicKey(clientPrivKey);
 
-const daVerifier1PrivKey = Buffer.from("22b8a5c1e4f51b1cade56c80edc963fe05e93192a08e77a1fe38f50b8f7d9f01", "hex");
+const daVerifier1PrivKey = Buffer.from("0cab6e263ad0987ebe98338b40a5f01daa6208e0d45b2485d4ce76d4daa38b79", "hex");
 const daVerifier1PubKey = BLS.getPublicKey(daVerifier1PrivKey);
 
-const daVerifier2PrivKey = Buffer.from("18513804a1a2d3af9ca16829535a5ceea4218e508109f10466a453eb8ba8751f", "hex");
+const daVerifier2PrivKey = Buffer.from("490d9cf7c19a9151a55a6cff9b87e89ca9148472d2180d5f6441b098e5de4e11", "hex");
 const daVerifier2PubKey = BLS.getPublicKey(daVerifier2PrivKey);
 
-const daVerifier3PrivKey = Buffer.from("34a4db75366744ce1aef1702a981dac83bede3c90e8777dfb47d1992d557da7e", "hex");
+const daVerifier3PrivKey = Buffer.from("619572f0f834097a0d6d7d3bffb04b449a3ed863437f2faae84d7b3d9e6caa69", "hex");
 const daVerifier3PubKey = BLS.getPublicKey(daVerifier3PrivKey);
 
 let log: Logger;

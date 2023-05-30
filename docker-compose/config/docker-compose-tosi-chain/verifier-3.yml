@@ -1,0 +1,36 @@
+blsSecKey: 619572f0f834097a0d6d7d3bffb04b449a3ed863437f2faae84d7b3d9e6caa69
+chain:
+  minterAddress: >-
+    87f2f8a1a5c2b002828045ed6b76ff5033ba9983b5856f35d7f4dfd6dbe76b773bd71cb7336dd5e5dbaea3a8d0f11df8
+  contractAddress: '0xB249f874F74B8d873b3252759Caed4388cfe2492'
+  blockSyncPeriod: 2000
+  roles:
+    daVerifier:
+      DACheckTimeout: 15
+    stateVerifier:
+      stateCheckTimeout: 15
+storage:
+  mysqlHost: verifier-3-db
+  mysqlUser: root
+  mysqlPassword: example
+  mysqlDbName: tosi
+ipfs:
+  apiHost: verifier-3-ipfs
+eth:
+  rpc:
+    address: http://localnet:8545
+    retryPeriod: 1000
+    timeout: 5000
+coordinator:
+  blsPubKey: >-
+    a07ad5184d98da2e3ba0939f6b52618df0b7d547ffc4cc88f3b25093ea9a421f794b361cb3cc02494faa97f24276c1c0
+  rpc:
+    serverAddr: coordinator:20001
+    tls: false
+verifierService:
+  host: verifier-3-verifier-service
+  user: root
+  password: Docker!
+rpcServer:
+  port: 30001
+  noPrivileged: false

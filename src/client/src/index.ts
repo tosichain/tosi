@@ -30,8 +30,6 @@ function loadNodeConfig(): ClientNodeConfig {
       configFile: { type: "string", default: "./config.yml" },
     })
     .parseSync();
-
   const config = readFileSync(cli.configFile, "utf8");
-
   return load(config) as ClientNodeConfig;
 }

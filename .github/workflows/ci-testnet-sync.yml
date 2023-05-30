@@ -60,7 +60,7 @@ jobs:
           COUNTER=0
           until [[ "$(docker compose -p tosi-chain -f $COMPOSE_FILE exec client npx ts-node --files ./src/checkSync.ts)" = "true" ]]; do
             echo "Waiting for sync to complete..."
-            docker compose -p tosi-chain -f ${{ matrix.compose-file }} exec ipfs-2 ipfs swarm peers
+            docker compose -p tosi-chain -f ${{ matrix.compose-file }} exec client-ipfs ipfs swarm peers
             sleep 5
             COUNTER=$(($COUNTER + 1))
             if [ x$COUNTER == x100 ]; then

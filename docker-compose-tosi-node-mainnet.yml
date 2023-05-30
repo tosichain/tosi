@@ -1,70 +1,48 @@
-# Have to be used with -p option:
-# docker compose --profile build -p tosi-chain -f docker-compose-tosi-node-mainnet.yml build
 version: "3.3"
 
 services:
+
   client-base:
     extends:
-      file: docker-compose/templates.yml
+      file: docker-compose/base.yml
       service: client-base
-  verifier:
-    extends:
-      file: docker-compose/templates.yml
-      service: verifier
 
-  # IPFS instance 2
-  ipfs-2:
+  verifier-service-base:
     extends:
-      file: docker-compose/templates.yml
-      service: ipfs-public
-    volumes:
-      - "./client-ipfs-db-mainnet:/data/ipfs"
+      file: docker-compose/base.yml
+      service: verifier-service-base
 
-  db-2:
+  client-db:
     extends:
-      file: docker-compose/templates.yml
+      file: docker-compose/base.yml
       service: db
     volumes:
-      - "./client-db-mainnet:/var/lib/mysql"
+      - ./client-db-mainnet:/var/lib/mysql
 
-  # Client node.
-  client:
+  client-ipfs:
     extends:
-      file: docker-compose/templates.yml
-      service: client
+      file: docker-compose/base.yml
+      service: ipfs-public
+    volumes:
+      - ./client-ipfs-db-mainnet:/data/ipfs
 
-    depends_on:
-      ipfs-2:
-        condition: service_healthy
-      db-2:
-        condition: service_healthy
-
-    ports:
-      - "127.0.0.1:30001:30001" # For API
-
-    environment:
-      TOSI_MINTER_PUBKEY: "8490ca0575998160e2fcb0381b6f95edd7d1ab9e8e4640010476c0c535334b5ea2889ebee4bba46bee6cbbdc9421e95c"
-      TOSI_STAKE_POOL_PUBKEY: "a5a31c6de185d5fe861bca71bcc9b86d8ab27133e244afbe5ac988d3d622bcbf52a2ce0b84b129f32d92219919a34307"
-      BLS_SEC_KEY: "${TOSI_CLIENT_BLS_SEC_KEY}"
-      IPFS_HTTP_API_HOST: "ipfs-2"
-      STORAGE_DB_PATH: "./tosi-blockchain-db"
-      COORDINATOR_PUB_KEY: "aee7ecc1c86bfb526a3940dc2b1065f7ec436db34ea74022cb8934224ac97b6fa2eba1da0f5344d474f8a7816ec8e650"
-      COORDINATOR_RPC_SERVER_ADDR: "coordinator.tosichain.com:443"
-      COORDINATOR_TLS: "1"
-      VERIFIER_HOST: "client-verifier"
-      SYNC_ETH_RPC: "https://arb1.arbitrum.io/rpc"
-      SYNC_ETH_CLAIM_CONTRACT_ADDRESS: "0x630809d980b66B36ea733bE3899615339E428C55" # UUPSProxy contract.
-      SYNC_PERIOD: 10000 # 10 seconds
-      OFFCHAIN_DA_COMMITEE_SAMPLE_SIZE: 2
-      API_PORT: 30001
-      ROLE_IS_DA_SAMPLER: false
-      DB_HOST: "db-2"
-      DB_USER: "root"
-      DB_PASSWORD: "example"
-      DB_DB: "tosi"
-
-  client-verifier:
+  client-verifier-service:
     extends:
-      file: docker-compose/templates.yml
+      file: docker-compose/base.yml
       service: verifier-service
 
+  client:
+    extends:
+      file: docker-compose/base.yml
+      service: client-base
+    depends_on:
+      client-db:
+        condition: service_healthy
+      client-ipfs:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:30001:30001" # For sync test.
+    volumes:
+      - type: bind
+        source: ./docker-compose/config/docker-compose-tosi-node-mainnet/client.yml
+        target: "/config/tosi-client.yml"

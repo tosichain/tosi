@@ -75,11 +75,11 @@ jobs:
         if: ${{ matrix.name == 'test:core on localnet' }}
       - name: Check IPFS peers before running tests
         run: |
-          echo "ipfs-1" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-1 ipfs swarm peers
-          echo "ipfs-2" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-2 ipfs swarm peers
-          echo "ipfs-3" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-3 ipfs swarm peers
-          echo "ipfs-4" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-4 ipfs swarm peers
-          echo "ipfs-5" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec ipfs-5 ipfs swarm peers
+          echo "coordinator-ipfs" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec coordinator-ipfs ipfs swarm peers
+          echo "client-ipfs" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec client-ipfs ipfs swarm peers
+          echo "verifier-1-ipfs" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec verifier-1-ipfs ipfs swarm peers
+          echo "verifier-2-ipfs" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec verifier-2-ipfs ipfs swarm peers
+          echo "verifier-3-ipfs" && docker compose -p tosi-chain -f ${{ matrix.composefile }} exec verifier-3-ipfs ipfs swarm peers
       - name: Run integration tests - tosi client
         run: |
           docker run --network=host test:1.0 yarn ${{ matrix.citest }}
