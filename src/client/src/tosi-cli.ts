@@ -82,6 +82,8 @@ program
 
       if (account) {
         console.log(`The balance of the account ${address} is ${account.balance.toString()}`);
+        console.log(`The DA verifier stake of the account ${address} is ${account.daVerifierStake.toString()}`);
+        console.log(`The state verifier stake of the account ${address} is ${account.stateVerifierStake.toString()}`);
       } else {
         console.log(`The account ${address} does not exist on the blockchain network.`);
       }
