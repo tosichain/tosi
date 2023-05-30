@@ -1,0 +1,28 @@
+blsSecKey: 15fe9de612415d021742222780d59d2546194124f7757be80c9656911fecd246
+chain:
+  minterAddress: >-
+    87f2f8a1a5c2b002828045ed6b76ff5033ba9983b5856f35d7f4dfd6dbe76b773bd71cb7336dd5e5dbaea3a8d0f11df8
+  blockMintPeriod: 2000
+  daVerification:
+    requestBroadcastPeriod: 300000
+    requestTimeout: 600000
+  stateVerification:
+    requestBroadcastPeriod: 300000
+    requestTimeout: 600000
+storage:
+  mysqlHost: coordinator-db
+  mysqlUser: root
+  mysqlPassword: example
+  mysqlDbName: tosi
+ipfs:
+  apiHost: coordinator-ipfs
+  blockUploadPeriod: 2000
+eth:
+  rpc:
+    address: http://localnet:8545
+    retryPeriod: 1000
+    timeout: 5000
+  signer:
+    walletSecret: '0x2cca4b1846d60c2a417ad601ff7b5bfad7343c9de8bdbd19d5ca4a3e0f492dd7'
+rpcServer:
+  port: 20001

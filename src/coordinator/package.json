@@ -33,7 +33,11 @@
     "keccak256": "^1.0.3",
     "merkletreejs": "^0.2.24",
     "mysql": "^2.18.1",
-    "winston": "^3.7.2"
+    "winston": "^3.7.2",
+    "yargs": "^17.3.1",
+    "@types/yargs": "^17.0.8",
+    "js-yaml": "^4.1.0",
+    "@types/js-yaml": "^4.0.5"
   },
   "devDependencies": {
     "@typechain/ethers-v5": "^10.1.0",

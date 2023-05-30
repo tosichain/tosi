@@ -43,9 +43,6 @@ jobs:
       - name: Check the status of the running docker containers
         run: |
           docker ps -a
-      - name: create .env file
-        run: |
-          echo "TOSI_CLIENT_BLS_SEC_KEY=73a8fd9a114ba3d5c916af9b04c7ea8135d319db455816fa2681a6f5b3ebabf1" > .env
       - name: Start mainnet
         run: |
           docker compose -p tosi-chain -f ${{ matrix.compose-file }} up --remove-orphans --detach --wait
@@ -54,13 +51,13 @@ jobs:
         run: |
           docker compose -p tosi-chain -f ${{ matrix.compose-file }} logs --timestamps -f &> ${{ matrix.logfile }}.log &
       - name: Wait for sync
-        env: 
+        env:
           COMPOSE_FILE: ${{ matrix.compose-file }}
         run: |
           COUNTER=0
-          until [[ "$(docker compose -p tosi-chain -f $COMPOSE_FILE exec client npx ts-node --files ./src/checkSync.ts)" = "true" ]]; do
+          until [[ "$(docker compose -p tosi-chain -f $COMPOSE_FILE exec -e API_PORT=30001 client npx ts-node --files ./src/checkSync.ts)" = "true" ]]; do
             echo "Waiting for sync to complete..."
-            docker compose -p tosi-chain -f ${{ matrix.compose-file }} exec ipfs-2 ipfs swarm peers
+            docker compose -p tosi-chain -f ${{ matrix.compose-file }} exec client-ipfs ipfs swarm peers
             sleep 5
             COUNTER=$(($COUNTER + 1))
             if [ x$COUNTER == x100 ]; then

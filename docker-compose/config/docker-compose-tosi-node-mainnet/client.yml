@@ -1,0 +1,32 @@
+blsSecKey: 26e0e72ee4c67d7d3bb69b2dd50dfdec5c19bf086f553c856a9f3c4863680df0
+chain:
+  minterAddress: >-
+    8490ca0575998160e2fcb0381b6f95edd7d1ab9e8e4640010476c0c535334b5ea2889ebee4bba46bee6cbbdc9421e95c
+  contractAddress: '0x630809d980b66B36ea733bE3899615339E428C55'
+  blockSyncPeriod: 2000
+  roles: {}
+storage:
+  mysqlHost: client-db
+  mysqlUser: root
+  mysqlPassword: example
+  mysqlDbName: tosi
+ipfs:
+  apiHost: client-ipfs
+eth:
+  rpc:
+    address: https://arb1.arbitrum.io/rpc
+    retryPeriod: 1000
+    timeout: 5000
+coordinator:
+  blsPubKey: >-
+    aee7ecc1c86bfb526a3940dc2b1065f7ec436db34ea74022cb8934224ac97b6fa2eba1da0f5344d474f8a7816ec8e65
+  rpc:
+    serverAddr: coordinator.tosichain.com:443
+    tls: true
+verifierService:
+  host: client-verifier-service
+  user: root
+  password: Docker!
+rpcServer:
+  port: 30001
+  noPrivileged: false

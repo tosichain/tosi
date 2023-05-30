@@ -1,0 +1,32 @@
+blsSecKey: 26e0e72ee4c67d7d3bb69b2dd50dfdec5c19bf086f553c856a9f3c4863680df0
+chain:
+  minterAddress: >-
+    ab92bd04cb362bf07ce6380727fb956379963da44c6027fea2cbeddf516f7151320491a27b7f4df4106f94224641a6f4
+  contractAddress: '0x4731A0Dd87e637321D4E4980BeF351f992F14b77'
+  blockSyncPeriod: 2000
+  roles: {}
+storage:
+  mysqlHost: client-db
+  mysqlUser: root
+  mysqlPassword: example
+  mysqlDbName: tosi
+ipfs:
+  apiHost: client-ipfs
+eth:
+  rpc:
+    address: https://goerli-rollup.arbitrum.io/rpc
+    retryPeriod: 1000
+    timeout: 5000
+coordinator:
+  blsPubKey: >-
+    8ea14bd457eaa9d91a4ad862f6252d67462232a5e3d88ea8a752875725e6e3843b2d1533cc507f59f4c732c266e52417
+  rpc:
+    serverAddr: coordinator.dev.tosichain.com:443
+    tls: true
+verifierService:
+  host: client-verifier-service
+  user: root
+  password: Docker!
+rpcServer:
+  port: 30001
+  noPrivileged: false
