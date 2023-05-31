@@ -19,7 +19,7 @@ import { bytesEqual, bytesFromHex, bytesToHex, hashComputeClaim } from "../../bl
 import { IPFS_PUB_SUB_STATE_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
 import { logPubSubMessage, logStateVerificationRequest, logStateVerificationResponse } from "../../p2p/util";
-import { execTask } from "./util";
+import { VerifierServiceConfig, execTask } from "./verifier_service";
 import { P2PPubSubMessage, StateVerificationRequest, StateVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 import Logger from "../../log/logger";
 import { currentUnixTime } from "../../util";
@@ -40,6 +40,8 @@ export class StateVerifier {
   private readonly config: StateVerifierConfig;
   private readonly log: Logger;
 
+  private readonly verifierService: VerifierServiceConfig;
+
   private readonly ipfs: IPFS;
   private readonly drandBeaconInfo: DrandBeaconInfo;
 
@@ -51,6 +53,7 @@ export class StateVerifier {
     cooridnatorPubKey: Uint8Array,
     config: StateVerifierConfig,
     log: Logger,
+    verifierService: VerifierServiceConfig,
     ipfs: IPFS,
     blockchain: BlockchainStorage,
     drandBeaconInfo: DrandBeaconInfo,
@@ -63,6 +66,8 @@ export class StateVerifier {
     this.config = config;
 
     this.log = log;
+
+    this.verifierService = verifierService;
 
     this.ipfs = ipfs;
 
@@ -220,7 +225,14 @@ export class StateVerifier {
     const prevClaimOutputCID = !prevClaim ? EMPTY_OUTPUT_DATA_REF.cid : prevClaim.output.cid;
     try {
       const before = currentUnixTime();
-      const result = await execTask(this.ipfs, this.log, claim.dataContract.cid, prevClaimOutputCID, claim.input.cid);
+      const result = await execTask(
+        this.verifierService,
+        this.ipfs,
+        this.log,
+        claim.dataContract.cid,
+        prevClaimOutputCID,
+        claim.input.cid,
+      );
       if (
         result.output &&
         result.output.outputCID &&

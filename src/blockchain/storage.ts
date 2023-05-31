@@ -10,6 +10,7 @@ import {
   StakePool,
   OffchainComputationParameters,
 } from "./types";
+import { createAccount } from "./transaction";
 import { accountsMerkleTree } from "./block";
 import { bytesToHex, hashBlock, hashSignedTransaction } from "./util";
 import {
@@ -20,7 +21,7 @@ import {
   serializeSignedTransaction,
   serializeWorldState,
 } from "./serde";
-import { GENESIS_BLOCK_VERSION, NULL_HASH } from "./constant";
+import { DA_VERIFIER_COUNT, GENESIS_BLOCK_VERSION, NULL_HASH, STATE_VERIFIER_COUNT } from "./constant";
 import Logger from "../log/logger";
 
 const LOG_STORAGE = "storage";
@@ -33,11 +34,10 @@ const DB_KEY_STATE_VALUE = "value";
 const DB_KEY_GENESIS_BLOCK = "genesisBlock";
 
 export interface BlockchainStorageConfig {
-  readonly dbHost: string;
-  readonly dbUser: string;
-  readonly dbPassword: string;
-  readonly db: string;
-  readonly initialState?: WorldState;
+  readonly mysqlHost: string;
+  readonly mysqlUser: string;
+  readonly mysqlPassword: string;
+  readonly mysqlDbName: string;
 }
 
 export class BlockchainStorage {
@@ -51,14 +51,14 @@ export class BlockchainStorage {
     this.log = log;
     this.db = mysql.createPool({
       connectionLimit: 10,
-      host: config.dbHost,
-      user: config.dbUser,
-      password: config.dbPassword,
-      database: config.db,
+      host: this.config.mysqlHost,
+      user: this.config.mysqlUser,
+      password: this.config.mysqlPassword,
+      database: this.config.mysqlDbName,
     });
   }
 
-  public async init(): Promise<void> {
+  public async init(minterAddr: Uint8Array): Promise<void> {
     while (true) {
       try {
         await new Promise((resolve, reject) => {
@@ -83,9 +83,8 @@ export class BlockchainStorage {
     const genesisValue = await this.getValue("main", DB_KEY_GENESIS_BLOCK);
     if (headValue == null || genesisValue == null) {
       this.log.info("initialising db", LOG_STORAGE);
-      if (this.config.initialState) {
-        await this.initDB(this.config.initialState);
-      }
+      const initialState = createInitialWorldState(minterAddr);
+      await this.initDB(initialState);
     } else {
       this.log.info("db already initialised", LOG_STORAGE);
     }
@@ -393,4 +392,27 @@ export class BlockchainStorage {
     }
     return rawBlock;
   }
+}
+
+function createInitialWorldState(minterAddr: Uint8Array): WorldState {
+  const state: WorldState = {
+    accounts: {},
+    stakePool: {
+      daVerifierPool: 0n,
+      daVerifiers: [],
+      stateVerifierPool: 0n,
+      stateVerifiers: [],
+    },
+    minter: minterAddr,
+    dataChains: {},
+    offchainComputation: {
+      DACommitteeSampleSize: DA_VERIFIER_COUNT,
+      stateCommitteeSampleSize: STATE_VERIFIER_COUNT,
+    },
+  };
+
+  const minterAddrHex = bytesToHex(minterAddr);
+  state.accounts[minterAddrHex] = createAccount(minterAddr, 0n, 0n, 0n);
+
+  return state;
 }

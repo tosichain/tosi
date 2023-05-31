@@ -1,17 +1,16 @@
-import * as IpfsHttpClient from "ipfs-http-client";
 import { CID } from "ipfs-http-client";
 import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 
 import { IPFS } from "../../p2p/ipfs";
 import { Transaction, Account, DAInfo, Block, DataChain, StakeType, DrandBeaconInfo } from "../../blockchain/types";
-import { bytesEqual } from "../../blockchain/util";
+import { bytesEqual, bytesFromHex } from "../../blockchain/util";
 import { CoordinatorRPCConfig, CoordinatorRPC } from "../../coordinator/src/rpc";
 import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/storage";
 import { signTransaction } from "../../blockchain/block";
-import { BlockchainClientSyncConfig, BlockchainClientSync } from "./blockchain_sync";
+import { BlockchainClientSync } from "./blockchain_sync";
 import { ClientNodeRPCServerConfig, ClientNodeRPCServer } from "./rpc_server";
 import { DAVerifierConfig, DAVerifier } from "./da_verifier";
-import { createDAInfo, prepopulate } from "./util";
+import { VerifierServiceConfig, createDAInfo, prepopulate } from "./verifier_service";
 import { DEFAULT_CARTESI_VM_MAX_CYCLES, SWARM_PING_INTERVAL } from "./constant";
 import { StateVerifier, StateVerifierConfig } from "./state_verifer";
 import Logger from "../../log/logger";
@@ -19,17 +18,40 @@ import Logger from "../../log/logger";
 const LOG_NETWORK = "network";
 
 export interface ClientNodeConfig {
-  coordinator: CoordinatorRPCConfig;
-  ipfs: IpfsHttpClient.Options;
-  storage: BlockchainStorageConfig;
-  blockchainSync: BlockchainClientSyncConfig;
-  rpc: ClientNodeRPCServerConfig;
-  blsSecKey: Uint8Array;
-  coordinatorPubKey: Uint8Array;
-  roles: {
-    daVerifier: DAVerifierConfig | undefined;
-    stateVerifier: StateVerifierConfig | undefined;
+  blsSecKey: string;
+
+  chain: {
+    minterAddress: string;
+    contractAddress: string;
+    blockSyncPeriod: number;
+    roles: {
+      daVerifier?: DAVerifierConfig;
+      stateVerifier?: StateVerifierConfig;
+    };
   };
+
+  storage: BlockchainStorageConfig;
+
+  ipfs: {
+    apiHost: string;
+  };
+
+  eth: {
+    rpc: {
+      address: string;
+      retryPeriod: number;
+      timeout: number;
+    };
+  };
+
+  coordinator: {
+    blsPubKey: string;
+    rpc: CoordinatorRPCConfig;
+  };
+
+  verifierService: VerifierServiceConfig;
+
+  rpcServer: ClientNodeRPCServerConfig;
 }
 
 export interface CreateDatachainParameters {
@@ -72,13 +94,17 @@ export class ClientNode {
 
     this.log = log;
 
-    this.coordinator = new CoordinatorRPC(this.config.coordinator);
+    this.coordinator = new CoordinatorRPC(this.config.coordinator.rpc);
 
-    this.ipfs = new IPFS(this.config.ipfs, this.log);
+    this.ipfs = new IPFS({ host: this.config.ipfs.apiHost }, this.log);
 
     this.storage = new BlockchainStorage(this.config.storage, this.log);
     this.blockchainSync = new BlockchainClientSync(
-      this.config.blockchainSync,
+      {
+        contractAddress: this.config.chain.contractAddress,
+        ethRpcAddress: this.config.eth.rpc.address,
+        blockSyncPeriod: this.config.chain.blockSyncPeriod,
+      },
       this.log,
       this.coordinator,
       this.ipfs,
@@ -86,31 +112,33 @@ export class ClientNode {
       drandBeaconInfo,
     );
 
-    if (this.config.roles.daVerifier) {
+    if (this.config.chain.roles.daVerifier) {
       this.daVerifier = new DAVerifier(
-        this.config.blsSecKey,
-        this.config.coordinatorPubKey,
-        this.config.roles.daVerifier,
+        bytesFromHex(this.config.blsSecKey),
+        bytesFromHex(this.config.coordinator.blsPubKey),
+        this.config.chain.roles.daVerifier,
         this.log,
+        this.config.verifierService,
         this.ipfs,
         this.storage,
         drandBeaconInfo,
       );
     }
 
-    if (this.config.roles.stateVerifier) {
+    if (this.config.chain.roles.stateVerifier) {
       this.stateVerifier = new StateVerifier(
-        this.config.blsSecKey,
-        this.config.coordinatorPubKey,
-        this.config.roles.stateVerifier,
+        bytesFromHex(this.config.blsSecKey),
+        bytesFromHex(this.config.coordinator.blsPubKey),
+        this.config.chain.roles.stateVerifier,
         this.log,
+        this.config.verifierService,
         this.ipfs,
         this.storage,
         drandBeaconInfo,
       );
     }
 
-    this.apiServer = new ClientNodeRPCServer(this.config.rpc, this.log, this);
+    this.apiServer = new ClientNodeRPCServer(this.config.rpcServer, this.log, this);
   }
 
   public async start(): Promise<void> {
@@ -136,8 +164,8 @@ export class ClientNode {
         setTimeout(resolve, 1000);
       });
     }
-    await prepopulate(this.ipfs, this.log);
-    await this.storage.init();
+    await prepopulate(this.config.verifierService, this.ipfs, this.log);
+    await this.storage.init(bytesFromHex(this.config.chain.minterAddress));
     await this.blockchainSync.start();
     await this.daVerifier?.start();
     await this.stateVerifier?.start();
@@ -302,7 +330,7 @@ export class ClientNode {
   }
 
   private async fetchDAInfoNoCache(cid: CID, car: boolean): Promise<DAInfo | undefined> {
-    const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), 600, car);
+    const daInfo = await createDAInfo(this.config.verifierService, this.ipfs, this.log, cid.toString(), 600, car);
     return daInfo;
   }
 
@@ -318,7 +346,7 @@ export class ClientNode {
     };
 
     // Sign transaction and send it.
-    const signedTxn = await signTransaction(txnWithNonce, this.config.blsSecKey);
+    const signedTxn = await signTransaction(txnWithNonce, bytesFromHex(this.config.blsSecKey));
     await this.coordinator.submitSignedTransaction(signedTxn);
 
     return;

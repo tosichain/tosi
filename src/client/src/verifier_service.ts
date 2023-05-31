@@ -9,7 +9,14 @@ import Logger from "../../log/logger";
 
 const LOG_VERIFIER = "verifier";
 
+export interface VerifierServiceConfig {
+  host: string;
+  user: string;
+  password: string;
+}
+
 export async function createDAInfo(
+  config: VerifierServiceConfig,
   ipfs: IPFS,
   log: Logger,
   path: string,
@@ -19,7 +26,7 @@ export async function createDAInfo(
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
   const script = car ? "/app/grab-dag-as-car-and-hash.sh" : "/app/grab-and-hash.sh";
   const command = `IPFS_API=/dns4/${host}/tcp/${port} TIMEOUT=${timeout}s ${script} ${path}`;
-  const result = JSON.parse((await execCommand(log, command)).stdout);
+  const result = JSON.parse((await execCommand(config, log, command)).stdout);
   if (result.error) {
     return undefined;
   }
@@ -29,11 +36,11 @@ export async function createDAInfo(
   } as DAInfo;
 }
 
-export async function prepopulate(ipfs: IPFS, log: Logger): Promise<void> {
+export async function prepopulate(config: VerifierServiceConfig, ipfs: IPFS, log: Logger): Promise<void> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
   const script = "/app/prepopulate.sh";
   const command = `IPFS_API=/dns4/${host}/tcp/${port} ${script}`;
-  await execCommand(log, command);
+  await execCommand(config, log, command);
 }
 
 export interface ExecuteTaskOptions {
@@ -51,6 +58,7 @@ interface TaskResult {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function execTask(
+  config: VerifierServiceConfig,
   ipfs: IPFS,
   log: Logger,
   functionCID: CID,
@@ -61,7 +69,7 @@ export async function execTask(
   // eslint-disable-next-line prettier/prettier
   const command = `IPFS_API=/dns4/${host}/tcp/${port} /app/qemu-run-task.sh ${prevOutputCID.toString()} ${inputCID.toString()} ${functionCID.toString()}`;
 
-  const result = await execCommand(log, command);
+  const result = await execCommand(config, log, command);
   return { output: JSON.parse(result.stdout), stderr: result.stderr };
 }
 
@@ -70,12 +78,17 @@ export interface CommandResult {
   stdout: string;
 }
 
-export async function execCommand(log: Logger, command: string, env?: NodeJS.ProcessEnv): Promise<CommandResult> {
+export async function execCommand(
+  config: VerifierServiceConfig,
+  log: Logger,
+  command: string,
+  env?: NodeJS.ProcessEnv,
+): Promise<CommandResult> {
   const ssh = new NodeSSH();
   await ssh.connect({
-    host: process.env.VERIFIER_HOST,
-    username: "root",
-    password: "Docker!",
+    host: config.host,
+    username: config.user,
+    password: config.password,
   });
   log.info("executing command", LOG_VERIFIER, { command: command });
   const result = await ssh.execCommand(command, { execOptions: { env } });
