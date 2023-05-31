@@ -25,7 +25,14 @@ import {
   getSeedFromBlockRandomnessProof,
 } from "../../blockchain/block_randomness";
 import { getVerificationCommitteeSample } from "../../blockchain/block_commitee";
-import { bytesEqual, bytesToHex, hashSignedTransaction, hashTransactionBundle, hashBlock } from "../../blockchain/util";
+import {
+  bytesEqual,
+  bytesToHex,
+  bytesFromHex,
+  hashSignedTransaction,
+  hashTransactionBundle,
+  hashBlock,
+} from "../../blockchain/util";
 import { BlockchainStorageConfig, BlockchainStorage } from "../../blockchain/storage";
 import { DatachainV2__factory } from "../../contracts/factories/DatachainV2__factory";
 import { DatachainV2 } from "../../contracts/DatachainV2";
@@ -44,29 +51,36 @@ const LOG_STATE_TRACE = [LOG_STATE, "trace"];
 export type IPFSOptions = IpfsHttpClient.Options;
 
 export interface CoordinatorNodeConfig {
-  storage: BlockchainStorageConfig;
-  rpc?: CoordinatorRPCServerConfig;
-  ipfs: {
-    options: IPFSOptions;
-    blockchainSyncPeriod: number;
-  };
-  eth: {
-    rpc: string;
-    rpcRetryPeriod: number;
-    rpcTimeout: number;
-    walletSecret: string;
-    impersonateAddress?: string;
-  };
+  blsSecKey: string;
+
   chain: {
-    blockPeriod: number;
-    // TODO: move here from storage config.
-    // minterPubKey: string;
-    // stakePoolPubKey: string;
-    coordinatorSmartContract?: string;
+    minterAddress: string;
+    contractAddress?: string;
+    blockMintPeriod: number;
+    daVerification: DAVerificationManagerConfig;
+    stateVerification: StateVerificationManagerConfig;
   };
-  blsSecKey: Uint8Array;
-  DAVerification: DAVerificationManagerConfig;
-  stateVerification: StateVerificationManagerConfig;
+
+  storage: BlockchainStorageConfig;
+
+  ipfs: {
+    apiHost: string;
+    blockUploadPeriod: number;
+  };
+
+  eth: {
+    rpc: {
+      address: string;
+      retryPeriod: number;
+      timeout: number;
+    };
+    signer: {
+      walletSecret: string;
+      impersonateAddress?: string;
+    };
+  };
+
+  rpcServer?: CoordinatorRPCServerConfig;
 }
 
 export class CoordinatorNode {
@@ -97,15 +111,15 @@ export class CoordinatorNode {
     this.log.info("BLS public key is ready", undefined, { key: this.blsPubKey });
 
     this.storage = new BlockchainStorage(this.config.storage, this.log);
-    this.ipfs = new IPFS(this.config.ipfs.options, this.log);
-    if (this.config.rpc != undefined) {
-      this.rpc = new CoordinatorRPCServer(this.config.rpc, this.log, this);
+    this.ipfs = new IPFS({ host: this.config.ipfs.apiHost }, this.log);
+    if (this.config.rpcServer != undefined) {
+      this.rpc = new CoordinatorRPCServer(this.config.rpcServer, this.log, this);
     }
-    this.ethProvider = new ethers.providers.JsonRpcProvider(this.config.eth.rpc);
+    this.ethProvider = new ethers.providers.JsonRpcProvider(this.config.eth.rpc.address);
 
-    this.daManager = new DAVerificationManager(this.config.DAVerification, this.log, this.ipfs, this.blsPubKey);
+    this.daManager = new DAVerificationManager(this.config.chain.daVerification, this.log, this.ipfs, this.blsPubKey);
     this.stateManager = new StateVerificationManager(
-      this.config.stateVerification,
+      this.config.chain.stateVerification,
       this.log,
       this.ipfs,
       this.blsPubKey,
@@ -113,16 +127,16 @@ export class CoordinatorNode {
   }
 
   public async start(): Promise<void> {
-    if (this.config.eth.impersonateAddress && this.config.chain.coordinatorSmartContract) {
-      await this.ethProvider.send("hardhat_impersonateAccount", [this.config.eth.impersonateAddress]);
-      await this.ethProvider.send("hardhat_setBalance", [this.config.eth.impersonateAddress, "0x50000000000000000"]);
-      this.ethWallet = this.ethProvider.getSigner(this.config.eth.impersonateAddress);
+    if (this.config.eth.signer.impersonateAddress && this.config.chain.contractAddress) {
+      await this.ethProvider.send("hardhat_impersonateAccount", [this.config.eth.signer.impersonateAddress]);
+      await this.ethProvider.send("hardhat_setBalance", [this.config.eth.signer, "0x50000000000000000"]);
+      this.ethWallet = this.ethProvider.getSigner(this.config.eth.signer.impersonateAddress);
 
       this.log.info("deploying/upgrading smart contracts", LOG_ETH);
 
       const contractFactory = new DatachainV2__factory(this.ethWallet);
       const deployedContract = await contractFactory.deploy();
-      this.claimContract = DatachainV2__factory.connect(this.config.chain.coordinatorSmartContract, this.ethWallet);
+      this.claimContract = DatachainV2__factory.connect(this.config.chain.contractAddress, this.ethWallet);
 
       await this.claimContract.setCoordinatorNode(await this.ethWallet.getAddress());
       await this.claimContract.upgradeTo(deployedContract.address);
@@ -130,13 +144,13 @@ export class CoordinatorNode {
         corrdinatorAddress: await this.ethWallet.getAddress(),
       });
     } else {
-      this.ethWallet = new ethers.Wallet(this.config.eth.walletSecret, this.ethProvider);
+      this.ethWallet = new ethers.Wallet(this.config.eth.signer.walletSecret, this.ethProvider);
       this.log.info("ethereum wallet is ready", LOG_ETH, {
         address: (this.ethWallet as ethers.Wallet).address,
       });
     }
 
-    await this.storage.init();
+    await this.storage.init(bytesFromHex(this.config.chain.minterAddress));
     await this.ipfs.up();
     while (true) {
       const peers = await this.ipfs.getIPFS().swarm.peers();
@@ -151,11 +165,11 @@ export class CoordinatorNode {
     // Need to retry in case eth rpc endpoint is temporarily unavailable.
     let retryCount = 0;
     while (true) {
-      if (retryCount >= this.config.eth.rpcTimeout) {
+      if (retryCount >= this.config.eth.rpc.timeout) {
         throw new Error(`failed to connect to eth rpc endpoint`);
       }
       try {
-        if (!this.config.chain.coordinatorSmartContract && !this.claimContract) {
+        if (!this.config.chain.contractAddress && !this.claimContract) {
           await this.deployEthContracts();
         } else if (!this.claimContract) {
           await this.connectEthContract();
@@ -165,9 +179,9 @@ export class CoordinatorNode {
         if (err.code == "SERVER_ERROR") {
           this.log.error("failed to connect to eth rpc endpoint, waiting for retry..", err, LOG_ETH);
           await new Promise((resolve, _) => {
-            setTimeout(resolve, this.config.eth.rpcRetryPeriod);
+            setTimeout(resolve, this.config.eth.rpc.retryPeriod);
           });
-          retryCount += this.config.eth.rpcRetryPeriod;
+          retryCount += this.config.eth.rpc.retryPeriod;
         } else {
           throw err;
         }
@@ -190,10 +204,10 @@ export class CoordinatorNode {
     if (!this.ethWallet) {
       throw new Error("ethereum wallet is not ready");
     }
-    if (!this.config.chain.coordinatorSmartContract) {
+    if (!this.config.chain.contractAddress) {
       throw new Error("config.chain.coordinatorSmartContract not set");
     }
-    this.claimContract = DatachainV2__factory.connect(this.config.chain.coordinatorSmartContract, this.ethWallet);
+    this.claimContract = DatachainV2__factory.connect(this.config.chain.contractAddress, this.ethWallet);
   }
 
   private async deployEthContracts(): Promise<void> {
@@ -225,7 +239,7 @@ export class CoordinatorNode {
     while (true) {
       try {
         await new Promise((resolve, _) => {
-          setTimeout(resolve, this.config.chain.blockPeriod);
+          setTimeout(resolve, this.config.chain.blockMintPeriod);
         });
 
         const blockTime = currentUnixTime(); // Note: must align with drand beacon time.
@@ -250,7 +264,11 @@ export class CoordinatorNode {
         this.log.info("fetching drand beacon", LOG_NETWORK);
         const blockRandBeacon = await fetchDrandBeacon();
         this.log.info("fetched drand beacon", LOG_NETWORK, { beacon: blockRandBeacon });
-        const blockRandProof = await createBlockRandomnessProof(bundleHash, this.config.blsSecKey, blockRandBeacon);
+        const blockRandProof = await createBlockRandomnessProof(
+          bundleHash,
+          bytesFromHex(this.config.blsSecKey),
+          blockRandBeacon,
+        );
         const blockRandSeed = getSeedFromBlockRandomnessProof(blockRandProof);
 
         // Check transaction data availability.
@@ -337,7 +355,7 @@ export class CoordinatorNode {
     while (true) {
       try {
         await new Promise((resolve, _) => {
-          setTimeout(resolve, this.config.ipfs.blockchainSyncPeriod);
+          setTimeout(resolve, this.config.ipfs.blockUploadPeriod);
         });
         // TODO: handle exceptions in background process (or fail fast?).
 

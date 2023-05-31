@@ -1,59 +1,15 @@
 import process from "process";
+import { readFileSync } from "fs";
 
-import { ClientNodeConfig, ClientNode } from "./node";
-import { bytesFromHex, createInitialStateFromEnv } from "../../blockchain/util";
+import yargs from "yargs";
+import { load } from "js-yaml";
+
 import Logger from "../../log/logger";
 import { fetchDrandBeaconInfo } from "../../blockchain/block_randomness";
+import { ClientNodeConfig, ClientNode } from "./node";
 
 (async () => {
-  const config: ClientNodeConfig = {
-    coordinator: {
-      serverAddr: String(process.env.COORDINATOR_RPC_SERVER_ADDR),
-      tls: process.env.COORDINATOR_TLS ? true : false,
-    },
-    ipfs: {
-      host: process.env.IPFS_HTTP_API_HOST,
-    },
-    storage: {
-      dbHost: String(process.env.DB_HOST),
-      dbUser: String(process.env.DB_USER),
-      dbPassword: String(process.env.DB_PASSWORD),
-      db: String(process.env.DB_DB),
-      initialState: createInitialStateFromEnv(),
-    },
-    blockchainSync: {
-      eth: {
-        rpc: String(process.env.SYNC_ETH_RPC),
-        claimContractAddress: String(process.env.SYNC_ETH_CLAIM_CONTRACT_ADDRESS),
-      },
-      syncPeriod: Number(process.env.SYNC_PERIOD),
-    },
-    roles: {
-      daVerifier: {
-        DACheckTimeout: Number(process.env.ROLE_DA_VERIFIER_DA_CHECK_TIMEOUT),
-      },
-      stateVerifier: {
-        stateCheckTimeout: Number(process.env.ROLE_STATE_VERIFIER_CHECK_TIMEOUT),
-      },
-    },
-    rpc: {
-      port: Number(process.env.API_PORT),
-      noPrivileged: process.env.NO_PRIVILEGED_RPC ? true : false,
-    },
-    blsSecKey: bytesFromHex(String(process.env.BLS_SEC_KEY)),
-    coordinatorPubKey: bytesFromHex(String(process.env.COORDINATOR_PUB_KEY)),
-  };
-
-  const isDAVerifier = JSON.parse(String(process.env.ROLE_IS_DA_VERIFIER));
-  if (!isDAVerifier) {
-    config.roles.daVerifier = undefined;
-  }
-
-  const isStateVerifier = JSON.parse(String(process.env.ROLE_IS_STATE_VERIFIER));
-  if (!isStateVerifier) {
-    config.roles.stateVerifier = undefined;
-  }
-
+  const config = loadNodeConfig();
   const log = new Logger("tosi-client", "debug");
   const drandBeaconInfo = await fetchDrandBeaconInfo();
   const node = new ClientNode(config, log, drandBeaconInfo);
@@ -62,3 +18,20 @@ import { fetchDrandBeaconInfo } from "../../blockchain/block_randomness";
   // eslint-disable-next-line no-console
   console.log(err);
 });
+
+interface CLIArgs {
+  [x: string]: unknown;
+  configFile: string;
+}
+
+function loadNodeConfig(): ClientNodeConfig {
+  const cli: CLIArgs = yargs(process.argv.slice(2))
+    .options({
+      configFile: { type: "string", default: "./config.yml" },
+    })
+    .parseSync();
+
+  const config = readFileSync(cli.configFile, "utf8");
+
+  return load(config) as ClientNodeConfig;
+}

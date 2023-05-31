@@ -21,7 +21,7 @@ import { bytesEqual, bytesFromHex, bytesToHex, hashComputeClaim } from "../../bl
 import { IPFS_PUB_SUB_DA_VERIFICATION } from "../../p2p/constant";
 import { IPFSPubSubMessage } from "../../p2p/types";
 import { logPubSubMessage, logDAVerificationRequest, logDAVerificationResponse } from "../../p2p/util";
-import { createDAInfo } from "./util";
+import { VerifierServiceConfig, createDAInfo } from "./verifier_service";
 import { P2PPubSubMessage, DAVerificationRequest, DAVerificationResponse } from "../../proto/grpcjs/p2p_pb";
 import Logger from "../../log/logger";
 import { currentUnixTime } from "../../util";
@@ -42,6 +42,8 @@ export class DAVerifier {
   private readonly config: DAVerifierConfig;
   private readonly log: Logger;
 
+  private readonly verifierService: VerifierServiceConfig;
+
   private readonly ipfs: IPFS;
   private readonly drandBeaconInfo: DrandBeaconInfo;
 
@@ -55,6 +57,7 @@ export class DAVerifier {
     coordinatorPubKey: Uint8Array,
     config: DAVerifierConfig,
     log: Logger,
+    verfierService: VerifierServiceConfig,
     ipfs: IPFS,
     blockchain: BlockchainStorage,
     drandBeaconInfo: DrandBeaconInfo,
@@ -66,6 +69,8 @@ export class DAVerifier {
 
     this.drandBeaconInfo = drandBeaconInfo;
     this.config = config;
+
+    this.verifierService = verfierService;
 
     this.log = log;
 
@@ -264,7 +269,14 @@ export class DAVerifier {
     }
 
     this.log.info("fetching DA info", LOG_NETWORK, { cid: cid });
-    const daInfo = await createDAInfo(this.ipfs, this.log, cid.toString(), this.config.DACheckTimeout, car);
+    const daInfo = await createDAInfo(
+      this.verifierService,
+      this.ipfs,
+      this.log,
+      cid.toString(),
+      this.config.DACheckTimeout,
+      car,
+    );
     if (!daInfo) {
       this.log.info("can not fetch DA info", LOG_NETWORK, { cid: cid });
       return undefined;

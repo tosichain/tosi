@@ -29,4 +29,4 @@ COPY [ "src/coordinator/tslint.json", "./" ]
 COPY [ "src/coordinator/src", "./src" ]
 RUN yarn build
 
-CMD [ "yarn", "start" ]
+CMD [ "yarn", "start", "--configFile", "/config/tosi-coordinator.yml"]

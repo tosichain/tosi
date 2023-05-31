@@ -18,8 +18,8 @@ const LOG_VERIFIER = "state-verifier";
 const LOG_NETWORK = [LOG_VERIFIER, "network"];
 
 export interface StateVerificationManagerConfig {
-  RequestBroadcastPeriod: number;
-  RequestTimeout: number;
+  requestBroadcastPeriod: number;
+  requestTimeout: number;
 }
 
 export interface TransactionBundleStateCheckResult {
@@ -270,12 +270,12 @@ export class StateVerificationManager {
           txnBundleHash: txnBundleHash,
         });
         this.process.reject(
-          new Error("State verification timeout - no response for " + this.config.RequestTimeout + "ms"),
+          new Error("State verification timeout - no response for " + this.config.requestTimeout + "ms"),
         );
         this.resetStateCheckProcess();
         return;
       }
-    }, this.config.RequestTimeout);
+    }, this.config.requestTimeout);
   }
 
   private async broadcastStateCheckRequest(txnBundleHash: Uint8Array) {
@@ -308,7 +308,7 @@ export class StateVerificationManager {
         );
 
       await new Promise((resolve, _) => {
-        setTimeout(resolve, this.config.RequestBroadcastPeriod);
+        setTimeout(resolve, this.config.requestBroadcastPeriod);
       });
     }
   }

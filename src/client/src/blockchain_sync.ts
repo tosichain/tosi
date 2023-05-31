@@ -8,7 +8,7 @@ import { DatachainV2__factory } from "../../contracts/factories/DatachainV2__fac
 import { DatachainV2 } from "../../contracts/DatachainV2";
 import { Block, DrandBeaconInfo } from "../../blockchain/types";
 import { NULL_HASH } from "../../blockchain/constant";
-import { hashSignedTransaction } from "../../blockchain/util";
+import { bytesToHex, hashSignedTransaction } from "../../blockchain/util";
 import { mintNextBlock } from "../../blockchain/block";
 import { deserializeBlock } from "../../blockchain/serde";
 import { bytesEqual, bytesFromHex, hashBlock } from "../../blockchain/util";
@@ -24,11 +24,9 @@ const LOG_STATE = [LOG_SYNC, "state"];
 const LOG_STATE_TRACE = [LOG_SYNC, "state", "trace"];
 
 export interface BlockchainClientSyncConfig {
-  eth: {
-    rpc: string;
-    claimContractAddress: string;
-  };
-  syncPeriod: number;
+  contractAddress: string;
+  ethRpcAddress: string;
+  blockSyncPeriod: number;
 }
 
 export class BlockchainClientSync {
@@ -66,8 +64,8 @@ export class BlockchainClientSync {
 
     this.drandBeaconInfo = drandBeaconInfo;
 
-    this.ethProvider = new ethers.providers.JsonRpcProvider(this.config.eth.rpc);
-    this.claimContract = DatachainV2__factory.connect(this.config.eth.claimContractAddress, this.ethProvider);
+    this.ethProvider = new ethers.providers.JsonRpcProvider(this.config.ethRpcAddress);
+    this.claimContract = DatachainV2__factory.connect(this.config.contractAddress, this.ethProvider);
   }
 
   public async start(): Promise<void> {
@@ -78,7 +76,7 @@ export class BlockchainClientSync {
     while (true) {
       try {
         await new Promise((resolve, _) => {
-          setTimeout(resolve, this.config.syncPeriod);
+          setTimeout(resolve, this.config.blockSyncPeriod);
         });
 
         this.log.info("starting block sync", LOG_SYNC);

@@ -23,30 +23,6 @@ export function bytesFromHex(hex: string): Uint8Array {
   return Uint8Array.from(Buffer.from(hex, "hex"));
 }
 
-export function createInitialStateFromEnv(): WorldState {
-  const minterAddrHex = process.env.TOSI_MINTER_PUBKEY as string;
-  const minterAddr = bytesFromHex(minterAddrHex);
-
-  const state: WorldState = {
-    accounts: {},
-    stakePool: {
-      daVerifierPool: 0n,
-      daVerifiers: [],
-      stateVerifierPool: 0n,
-      stateVerifiers: [],
-    },
-    minter: minterAddr,
-    dataChains: {},
-    offchainComputation: {
-      DACommitteeSampleSize: 3,
-      stateCommitteeSampleSize: 3,
-    },
-  };
-  state.accounts[minterAddrHex] = createAccount(minterAddr, 0n, 0n, 0n);
-
-  return state;
-}
-
 export function hashSignedTransaction(txn: SignedTransaction): Uint8Array {
   const rawTxn = serializeSignedTransaction(txn);
   return Uint8Array.from(keccak256(Buffer.from(rawTxn)));
