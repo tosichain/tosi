@@ -33,13 +33,13 @@ program
 
       // check SENDER_PRIV_KEY is provided
       if (process.env.SENDER_PRIV_KEY) {
-        const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRI_KEY as string));
+        const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
         await coordinator.submitSignedTransaction(signedTxn);
       } else {
+        console.log("Signing using local node");
+
         // submit the unsigned transaction using the client
         await client.submitTransaction(txn);
-
-        console.log("Signing using local node");
       }
 
       console.log("Transaction submitted successfully");
@@ -109,13 +109,13 @@ program
       };
 
       if (process.env.SENDER_PRIV_KEY) {
-        const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRI_KEY as string));
+        const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
         await coordinator.submitSignedTransaction(signedTxn);
       } else {
+        console.log("Signing using local node");
+
         // submit the unsigned transaction using the client
         await client.submitTransaction(txn);
-
-        console.log("Signing using local node");
       }
 
       console.log("Staking transaction submitted successfully");
@@ -140,12 +140,12 @@ program
       };
 
       if (process.env.SENDER_PRIV_KEY) {
-        const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRI_KEY as string));
+        const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
         await coordinator.submitSignedTransaction(signedTxn);
       } else {
-        await client.submitTransaction(txn);
-
         console.log("Signing using local node");
+
+        await client.submitTransaction(txn);
       }
 
       console.log("Unstaking transaction submitted successfully");
