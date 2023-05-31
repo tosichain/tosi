@@ -70,7 +70,7 @@ jobs:
           echo "Sync completed successfully."
       - name: Save log
         if:  ${{ always() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.logfile }}.log
           path: ${{ matrix.logfile }}.log
