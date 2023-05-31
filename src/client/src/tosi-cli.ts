@@ -3,6 +3,7 @@ import * as dotenv from "dotenv";
 import { CoordinatorRPC } from "../../coordinator/src/rpc";
 import { ClientRPC } from "../../client/src/rpc";
 import { bytesFromHex } from "../../blockchain/util";
+import { signTransaction } from "../../blockchain/block";
 import { Transaction, StakeType as ProtoStakeType } from "../../blockchain/types";
 
 dotenv.config();
@@ -30,8 +31,16 @@ program
         nonce: parseInt(nonce, 10),
       };
 
-      // submit transaction
-      await client.submitTransaction(txn);
+      // check SENDER_PRIV_KEY is provided
+      if (process.env.SENDER_PRIV_KEY) {
+        const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRI_KEY as string));
+        await coordinator.submitSignedTransaction(signedTxn);
+      } else {
+        // submit the unsigned transaction using the client
+        await client.submitTransaction(txn);
+
+        console.log("Signing using local node");
+      }
 
       console.log("Transaction submitted successfully");
     } catch (error) {
@@ -99,7 +108,15 @@ program
         nonce: parseInt(nonce, 10),
       };
 
-      await client.submitTransaction(txn);
+      if (process.env.SENDER_PRIV_KEY) {
+        const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRI_KEY as string));
+        await coordinator.submitSignedTransaction(signedTxn);
+      } else {
+        // submit the unsigned transaction using the client
+        await client.submitTransaction(txn);
+
+        console.log("Signing using local node");
+      }
 
       console.log("Staking transaction submitted successfully");
     } catch (error) {
@@ -122,7 +139,14 @@ program
         nonce: parseInt(nonce, 10),
       };
 
-      await client.submitTransaction(txn);
+      if (process.env.SENDER_PRIV_KEY) {
+        const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRI_KEY as string));
+        await coordinator.submitSignedTransaction(signedTxn);
+      } else {
+        await client.submitTransaction(txn);
+
+        console.log("Signing using local node");
+      }
 
       console.log("Unstaking transaction submitted successfully");
     } catch (error) {
