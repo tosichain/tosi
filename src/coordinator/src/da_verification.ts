@@ -15,8 +15,8 @@ const LOG_VERIFIER = "da-verifier";
 const LOG_NETWORK = [LOG_VERIFIER, "network"];
 
 export interface DAVerificationManagerConfig {
-  RequestBroadcastPeriod: number;
-  RequestTimeout: number;
+  requestBroadcastPeriod: number;
+  requestTimeout: number;
 }
 
 export interface TransactionBundleDACheckResult {
@@ -261,12 +261,12 @@ export class DAVerificationManager {
           txnBundleHash: txnBundleHash,
         });
         this.process.reject(
-          new Error("DA verification timeout - no response for " + this.config.RequestTimeout + "ms"),
+          new Error("DA verification timeout - no response for " + this.config.requestTimeout + "ms"),
         );
         this.resetDACheckProcess();
         return;
       }
-    }, this.config.RequestTimeout);
+    }, this.config.requestTimeout);
   }
 
   private async broadcastDASRequest(txnBundleHash: Uint8Array) {
@@ -299,7 +299,7 @@ export class DAVerificationManager {
         );
 
       await new Promise((resolve, _) => {
-        setTimeout(resolve, this.config.RequestBroadcastPeriod);
+        setTimeout(resolve, this.config.requestBroadcastPeriod);
       });
     }
   }

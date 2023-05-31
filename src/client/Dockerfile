@@ -34,4 +34,4 @@ COPY ["src/genkey.mjs", "./" ]
 
 RUN yarn build
 
-CMD [ "yarn", "start" ]
+CMD [ "yarn", "start", "--configFile", "/config/tosi-client.yml"]
