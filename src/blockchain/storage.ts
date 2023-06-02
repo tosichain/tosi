@@ -12,7 +12,7 @@ import {
 } from "./types";
 import { createAccount } from "./transaction";
 import { accountsMerkleTree } from "./block";
-import { bytesToHex, hashBlock, hashSignedTransaction } from "./util";
+import { bytesEqual, bytesToHex, hashBlock, hashSignedTransaction } from "./util";
 import {
   deserializeBlock,
   deserializeSignedTransaction,
@@ -87,6 +87,14 @@ export class BlockchainStorage {
       await this.initDB(initialState);
     } else {
       this.log.info("db already initialised", LOG_STORAGE);
+      const rawState = await this.getValue("state", DB_KEY_STATE_VALUE);
+      if (!rawState) {
+        throw new Error("world state does not exist in database");
+      }
+      const state = deserializeWorldState(rawState);
+      if (!bytesEqual(minterAddr, state.minter)) {
+        throw new Error("specified minter address does not match one from storage");
+      }
     }
   }
 
