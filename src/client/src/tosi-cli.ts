@@ -98,7 +98,7 @@ program
 program
   .command("stake <stakeType> <amount> <nonce>")
   .description("Stake TOSI tokens")
-  .action(async (stakeType: keyof typeof ProtoStakeType, amount: string, nonce: string) => {
+  .action(async (stakeType: keyof typeof ProtoStakeType, amount: string, nonce: string, address: string) => {
     try {
       const stakeTypeProto = ProtoStakeType[stakeType as keyof typeof ProtoStakeType];
 
@@ -111,7 +111,7 @@ program
       };
 
        // Check account balance
-       const account = await coordinator.getAccount(bytesFromHex(process.env.SENDER_PRIV_KEY as string));
+       const account = await coordinator.getAccount(bytesFromHex(address));
        const balance = account ? account.balance : BigInt(0);
        const stakingAmount = BigInt(amount);
        if (balance < stakingAmount) {
@@ -138,7 +138,7 @@ program
 program
   .command("unstake <stakeType> <amount> <nonce>")
   .description("Unstake TOSI tokens")
-  .action(async (stakeType: keyof typeof ProtoStakeType, amount: string, nonce: string) => {
+  .action(async (stakeType: keyof typeof ProtoStakeType, amount: string, nonce: string, address: string) => {
     try {
       const stakeTypeProto = ProtoStakeType[stakeType as keyof typeof ProtoStakeType];
 
@@ -151,16 +151,15 @@ program
       };
 
        // Check account balance
-        const account = await coordinator.getAccount(bytesFromHex(process.env.SENDERS_PRIV_KEY as string));
-        const balance = account ? account.balance : BigInt(0);
+       const account = await coordinator.getAccount(bytesFromHex(address));
+       const balance = account ? account.balance : BigInt(0);
         const unstakingAmount = BigInt(amount);
         if (balance < unstakingAmount) {
           console.error("Insufficient tokens to unstake");
           return;
         }
   
-
-      if (process.env.SENDER_PRIV_KEY) {
+       if (process.env.SENDER_PRIV_KEY) {
         const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
         await coordinator.submitSignedTransaction(signedTxn);
       } else {
@@ -175,7 +174,7 @@ program
     }
   });
 
-  
+
 program
 .command("create-datachain <file>")
 .description("Submit a creation of a data chain")
