@@ -110,6 +110,15 @@ program
         nonce: parseInt(nonce, 10),
       };
 
+       // Check account balance
+       const account = await coordinator.getAccount(bytesFromHex(process.env.SENDER_PRIV_KEY as string));
+       const balance = account ? account.balance : BigInt(0);
+       const stakingAmount = BigInt(amount);
+       if (balance < stakingAmount) {
+         console.error("Insufficient tokens to stake");
+         return;
+       }
+
       if (process.env.SENDER_PRIV_KEY) {
         const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
         await coordinator.submitSignedTransaction(signedTxn);
@@ -140,6 +149,16 @@ program
         },
         nonce: parseInt(nonce, 10),
       };
+
+       // Check account balance
+        const account = await coordinator.getAccount(bytesFromHex(process.env.SENDERS_PRIV_KEY as string));
+        const balance = account ? account.balance : BigInt(0);
+        const unstakingAmount = BigInt(amount);
+        if (balance < unstakingAmount) {
+          console.error("Insufficient tokens to unstake");
+          return;
+        }
+  
 
       if (process.env.SENDER_PRIV_KEY) {
         const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
