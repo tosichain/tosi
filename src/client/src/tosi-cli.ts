@@ -1,9 +1,10 @@
 import { Command } from "commander";
 import * as fs from "fs";
 import * as dotenv from "dotenv";
+import { bls12_381 as BLS } from "@noble/curves/bls12-381";
 import { CoordinatorRPC } from "../../coordinator/src/rpc";
 import { ClientRPC } from "../../client/src/rpc";
-import { bytesFromHex } from "../../blockchain/util";
+import { bytesFromHex, bytesToHex } from "../../blockchain/util";
 import { signTransaction } from "../../blockchain/block";
 import { Transaction, StakeType as ProtoStakeType, CreateDataChain, UpdateDataChain } from "../../blockchain/types";
 import { CID } from "ipfs-http-client";
@@ -111,18 +112,39 @@ program
       };
 
       if (process.env.SENDER_PRIV_KEY) {
-        const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
+        const privateKeyHex = process.env.SENDER_PRIV_KEY;
+        const publicKey = BLS.getPublicKey(bytesFromHex(privateKeyHex));
+        const account = await coordinator.getAccount(publicKey);
+        const balance = account ? account.balance : BigInt(0);
+        const stakingAmount = BigInt(amount);
+
+        if (balance < stakingAmount) {
+          console.error("Insufficient tokens to stake");
+          return;
+        }
+
+        const signedTxn = await signTransaction(txn, bytesFromHex(privateKeyHex));
         await coordinator.submitSignedTransaction(signedTxn);
       } else {
         console.log("Signing using local node");
 
+        // Check account balance using local node
+        const publicKey = await client.getBLSPublicKey();
+        const account = await client.getAccount(publicKey);
+        const balance = account ? account.balance : BigInt(0);
+        const stakingAmount = BigInt(amount);
+
+        if (balance < stakingAmount) {
+          console.error("Insufficient tokens to stake");
+          return;
+        }
         // submit the unsigned transaction using the client
         await client.submitTransaction(txn);
       }
 
       console.log("Staking transaction submitted successfully");
     } catch (error) {
-      console.error(`Error during staking: ${error}`);
+      console.error(`Error during staking: ${error}\n${(error as Error).stack}`);
     }
   });
 
@@ -141,22 +163,44 @@ program
         nonce: parseInt(nonce, 10),
       };
 
-      if (process.env.SENDER_PRIV_KEY) {
-        const signedTxn = await signTransaction(txn, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
+       // Check account balance
+       if (process.env.SENDER_PRIV_KEY) {
+        const privateKeyHex = process.env.SENDER_PRIV_KEY;
+        const publicKey = BLS.getPublicKey(bytesFromHex(privateKeyHex));
+        const account = await coordinator.getAccount(publicKey);
+        const balance = account ? account.balance : BigInt(0);
+        const unstakingAmount = BigInt(amount);
+
+        if (balance < unstakingAmount) {
+          console.error("Insufficient tokens to unstake");
+          return;
+        }
+
+        const signedTxn = await signTransaction(txn, bytesFromHex(privateKeyHex));
         await coordinator.submitSignedTransaction(signedTxn);
       } else {
         console.log("Signing using local node");
 
+        // Check account balance using local node
+        const publicKey = await client.getBLSPublicKey();
+        const account = await client.getAccount(publicKey);
+        const balance = account ? account.balance : BigInt(0);
+        const unstakingAmount = BigInt(amount);
+
+        if (balance < unstakingAmount) {
+          console.error("Insufficient tokens to unstake");
+          return;
+        }
+        // submit the unsigned transaction using the client
         await client.submitTransaction(txn);
       }
 
       console.log("Unstaking transaction submitted successfully");
     } catch (error) {
-      console.error(`Error during unstaking: ${error}`);
+      console.error(`Error during unstaking: ${error}\n${(error as Error).stack}`);
     }
   });
 
-  
 program
 .command("create-datachain <file>")
 .description("Submit a creation of a data chain")
