@@ -46,10 +46,6 @@ jobs:
       - name: Start mainnet
         run: |
           docker compose -p tosi-chain -f ${{ matrix.compose-file }} up --remove-orphans --detach --wait
-      - name: sync logs
-        if: ${{ always() }}
-        run: |
-          docker compose -p tosi-chain -f ${{ matrix.compose-file }} logs --timestamps -f &> ${{ matrix.logfile }}.log &
       - name: Wait for sync
         env:
           COMPOSE_FILE: ${{ matrix.compose-file }}
@@ -65,12 +61,20 @@ jobs:
             fi
           done
           echo "Sync completed successfully."
-      - name: Save log
-        if:  ${{ always() }}
-        uses: actions/upload-artifact@v3
+      - name: Grab logs
+        if: ${{ always() }}
+        run: |
+          mkdir -p logs/
+          for x in $(docker compose -p tosi-chain -f ${{ matrix.compose-file }} ps -a | cut -d " " -f 1 | grep tosi-chain); do
+            docker logs --timestamps $x &> logs/${{ matrix.compose-file }}.${{ matrix.logfile }}.$x.txt
+          done
+          tar -jcf logs.${{ matrix.compose-file }}.${{ matrix.logfile }}.tar.gz logs
+      - name: Upload integration logs
+        uses: actions/upload-artifact@v2
+        if: ${{ always() }}
         with:
-          name: ${{ matrix.logfile }}.log
-          path: ${{ matrix.logfile }}.log
+          name: integration-logs.${{ matrix.compose-file }}.${{ matrix.logfile }}
+          path: logs.${{ matrix.compose-file }}.${{ matrix.logfile }}.tar.gz
       - name: Stop mainnet
         if:  ${{ always() }}
         run: |
