@@ -13,7 +13,7 @@ dotenv.config();
 
 const program = new Command();
 const coordinator = new CoordinatorRPC({
-  serverAddr: process.env.COORDINATOR_RPC_SERVER_ADDR || "coordinator.dev.zippie.com:443",
+  serverAddr: process.env.COORDINATOR_RPC_SERVER_ADDR || "coordinator.tosichain.com:443",
   tls: process.env.COORDINATOR_TLS ? true : false,
 });
 const client = new ClientRPC({
