@@ -12,7 +12,7 @@ RUN go mod download
 RUN CGO_ENABLED=0 make nofuse
 
 
-FROM debian:stable-slim as kernel-base
+FROM debian:bullseye-slim as kernel-base
 
 ARG KERNEL_VERSION="5.5.19"
 ARG KERNEL_URL="https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-${KERNEL_VERSION}.tar.gz"
