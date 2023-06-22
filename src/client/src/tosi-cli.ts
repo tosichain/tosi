@@ -8,14 +8,21 @@ import { bytesFromHex, bytesToHex } from "../../blockchain/util";
 import { signTransaction } from "../../blockchain/block";
 import { Transaction, StakeType as ProtoStakeType, CreateDataChain, UpdateDataChain } from "../../blockchain/types";
 import { CID } from "ipfs-http-client";
+import { readFileSync } from "fs";
+import { load } from "js-yaml";
+import { ClientNodeConfig } from "./node";
 
 dotenv.config();
 
+function loadNodeConfig(): ClientNodeConfig {
+  const configContent = readFileSync("/config/tosi-client.yml", "utf8");
+  const config = load(configContent) as ClientNodeConfig;
+  return config;
+}
+
 const program = new Command();
-const coordinator = new CoordinatorRPC({
-  serverAddr: process.env.COORDINATOR_RPC_SERVER_ADDR || "coordinator.tosichain.com:443",
-  tls: process.env.COORDINATOR_TLS ? true : false,
-});
+const config = loadNodeConfig();
+const coordinator = new CoordinatorRPC(config.coordinator.rpc);
 const client = new ClientRPC({
   serverAddr: process.env.CLIENT_RPC_SERVER_ADDR || "127.0.0.1:30001",
 });
@@ -163,8 +170,8 @@ program
         nonce: parseInt(nonce, 10),
       };
 
-       // Check account balance
-       if (process.env.SENDER_PRIV_KEY) {
+      // Check account balance
+      if (process.env.SENDER_PRIV_KEY) {
         const privateKeyHex = process.env.SENDER_PRIV_KEY;
         const publicKey = BLS.getPublicKey(bytesFromHex(privateKeyHex));
         const account = await coordinator.getAccount(publicKey);
@@ -202,104 +209,104 @@ program
   });
 
 program
-.command("create-datachain <file>")
-.description("Submit a creation of a data chain")
-.action(async (file: string, nonce: string) => {
-  try {
-    const filename = file == "-" ? "/dev/stdin" : file;
-    // read file content
-    const fileContents = fs.readFileSync(filename, "utf-8")
-    const data = JSON.parse(fileContents);
-    const createDataChain: CreateDataChain & { nonce: number } = {
-      rootClaim: {
-        claimer: bytesFromHex(data.root_claim.claimer),
-        prevClaimHash: bytesFromHex(data.root_claim.prev_claim_hash),
-        dataContract: {
-          cid: CID.parse(data.root_claim.data_contract.cid),
-          size: Number(data.root_claim.data_contract.size),
-          cartesiMerkleRoot: bytesFromHex(data.root_claim.data_contract.cartesiMerkleRoot),
+  .command("create-datachain <file>")
+  .description("Submit a creation of a data chain")
+  .action(async (file: string, nonce: string) => {
+    try {
+      const filename = file == "-" ? "/dev/stdin" : file;
+      // read file content
+      const fileContents = fs.readFileSync(filename, "utf-8");
+      const data = JSON.parse(fileContents);
+      const createDataChain: CreateDataChain & { nonce: number } = {
+        rootClaim: {
+          claimer: bytesFromHex(data.root_claim.claimer),
+          prevClaimHash: bytesFromHex(data.root_claim.prev_claim_hash),
+          dataContract: {
+            cid: CID.parse(data.root_claim.data_contract.cid),
+            size: Number(data.root_claim.data_contract.size),
+            cartesiMerkleRoot: bytesFromHex(data.root_claim.data_contract.cartesiMerkleRoot),
+          },
+          input: {
+            cid: CID.parse(data.root_claim.input.cid),
+            size: Number(data.root_claim.input.size),
+            cartesiMerkleRoot: bytesFromHex(data.root_claim.input.cartesiMerkleRoot),
+          },
+          output: {
+            cid: CID.parse(data.root_claim.output.cid),
+            size: Number(data.root_claim.output.size),
+            cartesiMerkleRoot: bytesFromHex(data.root_claim.output.cartesiMerkleRoot),
+          },
+          maxCartesiCycles: BigInt(data.root_claim.max_cartesi_cycles),
+          outputFileHash: bytesFromHex(data.root_claim.output_file_hash),
         },
-        input: {
-          cid: CID.parse(data.root_claim.input.cid),
-          size: Number(data.root_claim.input.size),
-          cartesiMerkleRoot: bytesFromHex(data.root_claim.input.cartesiMerkleRoot),
-        },
-        output: {
-          cid: CID.parse(data.root_claim.output.cid),
-          size: Number(data.root_claim.output.size),
-          cartesiMerkleRoot: bytesFromHex(data.root_claim.output.cartesiMerkleRoot),
-        },
-        maxCartesiCycles: BigInt(data.root_claim.max_cartesi_cycles),
-        outputFileHash: bytesFromHex(data.root_claim.output_file_hash),
-      },
-      nonce: parseInt(nonce, 10),
-    };
+        nonce: parseInt(nonce, 10),
+      };
 
-    // check SENDER_PRIV_KEY is provided
-    if (process.env.SENDER_PRIV_KEY) {
-      const signedTxn = await signTransaction(createDataChain, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
-      await coordinator.submitSignedTransaction(signedTxn);
-    } else {
-      console.log("Signing using local node");
+      // check SENDER_PRIV_KEY is provided
+      if (process.env.SENDER_PRIV_KEY) {
+        const signedTxn = await signTransaction(createDataChain, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
+        await coordinator.submitSignedTransaction(signedTxn);
+      } else {
+        console.log("Signing using local node");
 
-      // submit the unsigned transaction using the client
-      await client.submitTransaction(createDataChain);
+        // submit the unsigned transaction using the client
+        await client.submitTransaction(createDataChain);
+      }
+
+      console.log("Creation of data chain submitted successfully");
+    } catch (error) {
+      console.error(`Error during creation of data chain: ${error}`);
     }
-
-    console.log("Creation of data chain submitted successfully");
-  } catch (error) {
-    console.error(`Error during creation of data chain: ${error}`);
-  }
-});
+  });
 
 program
-.command("update-datachain <file>")
-.description("Submit an update to a data chain")
-.action(async (file: string, nonce: string) => {
-  try {
-    const filename = file === "-" ? "/dev/stdin" : file;
-    const fileContents = fs.readFileSync(filename, "utf-8");
-    const data = JSON.parse(fileContents);
-    const updateDataChain: UpdateDataChain & { nonce: number } = {
-      rootClaimHash: bytesFromHex(data.root_claim_hash),
-      claim: {
-        claimer: bytesFromHex(data.claim.claimer),
-        prevClaimHash: bytesFromHex(data.claim.prev_claim_hash),
-        dataContract: {
-          cid: CID.parse(data.claim.data_contract.cid),
-          size: Number(data.claim.data_contract.size),
-          cartesiMerkleRoot: bytesFromHex(data.claim.data_contract.cartesiMerkleRoot),
+  .command("update-datachain <file>")
+  .description("Submit an update to a data chain")
+  .action(async (file: string, nonce: string) => {
+    try {
+      const filename = file === "-" ? "/dev/stdin" : file;
+      const fileContents = fs.readFileSync(filename, "utf-8");
+      const data = JSON.parse(fileContents);
+      const updateDataChain: UpdateDataChain & { nonce: number } = {
+        rootClaimHash: bytesFromHex(data.root_claim_hash),
+        claim: {
+          claimer: bytesFromHex(data.claim.claimer),
+          prevClaimHash: bytesFromHex(data.claim.prev_claim_hash),
+          dataContract: {
+            cid: CID.parse(data.claim.data_contract.cid),
+            size: Number(data.claim.data_contract.size),
+            cartesiMerkleRoot: bytesFromHex(data.claim.data_contract.cartesiMerkleRoot),
+          },
+          input: {
+            cid: CID.parse(data.claim.input.cid),
+            size: Number(data.claim.input.size),
+            cartesiMerkleRoot: bytesFromHex(data.claim.input.cartesiMerkleRoot),
+          },
+          output: {
+            cid: CID.parse(data.claim.output.cid),
+            size: Number(data.claim.output.size),
+            cartesiMerkleRoot: bytesFromHex(data.claim.output.cartesiMerkleRoot),
+          },
+          maxCartesiCycles: BigInt(data.claim.max_cartesi_cycles),
+          outputFileHash: bytesFromHex(data.claim.output_file_hash),
         },
-        input: {
-          cid: CID.parse(data.claim.input.cid),
-          size: Number(data.claim.input.size),
-          cartesiMerkleRoot: bytesFromHex(data.claim.input.cartesiMerkleRoot),
-        },
-        output: {
-          cid: CID.parse(data.claim.output.cid),
-          size: Number(data.claim.output.size),
-          cartesiMerkleRoot: bytesFromHex(data.claim.output.cartesiMerkleRoot),
-        },
-        maxCartesiCycles: BigInt(data.claim.max_cartesi_cycles),
-        outputFileHash: bytesFromHex(data.claim.output_file_hash),
-      },
-      nonce: parseInt(nonce, 10),
-    };
+        nonce: parseInt(nonce, 10),
+      };
 
-    // check SENDER_PRIV_KEY is provided
-    if (process.env.SENDER_PRIV_KEY) {
-      const signedTxn = await signTransaction(updateDataChain, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
-      await coordinator.submitSignedTransaction(signedTxn);
-    } else {
-      console.log("Signing using local node");
+      // check SENDER_PRIV_KEY is provided
+      if (process.env.SENDER_PRIV_KEY) {
+        const signedTxn = await signTransaction(updateDataChain, bytesFromHex(process.env.SENDER_PRIV_KEY as string));
+        await coordinator.submitSignedTransaction(signedTxn);
+      } else {
+        console.log("Signing using local node");
 
-      // submit the unsigned transaction using the client
-      await client.submitTransaction(updateDataChain);
+        // submit the unsigned transaction using the client
+        await client.submitTransaction(updateDataChain);
+      }
+
+      console.log("Update to data chain submitted successfully");
+    } catch (error) {
+      console.error(`Error during update to data chain: ${error}`);
     }
-
-    console.log("Update to data chain submitted successfully");
-  } catch (error) {
-    console.error(`Error during update to data chain: ${error}`);
-  }
-});
+  });
 program.parse(process.argv);
