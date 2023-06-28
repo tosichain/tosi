@@ -71,12 +71,64 @@ RUN cargo build --release
 RUN cargo install --path . --root /opt/tosi
 
 # =============================================================================
+FROM alpine:3.16.0 as cartesi-build
+RUN apk add --no-cache \
+    build-base \
+    autoconf \
+    automake \
+    cmake \
+    curl \
+    git \
+    pkgconf \
+    libtool \
+    libgomp \
+    boost-dev \
+    openssl-dev \
+    c-ares-dev \
+    zlib-dev \
+    readline-dev \
+    lua5.3-dev \
+    luarocks \
+    patchelf \
+    unzip \
+    wget
+
+RUN luarocks-5.3 install luasocket && \
+    luarocks-5.3 install luasec && \
+    luarocks-5.3 install luaposix && \
+    luarocks-5.3 install lpeg && \
+    luarocks-5.3 install md5 && \
+    luarocks-5.3 install dkjson
+
+RUN echo -e "#!/bin/sh\nsha1sum \"\$@\"" > /usr/bin/shasum && chmod +x /usr/bin/shasum
+
+WORKDIR /build
+ARG CARTESI_EMULATOR_REPO="https://github.com/cartesi/machine-emulator.git"
+
+RUN git clone "${CARTESI_EMULATOR_REPO}"
+
+WORKDIR "/build/machine-emulator"
+RUN git checkout v0.11.1
+RUN make submodules
+RUN make -j$(nproc) dep && \
+    make -j$(nproc) release=yes && \
+    make install && \
+    make clean && \
+    rm -rf *
+
 FROM alpine:3.16.0 as image
 
 ARG KERNEL_VERSION="5.5.19"
 
 RUN apk --no-cache add qemu-system-x86_64 qemu-accel-tcg-x86_64 openssh-server e2tools xxd libgomp boost1.77-serialization wget jq
+RUN apk --no-cache add boost libstdc++ libgomp openssl c-ares zlib readline lua5.3
+COPY --from=cartesi-build /opt/cartesi /opt/cartesi
+
+COPY --from=cartesi-build /usr/local/lib/lua /usr/local/lib/lua
+COPY --from=cartesi-build /usr/local/share/lua /usr/local/share/lua
+
 COPY --from=go-ipfs-build "/app/kubo/cmd/ipfs/ipfs" "/usr/bin/ipfs"
+
 RUN sed -i '/^#Port 22/s/^#//' /etc/ssh/sshd_config \
     && sed -i '/^#PasswordAuthentication/s/^#//' /etc/ssh/sshd_config \
     && sed -i '/^#PermitEmptyPasswords no/s/^#PermitEmptyPasswords no/PermitEmptyPasswords yes/' /etc/ssh/sshd_config \
@@ -84,9 +136,8 @@ RUN sed -i '/^#Port 22/s/^#//' /etc/ssh/sshd_config \
     && echo "root:Docker!" | chpasswd
 
 WORKDIR /app
-
-RUN --mount=type=cache,target=/fetchcache35 wget -c -P /fetchcache35 https://web3.link/loaderv2.squashfs && mkdir -p /data/prepopulate && cp /fetchcache35/* /data/prepopulate
-RUN --mount=type=cache,target=/fetchcache35-car wget -c -P /fetchcache35-car https://web3.link/init_image.car && mkdir -p /data/prepopulate-car && cp /fetchcache35-car/* /data/prepopulate-car
+COPY --from=ghcr.io/tosichain/standard-loader:master@sha256:531624c20bce8e19fd976462f682d1972c2ed9dd1da5ecc7f8eb69d1fddf9dee /loader.squashfs /data/prepopulate/loader.squashfs
+COPY --from=ghcr.io/tosichain/sample-typescript-function-car:master@sha256:86f3c510d80930230c8be423a15e2d2e069dc08c313f5010ece0f4fd3b0f02db /init_image.car /data/prepopulate-car/sample-typescript.car
 RUN truncate -s 16384 /data/prepopulate/empty.16kb
 
 COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" /app
@@ -94,6 +145,7 @@ COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/.config" /app
 COPY --from=kernel-nokvm "/build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" /app/bzImage-nokvm-q35
 COPY --from=kernel-nokvm "/build/kernel/linux-${KERNEL_VERSION}/.config" /app/.config-nokvm
 COPY --from=merkle-tree-build "/opt/tosi/bin/merkle-tree-hash" "/app//merkle-tree-hash"
+
 
 RUN mkdir -p /opt/verifier
 

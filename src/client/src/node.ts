@@ -259,7 +259,7 @@ export class ClientNode {
     return (await this.ipfs.getIPFS().id()).addresses.map((x) => x.toString());
   }
 
-  public async generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction> {
+  public async generateCreateDatachainTxn(params: CreateDatachainParameters): Promise<Transaction | string> {
     const functionDataPromise = this.fetchDAInfoNoCache(params.dataContractCID, false);
     const inputDataPromise = this.fetchDAInfoNoCache(params.inputCID, true);
     const outputDataPromise = this.fetchDAInfoNoCache(params.outputCID, true);
@@ -270,7 +270,7 @@ export class ClientNode {
     const outputInfo = await outputDataPromise;
 
     if (!functionInfo || !inputInfo || !outputInfo) {
-      throw new Error("Missing DA: " + JSON.stringify({ functionInfo, inputInfo, outputInfo }));
+      return "Missing DA: " + JSON.stringify({ functionInfo, inputInfo, outputInfo });
     }
 
     const txn: Transaction = {
@@ -291,10 +291,10 @@ export class ClientNode {
     return txn;
   }
 
-  public async generateUpdateDatachainTxn(params: UpdateDatachainParameters): Promise<Transaction> {
+  public async generateUpdateDatachainTxn(params: UpdateDatachainParameters): Promise<Transaction | string> {
     const chain = await this.storage.getDataChain(params.rootClaimHash);
     if (chain == undefined) {
-      throw new Error(`can not find datachain with root claim ${params.rootClaimHash}`);
+      return `can not find datachain with root claim ${params.rootClaimHash}`;
     }
 
     const functionDataPromise = this.fetchDAInfoNoCache(params.dataContractCID, false);
@@ -307,7 +307,7 @@ export class ClientNode {
     const outputInfo = await outputDataPromise;
 
     if (!functionInfo || !inputInfo || !outputInfo) {
-      throw new Error("Missing DA");
+      return `missing DA`;
     }
 
     const txn: Transaction = {
