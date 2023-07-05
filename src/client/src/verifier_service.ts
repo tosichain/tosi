@@ -24,7 +24,7 @@ export async function createDAInfo(
   car: boolean,
 ): Promise<DAInfo | undefined> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
-  const binary = car ? "/app/grab-and-hash" : "/app/grab-dag-as-car-and-hash"; // Updated script paths to binaries
+  const binary = car ? "/app/grab-and-hash" : "/app/grab-dag-as-car-and-hash.sh"; // Updated script paths to binaries
   const command = `IPFS_API=/dns4/${host}/tcp/${port} TIMEOUT=${timeout}s ${binary} ${path}`;
   const result = JSON.parse((await execCommand(config, log, command)).stdout);
   if (result.error) {
