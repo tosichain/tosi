@@ -70,6 +70,33 @@ RUN cargo build --release
 
 RUN cargo install --path . --root /opt/tosi
 
+# Rust build stage
+FROM rust:latest as rust-build
+
+# Building qemu-run-task
+WORKDIR /app/qemu-run-task
+COPY ./src/verifier/qemu-run-task/Cargo.toml ./Cargo.toml
+COPY ./src/verifier/qemu-run-task/src ./src
+RUN cargo build --release
+
+# Building qemu-test-task
+WORKDIR /app/qemu-test-task
+COPY ./src/verifier/qemu-test-task/Cargo.toml ./Cargo.toml
+COPY ./src/verifier/qemu-test-task/src ./src
+RUN cargo build --release
+
+# Building prepopulate
+WORKDIR /app/prepopulate
+COPY ./src/verifier/prepopulate/Cargo.toml ./Cargo.toml
+COPY ./src/verifier/prepopulate/src ./src
+RUN cargo build --release
+
+# Building grab-and-hash
+WORKDIR /app/grab-and-hash
+COPY ./src/verifier/grab-and-hash/Cargo.toml ./Cargo.toml
+COPY ./src/verifier/grab-and-hash/src ./src
+RUN cargo build --release
+
 # =============================================================================
 FROM alpine:3.16.0 as image
 
@@ -97,14 +124,16 @@ COPY --from=merkle-tree-build "/opt/tosi/bin/merkle-tree-hash" "/app//merkle-tre
 
 RUN mkdir -p /opt/verifier
 
-COPY ./src/verifier/qemu-run-task.sh /app/qemu-run-task.sh
-COPY ./src/verifier/qemu-test-task.sh /app/qemu-test-task.sh
+# Replace shell scripts with rust binary
+COPY --from=rust-build /app/qemu-run-task/target/release/qemu-run-task /app/qemu-run-task
+COPY --from=rust-build /app/qemu-test-task/target/release/qemu-test-task /app/qemu-test-task
+COPY --from=rust-build /app/prepopulate/target/release/prepopulate /app/prepopulate
+COPY --from=rust-build /app/grab-and-hash/target/release/grab-and-hash /app/grab-and-hash
+
 COPY ./src/verifier/qemu-test-cid.sh /app/qemu-test-cid.sh
 COPY ./src/verifier/ssh.sh /app/ssh.sh
-COPY ./src/verifier/grab-and-hash.sh /app/grab-and-hash.sh
 COPY ./src/verifier/grab-dag-as-car-and-hash.sh /app/grab-dag-as-car-and-hash.sh
-COPY ./src/verifier/prepopulate.sh /app/prepopulate.sh
 
-RUN chmod +x /app/ssh.sh /app/grab-and-hash.sh /app/qemu-run-task.sh /app/grab-dag-as-car-and-hash.sh /app/prepopulate.sh /app/qemu-test-cid.sh
+RUN chmod +x /app/ssh.sh /app/grab-and-hash /app/qemu-run-task /app/grab-dag-as-car-and-hash.sh /app/prepopulate /app/qemu-test-cid.sh
 
 CMD [ "/app/ssh.sh" ]

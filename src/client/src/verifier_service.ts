@@ -24,8 +24,8 @@ export async function createDAInfo(
   car: boolean,
 ): Promise<DAInfo | undefined> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
-  const script = car ? "/app/grab-dag-as-car-and-hash.sh" : "/app/grab-and-hash.sh";
-  const command = `IPFS_API=/dns4/${host}/tcp/${port} TIMEOUT=${timeout}s ${script} ${path}`;
+  const binary = car ? "/app/grab-and-hash" : "/app/grab-dag-as-car-and-hash"; // Updated script paths to binaries
+  const command = `IPFS_API=/dns4/${host}/tcp/${port} TIMEOUT=${timeout}s ${binary} ${path}`;
   const result = JSON.parse((await execCommand(config, log, command)).stdout);
   if (result.error) {
     return undefined;
@@ -38,8 +38,8 @@ export async function createDAInfo(
 
 export async function prepopulate(config: VerifierServiceConfig, ipfs: IPFS, log: Logger): Promise<void> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
-  const script = "/app/prepopulate.sh";
-  const command = `IPFS_API=/dns4/${host}/tcp/${port} ${script}`;
+  const binary = "/app/prepopulate"; // Updated script path to binary
+  const command = `IPFS_API=/dns4/${host}/tcp/${port} ${binary}`;
   await execCommand(config, log, command);
 }
 
@@ -66,8 +66,9 @@ export async function execTask(
   inputCID: CID,
 ): Promise<TaskResult> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
+  const binary = "/app/qemu-run-task"; // Updated script path to binary
   // eslint-disable-next-line prettier/prettier
-  const command = `IPFS_API=/dns4/${host}/tcp/${port} /app/qemu-run-task.sh ${prevOutputCID.toString()} ${inputCID.toString()} ${functionCID.toString()}`;
+  const command = `IPFS_API=/dns4/${host}/tcp/${port} ${binary} ${prevOutputCID.toString()} ${inputCID.toString()} ${functionCID.toString()}`;
 
   const result = await execCommand(config, log, command);
   return { output: JSON.parse(result.stdout), stderr: result.stderr };
