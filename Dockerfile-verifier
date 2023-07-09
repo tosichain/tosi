@@ -97,6 +97,12 @@ COPY ./src/verifier/grab-and-hash/Cargo.toml ./Cargo.toml
 COPY ./src/verifier/grab-and-hash/src ./src
 RUN cargo build --release
 
+# Building grab-dag-as-car-and-hash
+WORKDIR /app/grab-dag-as-car-and-hash
+COPY ./src/verifier/grab-dag-as-car-and-hash/Cargo.toml ./Cargo.toml
+COPY ./src/verifier/grab-dag-as-car-and-hash/src ./src
+RUN cargo build --release
+
 # =============================================================================
 FROM alpine:3.16.0 as image
 
@@ -129,11 +135,11 @@ COPY --from=rust-build /app/qemu-run-task/target/release/qemu-run-task /app/qemu
 COPY --from=rust-build /app/qemu-test-task/target/release/qemu-test-task /app/qemu-test-task
 COPY --from=rust-build /app/prepopulate/target/release/prepopulate /app/prepopulate
 COPY --from=rust-build /app/grab-and-hash/target/release/grab-and-hash /app/grab-and-hash
+COPY --from=rust-build /app/grab-dag-as-car-and-hash/target/release/grab-dag-as-car-and-hash /app/grab-dag-as-car-and-hash
 
 COPY ./src/verifier/qemu-test-cid.sh /app/qemu-test-cid.sh
 COPY ./src/verifier/ssh.sh /app/ssh.sh
-COPY ./src/verifier/grab-dag-as-car-and-hash.sh /app/grab-dag-as-car-and-hash.sh
 
-RUN chmod +x /app/ssh.sh /app/grab-and-hash /app/qemu-run-task /app/grab-dag-as-car-and-hash.sh /app/prepopulate /app/qemu-test-cid.sh
+RUN chmod +x /app/ssh.sh /app/grab-and-hash /app/qemu-run-task /app/grab-dag-as-car-and-hash /app/prepopulate /app/qemu-test-cid.sh
 
 CMD [ "/app/ssh.sh" ]
