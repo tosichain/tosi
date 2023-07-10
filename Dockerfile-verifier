@@ -71,7 +71,7 @@ RUN cargo build --release
 RUN cargo install --path . --root /opt/tosi
 
 # Rust build stage
-FROM rust:alpine as rust-build
+FROM rust:alpine3.16 AS rust-build
 
 # Building qemu-run-task
 WORKDIR /app/qemu-run-task
