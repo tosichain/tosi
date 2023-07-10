@@ -15,8 +15,8 @@ fn main() -> std::io::Result<()> {
 
     let cid = &args[1];
 
-    let ipfs_api = env::var("ipfs_api").unwrap_or_else(|_| String::from("/ip4/127.0.0.1/tcp/5001"));
-    let timeout = env::var("timeout").unwrap_or_else(|_| String::from("1m"));
+    let ipfs_api = env::var("IPFS_API").unwrap_or_else(|_| String::from("/ip4/127.0.0.1/tcp/5001"));
+    let timeout = env::var("TIMEOUT").unwrap_or_else(|_| String::from("1m"));
 
     let mut tmpfile = NamedTempFile::new_in("/tmp")?;
     
