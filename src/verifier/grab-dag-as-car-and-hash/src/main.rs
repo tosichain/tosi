@@ -47,8 +47,8 @@ fn main() -> std::io::Result<()> {
     let mut cartesi_merkle_root = String::from_utf8(cartesi_merkle_root_output.stdout)
         .expect("Failed to read output");
 
-    if cartesi_merkle_root.trim().is_empty() {
-        cartesi_merkle_root = String::from("00000000000000000000000000000000"); // default value
+    if cartesi_merkle_root.is_empty() {
+        cartesi_merkle_root = String::from("00000000000000000000000000000000"); // default value -> using it as dummy
     }
 
     let _ = Command::new("ipfs")

@@ -98,8 +98,9 @@ export async function execCommand(
     stderr: result.stderr,
   });
 
-  const stdoutLines = result.stdout.split("\n");
-  const jsonResult = stdoutLines[stdoutLines.length - 1];
+  // Strip non-JSON content(only for debugging purposes)
+  const jsonMatch = result.stdout.match(/\{(.|\n)*\}/);
+  const jsonResult = jsonMatch ? jsonMatch[0] : "";
 
   return { stdout: jsonResult, stderr: result.stderr };
 }
