@@ -11,9 +11,9 @@ fn main() {
 
     let hash = &args[1];
 
-    let tmpfile = tempfile::NamedTempFile::new_in("/tmp").unwrap();
-    let tmpfile_path = tmpfile.path().to_str().unwrap();
-
+    let tmpdir = tempfile::TempDir::new_in("/tmp").unwrap();
+    let tmpdir_path = tmpdir.path().to_str().unwrap();
+ 
     let ipfs_timeout = env::var("TIMEOUT").expect("TIMEOUT is not set");
     let ipfs_api = env::var("IPFS_API").expect("IPFS_API is not set");
 
@@ -24,7 +24,7 @@ fn main() {
         .arg(&ipfs_api)
         .arg("get")
         .arg("-o")
-        .arg(&tmpfile_path)
+        .arg(&tmpdir_path)
         .arg(&hash)
         .status()
         .expect("Failed to run ipfs command");
@@ -34,7 +34,7 @@ fn main() {
         exit(0);
     }
 
-    let metadata = fs::metadata(&tmpfile_path).unwrap();
+    let metadata = fs::metadata(&tmpdir_path).unwrap();
     let size = metadata.len();
 
     let log2 = "31";
@@ -45,7 +45,7 @@ fn main() {
         .arg(&log2)
         .arg("--log2-leaf-size=12")
         .arg("--input")
-        .arg(&tmpfile_path)
+        .arg(&tmpdir_path)
         .output()
         .expect("Failed to run merkle-tree-hash command");
 
