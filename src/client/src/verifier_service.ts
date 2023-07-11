@@ -97,5 +97,9 @@ export async function execCommand(
     stdout: result.stdout,
     stderr: result.stderr,
   });
+
+  console.log("Command stdout: ", result.stdout);
+  console.log("Command stderr: ", result.stderr);
+
   return { stdout: result.stdout, stderr: result.stderr };
 }
