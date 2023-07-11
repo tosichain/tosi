@@ -4,6 +4,7 @@ use std::fs;
 use std::io::prelude::*;
 use tempfile::NamedTempFile;
 use serde_json::json;
+use uuid::Uuid;
 
 fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -14,12 +15,12 @@ fn main() -> std::io::Result<()> {
     }
 
     let cid = &args[1];
-
     let ipfs_api = env::var("IPFS_API").unwrap_or_else(|_| String::from("/ip4/127.0.0.1/tcp/5001"));
     let timeout = env::var("TIMEOUT").unwrap_or_else(|_| String::from("1m"));
 
-    let mut tmpfile = NamedTempFile::new_in("/tmp")?;
-    
+    let unique_id = Uuid::new_v4();
+    let unique_path_str = format!("/tmp/{}", unique_id.to_string());
+
     let output = Command::new("ipfs")
         .args(&["--timeout", &timeout, "--api", &ipfs_api, "dag", "export", cid])
         .output()
@@ -30,10 +31,10 @@ fn main() -> std::io::Result<()> {
         exit(0);
     }
 
-    tmpfile.write_all(&output.stdout)?;
+    fs::write(&unique_path_str, &output.stdout)?;
 
     let log2 = 31;
-    let metadata = fs::metadata(tmpfile.path())?;
+    let metadata = fs::metadata(&unique_path_str)?;
     let size = metadata.len();
 
     let cartesi_merkle_root_output = Command::new("/app/merkle-tree-hash")
@@ -41,7 +42,7 @@ fn main() -> std::io::Result<()> {
             "--log2-word-size=3",
             "--log2-root-size", &log2.to_string(),
             "--log2-leaf-size=12",
-            "--input", &tmpfile.path().to_string_lossy()])
+            "--input", &unique_path_str])
         .output()
         .expect("Failed to execute command");
 

@@ -1,6 +1,7 @@
 use std::process::{Command, exit};
 use std::env;
 use std::fs;
+use uuid::Uuid;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -11,9 +12,9 @@ fn main() {
 
     let hash = &args[1];
 
-    let tmpdir = tempfile::TempDir::new_in("/tmp").unwrap();
-    let tmpdir_path = tmpdir.path().to_str().unwrap();
- 
+    let unique_id = Uuid::new_v4();
+    let tmpfile_path = format!("/tmp/{}", unique_id.to_string());
+
     let ipfs_timeout = env::var("TIMEOUT").expect("TIMEOUT is not set");
     let ipfs_api = env::var("IPFS_API").expect("IPFS_API is not set");
 
@@ -24,7 +25,7 @@ fn main() {
         .arg(&ipfs_api)
         .arg("get")
         .arg("-o")
-        .arg(&tmpdir_path)
+        .arg(&tmpfile_path)
         .arg(&hash)
         .status()
         .expect("Failed to run ipfs command");
@@ -34,7 +35,7 @@ fn main() {
         exit(0);
     }
 
-    let metadata = fs::metadata(&tmpdir_path).unwrap();
+    let metadata = fs::metadata(&tmpfile_path).unwrap();
     let size = metadata.len();
 
     let log2 = "31";
@@ -45,7 +46,7 @@ fn main() {
         .arg(&log2)
         .arg("--log2-leaf-size=12")
         .arg("--input")
-        .arg(&tmpdir_path)
+        .arg(&tmpfile_path)
         .output()
         .expect("Failed to run merkle-tree-hash command");
 
