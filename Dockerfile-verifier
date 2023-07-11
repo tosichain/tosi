@@ -126,7 +126,7 @@ COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzIm
 COPY --from=kernel-kvm "/build/kernel/linux-${KERNEL_VERSION}/.config" /app
 COPY --from=kernel-nokvm "/build/kernel/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage" /app/bzImage-nokvm-q35
 COPY --from=kernel-nokvm "/build/kernel/linux-${KERNEL_VERSION}/.config" /app/.config-nokvm
-COPY --from=merkle-tree-build "/opt/tosi/bin/merkle-tree-hash" "/app//merkle-tree-hash"
+COPY --from=merkle-tree-build "/opt/tosi/bin/merkle-tree-hash" "/app/merkle-tree-hash"
 
 RUN mkdir -p /opt/verifier
 
