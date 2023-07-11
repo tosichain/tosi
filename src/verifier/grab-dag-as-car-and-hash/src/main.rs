@@ -35,20 +35,20 @@ fn main() -> std::io::Result<()> {
     let metadata = fs::metadata(&unique_path_str)?;
     let size = metadata.len();
 
-    // let cartesi_merkle_root_output = Command::new("/app/merkle-tree-hash")
-    //     .args(&[
-    //         "--log2-word-size=3",
-    //         "--log2-root-size", &log2.to_string(),
-    //         "--log2-leaf-size=12",
-    //         "--input", &unique_path_str])
-    //     .output()
-    //     .expect("Failed to execute command");
+     let cartesi_merkle_root_output = Command::new("/app/merkle-tree-hash")
+         .args(&[
+             "--log2-word-size=3",
+             "--log2-root-size", &log2.to_string(),
+             "--log2-leaf-size=12",
+             "--input", &unique_path_str])
+         .output()
+         .expect("Failed to execute command");
 
-    // let mut cartesi_merkle_root = String::from_utf8(cartesi_merkle_root_output.stdout)
-    //     .expect("Failed to read output");
+     let cartesi_merkle_root = String::from_utf8(cartesi_merkle_root_output.stdout)
+         .expect("Failed to read output");
 
-    let cartesi_merkle_root = "00000000000000000000000000000000".to_string();
-    
+    // let cartesi_merkle_root = "00000000000000000000000000000000".to_string();
+
     let _ = Command::new("ipfs")
         .args(&["--api", &ipfs_api, "pin", "add", cid])
         .output()

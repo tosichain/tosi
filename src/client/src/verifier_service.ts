@@ -32,7 +32,7 @@ export async function createDAInfo(
   }
   return {
     size: Number(result.size),
-    cartesiMerkleRoot: bytesFromHex(result.cartesi_merkle_root),
+    cartesiMerkleRoot: bytesFromHex(result.cartesi_merkle_root || "00000000000000000000000000000000"),
   } as DAInfo;
 }
 
