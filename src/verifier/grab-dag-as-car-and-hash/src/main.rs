@@ -1,8 +1,6 @@
 use std::process::{Command, exit};
 use std::env;
 use std::fs;
-use std::io::prelude::*;
-use tempfile::NamedTempFile;
 use serde_json::json;
 use uuid::Uuid;
 
@@ -46,8 +44,12 @@ fn main() -> std::io::Result<()> {
         .output()
         .expect("Failed to execute command");
 
-    let cartesi_merkle_root = String::from_utf8(cartesi_merkle_root_output.stdout)
+    let mut cartesi_merkle_root = String::from_utf8(cartesi_merkle_root_output.stdout)
         .expect("Failed to read output");
+
+    if cartesi_merkle_root.trim().is_empty() {
+        cartesi_merkle_root = String::from("00000000000000000000000000000000"); // default value
+    }
 
     let _ = Command::new("ipfs")
         .args(&["--api", &ipfs_api, "pin", "add", cid])
