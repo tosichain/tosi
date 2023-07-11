@@ -98,8 +98,8 @@ export async function execCommand(
     stderr: result.stderr,
   });
 
-  console.log("Command stdout: ", result.stdout);
-  console.log("Command stderr: ", result.stderr);
+  const stdoutLines = result.stdout.split("\n");
+  const jsonResult = stdoutLines[stdoutLines.length - 1];
 
-  return { stdout: result.stdout, stderr: result.stderr };
+  return { stdout: jsonResult, stderr: result.stderr };
 }
