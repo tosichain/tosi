@@ -28,14 +28,14 @@ export async function createDAInfo(
   const command = `IPFS_API=/dns4/${host}/tcp/${port} TIMEOUT=${timeout}s ${binary} ${path}`;
   const result = JSON.parse((await execCommand(config, log, command)).stdout);
 
-  log.info("Result from command", LOG_VERIFIER, { result: result }); // Added logging
+  // log.info("Result from command", LOG_VERIFIER, { result: result }); // Added logging
 
   if (result.error) {
     return undefined;
   }
   return {
     size: Number(result.size),
-    cartesiMerkleRoot: bytesFromHex(result.cartesi_merkle_root ?? "00000000000000000000000000000000"),
+    cartesiMerkleRoot: bytesFromHex(result.cartesi_merkle_root),
   } as DAInfo;
 }
 
