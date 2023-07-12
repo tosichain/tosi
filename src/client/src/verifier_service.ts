@@ -101,9 +101,13 @@ export async function execCommand(
     stderr: result.stderr,
   });
 
-  // Strip non-JSON content(only for debugging purposes)
-  // const jsonMatch = result.stdout.match(/\{(.|\n)*\}/);
-  // const jsonResult = jsonMatch ? jsonMatch[0] : "";
-
-  return { stdout: result.stdout, stderr: result.stderr };
+  // (only for debugging purposes)
+  let stdout = "";
+  try {
+    stdout = JSON.stringify(JSON.parse(result.stdout));
+  } catch (error) {
+    log.error("Non-JSON output ignored");
+    stdout = "";
+  }
+  return { stdout, stderr: result.stderr };
 }
