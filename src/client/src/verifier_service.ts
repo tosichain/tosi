@@ -102,8 +102,8 @@ export async function execCommand(
   });
 
   // Strip non-JSON content(only for debugging purposes)
-  const jsonMatch = result.stdout.match(/\{(.|\n)*\}/);
-  const jsonResult = jsonMatch ? jsonMatch[0] : "";
+  // const jsonMatch = result.stdout.match(/\{(.|\n)*\}/);
+  // const jsonResult = jsonMatch ? jsonMatch[0] : "";
 
-  return { stdout: jsonResult, stderr: result.stderr };
+  return { stdout: result.stdout, stderr: result.stderr };
 }
