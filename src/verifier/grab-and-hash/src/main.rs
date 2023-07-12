@@ -63,5 +63,6 @@ fn main() {
         .status()
         .expect("Failed to run ipfs pin add command");
 
-    println!("{{\"CARTESI_MERKLE_ROOT\":\"{}\",\"SIZE\":\"{}\"}}", cartesi_merkle_root, size);
+        println!("{{\"cartesi_merkle_root\":\"{}\",\"size\":\"{}\"}}", cartesi_merkle_root, size);
+
 }
