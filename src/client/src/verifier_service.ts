@@ -24,12 +24,9 @@ export async function createDAInfo(
   car: boolean,
 ): Promise<DAInfo | undefined> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
-  const binary = car ? "/app/grab-and-hash" : "/app/grab-dag-as-car-and-hash"; // Updated script paths to binaries
-  const command = `IPFS_API=/dns4/${host}/tcp/${port} TIMEOUT=${timeout}s ${binary} ${path}`;
+  const script = car ? "/app/grab-dag-as-car-and-hash" : "/app/grab-and-hash";
+  const command = `IPFS_API=/dns4/${host}/tcp/${port} TIMEOUT=${timeout}s ${script} ${path}`;
   const result = JSON.parse((await execCommand(config, log, command)).stdout);
-
-  // log.info("Result from command", LOG_VERIFIER, { result: result }); // Added logging
-
   if (result.error) {
     return undefined;
   }
@@ -41,8 +38,8 @@ export async function createDAInfo(
 
 export async function prepopulate(config: VerifierServiceConfig, ipfs: IPFS, log: Logger): Promise<void> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
-  const binary = "/app/prepopulate"; // Updated script path to binary
-  const command = `IPFS_API=/dns4/${host}/tcp/${port} ${binary}`;
+  const script = "/app/prepopulate";
+  const command = `IPFS_API=/dns4/${host}/tcp/${port} ${script}`;
   await execCommand(config, log, command);
 }
 
@@ -69,9 +66,8 @@ export async function execTask(
   inputCID: CID,
 ): Promise<TaskResult> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
-  const binary = "/app/qemu-run-task"; // Updated script path to binary
   // eslint-disable-next-line prettier/prettier
-  const command = `IPFS_API=/dns4/${host}/tcp/${port} ${binary} ${prevOutputCID.toString()} ${inputCID.toString()} ${functionCID.toString()}`;
+  const command = `IPFS_API=/dns4/${host}/tcp/${port} /app/qemu-run-task ${prevOutputCID.toString()} ${inputCID.toString()} ${functionCID.toString()}`;
 
   const result = await execCommand(config, log, command);
   return { output: JSON.parse(result.stdout), stderr: result.stderr };
@@ -100,14 +96,5 @@ export async function execCommand(
     stdout: result.stdout,
     stderr: result.stderr,
   });
-
-  // (only for debugging purposes)
-  let stdout = "";
-  try {
-    stdout = JSON.stringify(JSON.parse(result.stdout));
-  } catch (error) {
-    log.error("Non-JSON output ignored");
-    stdout = "";
-  }
-  return { stdout, stderr: result.stderr };
+  return { stdout: result.stdout, stderr: result.stderr };
 }
