@@ -54,14 +54,21 @@ fn main() {
 
     let cartesi_merkle_root = String::from_utf8(output.stdout).unwrap().trim().to_string();
 
-    let _ = Command::new("ipfs")
+    let status = Command::new("ipfs")
         .arg("--api")
         .arg(&ipfs_api)
         .arg("pin")
         .arg("add")
         .arg(&hash)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()
         .expect("Failed to run ipfs pin add command");
+
+    if !status.success() {
+        println!("Error: ipfs pin add command failed");
+        exit(0);
+    }
 
     println!("{{\"cartesi_merkle_root\":\"{}\",\"size\":\"{}\"}}", cartesi_merkle_root, size);
 }
