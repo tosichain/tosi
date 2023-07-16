@@ -1,7 +1,7 @@
-use std::fs::{self, OpenOptions};
-use std::io::{self, Read, Write, Seek, SeekFrom};
-use std::process::Command;
 use std::env;
+use std::fs::{self, OpenOptions};
+use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::process::{Command, exit};
 use std::path::Path;
 use tempfile::tempdir;
 use sha2::{Sha256, Digest};
@@ -11,8 +11,8 @@ fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 4 {
-        println!("Usage: {} PREVIOUS_OUTPUT_CID INPUT_CID FUNCTION_CID", args[0]);
-        std::process::exit(1);
+        eprintln!("Usage: {} PREVIOUS_OUTPUT_CID INPUT_CID FUNCTION_CID", args[0]);
+        exit(1);
     }
 
     let previous_output_cid = &args[1];
@@ -25,7 +25,7 @@ fn main() -> io::Result<()> {
 
     let task_dir = dir.path().to_str().unwrap().to_string();
 
-    println!("TASK_DIR={}", &task_dir);
+    eprintln!("TASK_DIR={}", &task_dir);
 
     for (cid, name) in [(previous_output_cid, "previous_output.car"), (input_cid, "input.car")].iter() {
         let output = Command::new("ipfs")
@@ -115,10 +115,10 @@ fn main() -> io::Result<()> {
     let mut hasher = Sha256::new();
     hasher.update(output);
     let result = hasher.finalize();
-    println!("OUTPUT_SHA256={}", encode(result));
+    eprintln!("OUTPUT_SHA256={}", encode(result));
 
     let output = Command::new("ipfs")
-        .args(&["--api", &ipfs_api, "dag", "import", &format!("{}", &output_image)])
+        .args(&["--api", &ipfs_api, "dag", "import", &output_image])
         .output()
         .expect("Failed to execute command");
 
@@ -133,7 +133,7 @@ fn main() -> io::Result<()> {
 
     let output_cid = pinned_root.split_whitespace().last().unwrap();
 
-    println!("OUTPUT_CID={}", output_cid);
+    eprintln!("OUTPUT_CID={}", output_cid);
 
     dir.close()?;
 
