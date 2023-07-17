@@ -61,8 +61,11 @@ fn main() -> io::Result<()> {
         .output()
         .expect("Failed to execute command");
 
-    let _validator_root = "/opt/validator";
-    let scratch_image = format!("{}/scratch.img", task_dir);
+    let scratch_image_path = format!("{}/scratch.img", task_dir);
+    let file = OpenOptions::new().write(true).create(true).open(&scratch_image_path)?;
+    let size_in_bytes = 2 * 1024 * 1024 * 1024; 
+    file.set_len(size_in_bytes)?;
+
     let kernel = "/app/bzImage";
     let function_image = format!("{}/function.img", task_dir);
     let metadata_image = format!("{}/metadata.img", task_dir);
@@ -82,7 +85,7 @@ fn main() -> io::Result<()> {
         .arg("-append")
         .arg(format!("console=ttyS0 init={} init_arg1={} init_arg2={} init_arg3={} init_arg4={} init_arg5={} init_arg6={}",
                      "/init",
-                     &scratch_image,
+                     &scratch_image_path,
                      &function_image,
                      &metadata_image,
                      &previous_output_image,
@@ -91,7 +94,7 @@ fn main() -> io::Result<()> {
         .arg("-m")
         .arg("1024")
         .arg("-drive")
-        .arg(format!("file={},format=raw", &scratch_image))
+        .arg(format!("file={},format=raw", &scratch_image_path))
         .arg("-drive")
         .arg(format!("file={},format=raw", &function_image))
         .arg("-drive")
@@ -134,8 +137,6 @@ fn main() -> io::Result<()> {
     let output_cid = pinned_root.split_whitespace().last().unwrap();
 
     eprintln!("OUTPUT_CID={}", output_cid);
-
-    let _persisted_dir = dir.into_path();
 
     Ok(())
 }
