@@ -135,7 +135,7 @@ fn main() -> io::Result<()> {
 
     eprintln!("OUTPUT_CID={}", output_cid);
 
-    // dir.close()?;
+    let _persisted_dir = dir.into_path();
 
     Ok(())
 }
