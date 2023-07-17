@@ -135,7 +135,7 @@ fn main() -> io::Result<()> {
 
     eprintln!("OUTPUT_CID={}", output_cid);
 
-    dir.close()?;
+    // dir.close()?;
 
     Ok(())
 }
