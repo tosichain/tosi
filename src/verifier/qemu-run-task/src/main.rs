@@ -8,25 +8,32 @@ use sha2::{Sha256, Digest};
 use hex::encode;
 
 fn main() -> io::Result<()> {
+    // Collect arguments passed to the program
     let args: Vec<String> = env::args().collect();
 
+    // priint usage and exit when not enough arguments are passed
     if args.len() < 4 {
         eprintln!("Usage: {} PREVIOUS_OUTPUT_CID INPUT_CID FUNCTION_CID", args[0]);
         exit(1);
     }
-
+    
+    // commandline arguments
     let previous_output_cid = &args[1];
     let input_cid = &args[2];
     let function_cid = &args[3];
 
+    // ipfs endpoint.. default to localhost if not set
     let ipfs_api = env::var("IPFS_API").unwrap_or_else(|_| String::from("/ip4/127.0.0.1/tcp/5001"));
 
+    // temporary dir
     let dir = tempdir()?;
 
+    //temp dir to string
     let task_dir = dir.path().to_str().unwrap().to_string();
 
     eprintln!("TASK_DIR={}", &task_dir);
 
+    // Fetch the files associated with the CIDs for previous output and input from IPFS, writing them to disk
     for (cid, name) in [(previous_output_cid, "previous_output.car"), (input_cid, "input.car")].iter() {
         let output = Command::new("ipfs")
             .args(&["--api", &ipfs_api, "dag", "export", cid])
@@ -36,6 +43,7 @@ fn main() -> io::Result<()> {
         fs::write(format!("{}/{}", task_dir, name), output.stdout)?;
     }
 
+    //  Create a metadata image for each of the files, containing the size of the file and padding to reach a multiple of 4096 bytes
     for name in ["previous_output.car", "input.car"].iter() {
         let metadata = fs::metadata(format!("{}/{}", task_dir, name))?;
         let size = metadata.len();
@@ -49,6 +57,7 @@ fn main() -> io::Result<()> {
         file.write_all(&[0u8; 4096][..4096 - (size % 4096) as usize])?;
     }
 
+    // Set the size of each image to the expected size, extending with zero bytes if necessary
     for (size, name) in [(2147483648, "previous_output.car"), (2147483648, "input.car"), (4096, "metadata.img")].iter() {
         let file = OpenOptions::new()
             .write(true)
@@ -56,16 +65,19 @@ fn main() -> io::Result<()> {
         file.set_len(*size)?;
     }
 
+    // Fetch the function image from IPFS
     let _output = Command::new("ipfs")
         .args(&["--api", &ipfs_api, "get", "-o", &format!("{}/function.img", task_dir), function_cid])
         .output()
         .expect("Failed to execute command");
 
+     // Create a scratch image of 2GiB
     let scratch_image_path = format!("{}/scratch.img", task_dir);
     let file = OpenOptions::new().write(true).create(true).open(&scratch_image_path)?;
     let size_in_bytes = 2 * 1024 * 1024 * 1024; 
     file.set_len(size_in_bytes)?;
 
+    // Set up paths for the function, metadata, previous output, and input images
     let kernel = "/app/bzImage";
     let function_image = format!("{}/function.img", task_dir);
     let metadata_image = format!("{}/metadata.img", task_dir);
@@ -75,6 +87,7 @@ fn main() -> io::Result<()> {
 
     let kvm = if Path::new("/dev/kvm").exists() { "-enable-kvm" } else { "" };
 
+    // Set up command to run QEMU
     let mut command = Command::new("qemu-system-x86_64");
     command
         .arg("-nographic")
@@ -109,22 +122,27 @@ fn main() -> io::Result<()> {
         .arg("-cpu")
         .arg("host");
 
+    // excute the command
     let _ = command.output()?;
 
+    // reading the output image into byte array
     let mut output = Vec::new();
     let mut file = OpenOptions::new().read(true).open(&output_image)?;
     file.read_to_end(&mut output)?;
 
+    // hash the output image
     let mut hasher = Sha256::new();
     hasher.update(output);
     let result = hasher.finalize();
     eprintln!("OUTPUT_SHA256={}", encode(result));
 
+    // importing the output image into IPFS and getting the new CID
     let output = Command::new("ipfs")
         .args(&["--api", &ipfs_api, "dag", "import", &output_image])
         .output()
         .expect("Failed to execute command");
 
+    // parsing the new CID from the output of the import command
     let binding = String::from_utf8(output.stdout)
         .expect("Failed to read output");
 
@@ -136,6 +154,7 @@ fn main() -> io::Result<()> {
 
     let output_cid = pinned_root.split_whitespace().last().unwrap();
 
+    // print new CID
     eprintln!("OUTPUT_CID={}", output_cid);
 
     Ok(())

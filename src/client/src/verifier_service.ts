@@ -69,8 +69,19 @@ export async function execTask(
   // eslint-disable-next-line prettier/prettier
   const command = `IPFS_API=/dns4/${host}/tcp/${port} /app/qemu-run-task ${prevOutputCID.toString()} ${inputCID.toString()} ${functionCID.toString()}`;
 
-  const result = await execCommand(config, log, command);
-  return { output: JSON.parse(result.stdout), stderr: result.stderr };
+  try {
+    const result = await execCommand(config, log, command);
+    const output = JSON.parse(result.stdout);
+
+    return { output: output, stderr: result.stderr };
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      log.error(`Error executing task: ${error.message}`);
+    } else {
+      log.error(`Error executing task: ${error}`);
+    }
+    throw error;
+  }
 }
 
 export interface CommandResult {
