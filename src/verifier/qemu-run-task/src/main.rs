@@ -71,7 +71,7 @@ fn main() -> io::Result<()> {
         .output()
         .expect("Failed to execute command");
 
-     // Create a scratch image of 2GiB
+    // Create a scratch image of 2GiB
     let scratch_image_path = format!("{}/scratch.img", task_dir);
     let file = OpenOptions::new().write(true).create(true).open(&scratch_image_path)?;
     let size_in_bytes = 2 * 1024 * 1024 * 1024; 
@@ -122,40 +122,33 @@ fn main() -> io::Result<()> {
         .arg("-cpu")
         .arg("host");
 
-    // excute the command
+    // Execute QEMU command
     let _ = command.output()?;
 
-    // reading the output image into byte array
+    // Read the result from the output image
     let mut output = Vec::new();
     let mut file = OpenOptions::new().read(true).open(&output_image)?;
     file.read_to_end(&mut output)?;
 
-    // hash the output image
+    // Compute the SHA-256 hash of the output
     let mut hasher = Sha256::new();
     hasher.update(output);
     let result = hasher.finalize();
     eprintln!("OUTPUT_SHA256={}", encode(result));
 
-    // importing the output image into IPFS and getting the new CID
+    // Import the output image to IPFS
     let output = Command::new("ipfs")
-        .args(&["--api", &ipfs_api, "dag", "import", &output_image])
+        .args(&["--api", &ipfs_api, "block", "put", &output_image])
         .output()
         .expect("Failed to execute command");
 
-    // parsing the new CID from the output of the import command
-    let binding = String::from_utf8(output.stdout)
-        .expect("Failed to read output");
-
-    let pinned_root = binding
-        .lines()
-        .filter_map(|line| line.split_whitespace().nth(2))
-        .next()
-        .unwrap_or_else(|| panic!("Failed to find pinned root"));
-
-    let output_cid = pinned_root.split_whitespace().last().unwrap();
-
-    // print new CID
+    // Extract the CID of the output from IPFS command output
+    let mut output_cid = String::from_utf8(output.stdout).unwrap();
+    output_cid = output_cid.trim().to_string();
     eprintln!("OUTPUT_CID={}", output_cid);
+
+    // Clean up temporary directory
+    dir.close()?;
 
     Ok(())
 }
