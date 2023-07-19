@@ -117,49 +117,102 @@ fn main() -> io::Result<()> {
 
     eprintln!("Image paths set up");
 
-    let kvm = if Path::new("/dev/kvm").exists() { "-enable-kvm" } else { "" };
+    // Check if /dev/kvm exists
+    let kvm_exists = Path::new("/dev/kvm").exists();
 
-    // Set up command to run QEMU
-    let mut command = Command::new("qemu-system-x86_64");
-    command
-        .arg("-nographic")
-        .arg("-nodefaults")
-        .arg("-no-reboot")
-        .arg("-kernel")
-        .arg(&kernel)
-        .arg("-append")
-        .arg(format!("console=ttyS0 init={} init_arg1={} init_arg2={} init_arg3={} init_arg4={} init_arg5={} init_arg6={}",
-                     "/init",
-                     &scratch_image,
-                     &function_image,
-                     &metadata_image,
-                     &previous_output_image,
-                     &input_image,
-                     &output_image))
-        .arg("-m")
-        .arg("1024")
-        .arg("-drive")
-        .arg(format!("file={},format=raw", &scratch_image))
-        .arg("-drive")
-        .arg(format!("file={},format=raw", &function_image))
-        .arg("-drive")
-        .arg(format!("file={},format=raw", &metadata_image))
-        .arg("-drive")
-        .arg(format!("file={},format=raw", &previous_output_image))
-        .arg("-drive")
-        .arg(format!("file={},format=raw", &input_image))
-        .arg("-drive")
-        .arg(format!("file={},format=raw", &output_image))
-        .arg(kvm)
-        .arg("-cpu")
-        .arg("host");
+    if kvm_exists {
+        let kvm = "-enable-kvm";
 
-    eprintln!("Command to run QEMU set up");
+        // Set up command to run QEMU with KVM
+        let mut command = Command::new("qemu-system-x86_64");
+        command
+            .arg("-nographic")
+            .arg("-nodefaults")
+            .arg("-no-reboot")
+            .arg("-kernel")
+            .arg(&kernel)
+            .arg("-append")
+            .arg(format!("console=ttyS0 init={} init_arg1={} init_arg2={} init_arg3={} init_arg4={} init_arg5={} init_arg6={}",
+                         "/init",
+                         &scratch_image,
+                         &function_image,
+                         &metadata_image,
+                         &previous_output_image,
+                         &input_image,
+                         &output_image))
+            .arg("-m")
+            .arg("1024")
+            .arg("-drive")
+            .arg(format!("file={},format=raw", &scratch_image))
+            .arg("-drive")
+            .arg(format!("file={},format=raw", &function_image))
+            .arg("-drive")
+            .arg(format!("file={},format=raw", &metadata_image))
+            .arg("-drive")
+            .arg(format!("file={},format=raw", &previous_output_image))
+            .arg("-drive")
+            .arg(format!("file={},format=raw", &input_image))
+            .arg("-drive")
+            .arg(format!("file={},format=raw", &output_image))
+            .arg(kvm)
+            .arg("-cpu")
+            .arg("host");
 
-    // Execute QEMU command
-    let _ = command.output()?;
+        eprintln!("Command to run QEMU set up");
 
-    eprintln!("QEMU command executed");
+        // Execute QEMU command
+        let output = command.output().expect("Failed to execute command");
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            eprintln!("QEMU command failed: {}", stderr);
+            // Handle the error accordingly
+        }
+
+        eprintln!("QEMU command executed");
+    } else {
+        let kernel = "/app/bzImage-nokvm-q35";
+
+        // Set up command to run QEMU without KVM
+        let mut command = Command::new("qemu-system-x86_64");
+        command
+            .arg("-nographic")
+            .arg("-no-reboot")
+            .arg("-M")
+            .arg("q35,accel=tcg")
+            .arg("-m")
+            .arg("512m")
+            .arg("-cpu")
+            .arg("max")
+            .arg("-smp")
+            .arg("cpus=1,cores=1,threads=1")
+            .arg("-drive")
+            .arg(format!("driver=raw,if=virtio,readonly=on,file={}", &function_image))
+            .arg("-drive")
+            .arg(format!("driver=raw,if=virtio,file={}", &output_image))
+            .arg("-drive")
+            .arg(format!("driver=raw,if=virtio,readonly=on,file={}", &previous_output_image))
+            .arg("-drive")
+            .arg(format!("driver=raw,if=virtio,cache=unsafe,file={}", &scratch_image))
+            .arg("-drive")
+            .arg(format!("driver=raw,if=virtio,readonly=on,file={}", &input_image))
+            .arg("-drive")
+            .arg(format!("driver=raw,if=virtio,readonly=on,file={}", &metadata_image))
+            .arg("-kernel")
+            .arg(kernel)
+            .arg("-append")
+            .arg("earlyprintk=ttyS0 console=ttyS0 reboot=t root=/dev/vda init=/qemu-init panic=1");
+
+        eprintln!("Command to run QEMU set up");
+
+        // Execute QEMU command
+        let output = command.output().expect("Failed to execute command");
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            eprintln!("QEMU command failed: {}", stderr);
+        }
+
+        eprintln!("QEMU command executed");
+    }
 
     // Read the result from the output image
     let mut output = Vec::new();
