@@ -223,20 +223,21 @@ fn main() -> io::Result<()> {
             let stderr = String::from_utf8_lossy(&output.stderr);
             eprintln!("QEMU command failed: {}", stderr);
         } else {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            println!("QEMU command output: {}", stdout);
+            // let stdout = String::from_utf8_lossy(&output.stdout);
+            // println!("QEMU command output: {}", stdout);
             eprintln!("QEMU command executed");
         }
     }
 
-        // Copy the output from the scratch.img file to output.car using e2cp
+    // Copy the output from the scratch.img file to output.car using e2cp
     let e2cp_output = Command::new("e2cp")
         .arg(format!("{}/scratch.img:/root/output.bin", task_dir))
         .arg(format!("{}/output.car", task_dir))
         .output()?;
-    
+
     if !e2cp_output.status.success() {
         eprintln!("e2cp command failed with error: {:?}", e2cp_output.stderr);
+        fs::write(format!("{}/output.car", task_dir), "")?;
     } else {
         eprintln!("Copied output from scratch image to output.car");
     }
@@ -256,17 +257,18 @@ fn main() -> io::Result<()> {
 
     println!("Output hash: {}", output_hash);
 
-    // Import output.car to IPFS
     let output = Command::new("ipfs")
         .args(&["--api", &ipfs_api, "dag", "import", &format!("{}/output.car", task_dir)])
         .output()?;
 
+    let output_cid;
     if !output.status.success() {
-        eprintln!("Failed to import output to IPFS");
+    eprintln!("Failed to import output to IPFS");
+    output_cid = String::from("");
     } else {
-        let output_cid = String::from_utf8_lossy(&output.stdout);
-        println!("Output CID: {}", output_cid.trim());
+        output_cid = String::from_utf8_lossy(&output.stdout).trim().to_string();
     }
+    println!("Output CID: {}", output_cid);
 
     // Clean up temporary directory
     dir.close()?;
