@@ -228,33 +228,57 @@ fn main() -> io::Result<()> {
         }
     }
     
-    // Read the result from the output image
-    let mut output = Vec::new();
-    let mut file = OpenOptions::new().read(true).open(&output_image)?;
-    file.read_to_end(&mut output)?;
-    // Compute the SHA-256 hash of the output
-    let mut hasher = Sha256::new();
-    hasher.update(output);
-    let result = hasher.finalize();
-    eprintln!("OUTPUT_HASH={}", encode(result));
-    // Import the output image to IPFS
+    // Check output drive if it ended in an error first
+    e2cp(&format!("{}/scratch.img", task_dir), "/root/output.car", &task_dir)?;
+
     let output = Command::new("ipfs")
-        .args(&["--api", &ipfs_api, "dag", "import", &output_image])
+        .args(&["--api", &ipfs_api, "dag", "import", &format!("{}/output.car", task_dir)])
         .output()?;
-    
-    // Extract the CID of the output from IPFS command output
-    let mut output_cid = String::from_utf8(output.stdout).unwrap();
-    let lines: Vec<&str> = output_cid.lines().collect();
-    if lines.len() < 2 {
-        panic!("Invalid output from ipfs dag import");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let output_cid = stdout.split_whitespace().nth(2).unwrap().to_string();
+
+    let output = Command::new("ipfs")
+        .args(&["--api", &ipfs_api, "cat", &format!("{}/output.file", output_cid)])
+        .output()?;
+    fs::write(format!("{}/output.file", task_dir), output.stdout)?;
+
+    let mut file = File::open(format!("{}/output.file", task_dir))?;
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents)?;
+    let output_sha256 = sha256_hash(&contents);
+
+    fs::write(format!("{}/pre-sha256", task_dir), format!("{}\0{}\0", output_cid, output_sha256))?;
+    truncate(&format!("{}/output.bin", task_dir), 32)?;
+
+    let output = Command::new("sha256sum")
+        .arg(format!("{}/pre-sha256", task_dir))
+        .output()?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let sha256 = stdout.split_whitespace().nth(0).unwrap().to_string();
+
+    fs::write(format!("{}/sha256", task_dir), sha256)?;
+    xxd_reverse(&format!("{}/sha256", task_dir), &format!("{}/sha256.raw", task_dir))?;
+
+    let sha256_raw = fs::read(format!("{}/sha256.raw", task_dir))?;
+    let output_bin = fs::read(format!("{}/output.bin", task_dir))?;
+
+    match sha256_raw.cmp(&output_bin) {
+        Ordering::Equal => {
+            let output = json!({
+                "outputCID": output_cid,
+                "outputFileHash": output_sha256
+            });
+            println!("{}", output);
+        }
+        _ => {
+            let output = json!({
+                "error": "mismatch in output and sha256"
+            });
+            println!("{}", output);
+        }
     }
-    let cid_line = lines[lines.len() - 2];
-    let cid_parts: Vec<&str> = cid_line.split_whitespace().collect();
-    if cid_parts.len() < 3 {
-        panic!("Invalid CID line: {}", cid_line);
-    }
-    output_cid = cid_parts[2].to_string();
-    eprintln!("OUTPUT_CID={}", output_cid);
-    eprintln!("Output image imported to IPFS");
+
+    fs::remove_dir_all(task_dir)?;
+
     Ok(())
 }
