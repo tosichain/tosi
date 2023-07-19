@@ -94,10 +94,14 @@ fn main() -> io::Result<()> {
     eprintln!("Fetched function image from IPFS with CID {}", function_cid);
 
     // Create a scratch image of 2GiB
-    let scratch_image_path = format!("{}/scratch.img", task_dir);
     eprintln!("start of creating scratch image");
-    let file = OpenOptions::new().write(true).create(true).open(&scratch_image_path)?;
-    let size_in_bytes = 2 * 1024 * 1024 * 1024; 
+    let file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .open(format!("{}/scratch.img", task_dir));
+    
+    let size_in_bytes = 2 * 1024 * 1024 * 1024;
+    let file = file?;
     file.set_len(size_in_bytes)?;
 
     eprintln!("Created scratch image");
@@ -109,6 +113,7 @@ fn main() -> io::Result<()> {
     let previous_output_image = format!("{}/previous_output.car", task_dir);
     let input_image = format!("{}/input.car", task_dir);
     let output_image = format!("{}/output.bin", task_dir);
+    let scratch_image = format!("{}/scratch.img", task_dir);
 
     eprintln!("Image paths set up");
 
@@ -125,7 +130,7 @@ fn main() -> io::Result<()> {
         .arg("-append")
         .arg(format!("console=ttyS0 init={} init_arg1={} init_arg2={} init_arg3={} init_arg4={} init_arg5={} init_arg6={}",
                      "/init",
-                     &scratch_image_path,
+                     &scratch_image,
                      &function_image,
                      &metadata_image,
                      &previous_output_image,
@@ -134,7 +139,7 @@ fn main() -> io::Result<()> {
         .arg("-m")
         .arg("1024")
         .arg("-drive")
-        .arg(format!("file={},format=raw", &scratch_image_path))
+        .arg(format!("file={},format=raw", &scratch_image))
         .arg("-drive")
         .arg(format!("file={},format=raw", &function_image))
         .arg("-drive")
