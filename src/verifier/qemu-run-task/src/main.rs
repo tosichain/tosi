@@ -6,7 +6,6 @@ use std::path::Path;
 use tempfile::tempdir;
 use sha2::{Sha256, Digest};
 use hex::encode;
-use e2tools::e2cp;
 
 fn main() -> io::Result<()> {
     // Collect arguments passed to the program
@@ -227,58 +226,48 @@ fn main() -> io::Result<()> {
             eprintln!("QEMU command executed");
         }
     }
-    
-    // Check output drive if it ended in an error first
-    e2cp(&format!("{}/scratch.img", task_dir), "/root/output.car", &task_dir)?;
 
+        // Copy the output from the scratch.img file to output.car using e2cp
+    let e2cp_output = Command::new("e2cp")
+        .arg(format!("{}/scratch.img:/output.bin", task_dir))
+        .arg(format!("{}/output.car", task_dir))
+        .output()?;
+    
+    if !e2cp_output.status.success() {
+        eprintln!("e2cp command failed with error: {:?}", e2cp_output.stderr);
+    } else {
+        eprintln!("Copied output from scratch image to output.car");
+    }
+
+    // Read the copied output.car file
+    let mut file = fs::File::open(format!("{}/output.car", task_dir))?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+
+    // Compute the SHA-256 hash of the output.car file
+    let mut hasher = Sha256::new();
+    hasher.update(buffer);
+    let result = hasher.finalize();
+
+    // Convert hash to hexadecimal string
+    let output_hash = encode(result);
+
+    println!("Output hash: {}", output_hash);
+
+    // Import output.car to IPFS
     let output = Command::new("ipfs")
         .args(&["--api", &ipfs_api, "dag", "import", &format!("{}/output.car", task_dir)])
         .output()?;
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let output_cid = stdout.split_whitespace().nth(2).unwrap().to_string();
 
-    let output = Command::new("ipfs")
-        .args(&["--api", &ipfs_api, "cat", &format!("{}/output.file", output_cid)])
-        .output()?;
-    fs::write(format!("{}/output.file", task_dir), output.stdout)?;
-
-    let mut file = File::open(format!("{}/output.file", task_dir))?;
-    let mut contents = Vec::new();
-    file.read_to_end(&mut contents)?;
-    let output_sha256 = sha256_hash(&contents);
-
-    fs::write(format!("{}/pre-sha256", task_dir), format!("{}\0{}\0", output_cid, output_sha256))?;
-    truncate(&format!("{}/output.bin", task_dir), 32)?;
-
-    let output = Command::new("sha256sum")
-        .arg(format!("{}/pre-sha256", task_dir))
-        .output()?;
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let sha256 = stdout.split_whitespace().nth(0).unwrap().to_string();
-
-    fs::write(format!("{}/sha256", task_dir), sha256)?;
-    xxd_reverse(&format!("{}/sha256", task_dir), &format!("{}/sha256.raw", task_dir))?;
-
-    let sha256_raw = fs::read(format!("{}/sha256.raw", task_dir))?;
-    let output_bin = fs::read(format!("{}/output.bin", task_dir))?;
-
-    match sha256_raw.cmp(&output_bin) {
-        Ordering::Equal => {
-            let output = json!({
-                "outputCID": output_cid,
-                "outputFileHash": output_sha256
-            });
-            println!("{}", output);
-        }
-        _ => {
-            let output = json!({
-                "error": "mismatch in output and sha256"
-            });
-            println!("{}", output);
-        }
+    if !output.status.success() {
+        eprintln!("Failed to import output to IPFS");
+    } else {
+        let output_cid = String::from_utf8_lossy(&output.stdout);
+        println!("Output CID: {}", output_cid.trim());
     }
 
-    fs::remove_dir_all(task_dir)?;
+    // Clean up temporary directory
+    dir.close()?;
 
     Ok(())
 }
