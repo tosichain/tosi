@@ -229,7 +229,7 @@ fn main() -> io::Result<()> {
 
         // Copy the output from the scratch.img file to output.car using e2cp
     let e2cp_output = Command::new("e2cp")
-        .arg(format!("{}/scratch.img:/output.bin", task_dir))
+        .arg(format!("{}/scratch.img:/root/output.bin", task_dir))
         .arg(format!("{}/output.car", task_dir))
         .output()?;
     
