@@ -62,8 +62,17 @@ fn main() -> io::Result<()> {
 
         let mut file = OpenOptions::new()
             .write(true)
+            .create_new(true)
             .open(format!("{}/metadata.img", task_dir))?;
-        write!(file, "{:016X}", size)?;
+
+        for name in ["previous_output.car", "input.car"].iter(){
+            let metadata = fs::metadata(format!("{}/{}", task_dir, name))?;
+            let size = metadata.len();
+
+            eprintln!("starting to write metadata for file {}", name);
+            write!(file, "{:016X}", size)?;
+        }
+        
 
         file.seek(SeekFrom::End(0))?;
         file.write_all(&[0u8; 4096][..4096 - (size % 4096) as usize])?;
