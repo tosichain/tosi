@@ -54,30 +54,23 @@ fn main() -> io::Result<()> {
     }
 
     //  Create a metadata image for each of the files, containing the size of the file and padding to reach a multiple of 4096 bytes
+    // create metadata file
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(format!("{}/metadata.img", task_dir))?;
+
+    // iterate over both files to store their sizes in the metadata image
     for name in ["previous_output.car", "input.car"].iter() {
         let metadata = fs::metadata(format!("{}/{}", task_dir, name))?;
         let size = metadata.len();
 
-        eprintln!("Starting to create metadata image for file {}", name);
-
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(format!("{}/metadata.img", task_dir))?;
-
-        for name in ["previous_output.car", "input.car"].iter(){
-            let metadata = fs::metadata(format!("{}/{}", task_dir, name))?;
-            let size = metadata.len();
-
-            eprintln!("starting to write metadata for file {}", name);
-            write!(file, "{:016X}", size)?;
-        }
-        
+        eprintln!("Starting to write metadata for file {}", name);
+        write!(file, "{:016X}", size)?;
 
         file.seek(SeekFrom::End(0))?;
         file.write_all(&[0u8; 4096][..4096 - (size % 4096) as usize])?;
-
-        eprintln!("Finished creating metadata image for file {}", name);
+        eprintln!("Finished writing metadata for file {}", name);
     }
 
 
