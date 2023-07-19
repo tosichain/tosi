@@ -104,6 +104,7 @@ fn main() -> io::Result<()> {
 
     eprintln!("Created scratch image");
 
+
     // Set up paths for the function, metadata, previous output, and input images
     let kernel = "/app/bzImage";
     let function_image = format!("{}/function.img", task_dir);
@@ -114,6 +115,21 @@ fn main() -> io::Result<()> {
     let scratch_image = format!("{}/scratch.img", task_dir);
 
     eprintln!("Image paths set up");
+
+    // Create an output image of 4096 bytes, filled with zeroes
+    let output_size = 4096;
+    let file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&output_image)?;
+
+    file.set_len(output_size)?;
+
+    eprintln!("Created output image");
+
+    eprintln!("Previous output CID: {}", previous_output_cid);
+    eprintln!("Function CID: {}", function_cid);
+    eprintln!("Input CID: {}", input_cid);
 
     // Check if /dev/kvm exists
     let kvm_exists = Path::new("/dev/kvm").exists();
