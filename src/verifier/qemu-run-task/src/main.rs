@@ -1,7 +1,7 @@
 use std::env;
 use std::fs::{self, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom, Write};
-use std::process::{Command, exit};
+use std::process::Command;
 use std::path::Path;
 use tempfile::tempdir;
 use sha2::{Sha256, Digest};
@@ -14,7 +14,7 @@ fn main() -> io::Result<()> {
     // print usage and exit when not enough arguments are passed
     if args.len() < 4 {
         eprintln!("Usage: {} PREVIOUS_OUTPUT_CID INPUT_CID FUNCTION_CID", args[0]);
-        exit(1);
+        return Ok(());
     }
     
     // commandline arguments
@@ -43,8 +43,7 @@ fn main() -> io::Result<()> {
     for (cid, name) in [(previous_output_cid, "previous_output.car"), (input_cid, "input.car")].iter() {
         let output = Command::new("ipfs")
             .args(&["--api", &ipfs_api, "dag", "export", cid])
-            .output()
-            .expect("Failed to execute command");
+            .output()?;
 
         eprintln!("Starting to write file {}", name);
         fs::write(format!("{}/{}", task_dir, name), output.stdout)?;
@@ -88,8 +87,7 @@ fn main() -> io::Result<()> {
     // Fetch the function image from IPFS
     let _output = Command::new("ipfs")
         .args(&["--api", &ipfs_api, "get", "-o", &format!("{}/function.img", task_dir), function_cid])
-        .output()
-        .expect("Failed to execute command");
+        .output()?;
 
     eprintln!("Fetched function image from IPFS with CID {}", function_cid);
 
@@ -161,14 +159,13 @@ fn main() -> io::Result<()> {
         eprintln!("Command to run QEMU set up");
 
         // Execute QEMU command
-        let output = command.output().expect("Failed to execute command");
+        let output = command.output()?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             eprintln!("QEMU command failed: {}", stderr);
-            // Handle the error accordingly
+        } else {
+            eprintln!("QEMU command executed");
         }
-
-        eprintln!("QEMU command executed");
     } else {
         let kernel = "/app/bzImage-nokvm-q35";
 
@@ -205,13 +202,13 @@ fn main() -> io::Result<()> {
         eprintln!("Command to run QEMU set up");
 
         // Execute QEMU command
-        let output = command.output().expect("Failed to execute command");
+        let output = command.output()?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             eprintln!("QEMU command failed: {}", stderr);
+        } else {
+            eprintln!("QEMU command executed");
         }
-
-        eprintln!("QEMU command executed");
     }
 
     // Read the result from the output image
@@ -228,9 +225,8 @@ fn main() -> io::Result<()> {
     // Import the output image to IPFS
     let output = Command::new("ipfs")
         .args(&["--api", &ipfs_api, "dag", "import", &output_image])
-        .output()
-        .expect("Failed to execute command");
-
+        .output()?;
+    
     // Extract the CID of the output from IPFS command output
     let mut output_cid = String::from_utf8(output.stdout).unwrap();
     let lines: Vec<&str> = output_cid.lines().collect();
