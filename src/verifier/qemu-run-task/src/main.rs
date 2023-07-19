@@ -22,14 +22,14 @@ fn main() -> io::Result<()> {
     let input_cid = &args[2];
     let function_cid = &args[3];
 
-    println!("Previous output CID: {}", previous_output_cid);
-    println!("Input CID: {}", input_cid);
-    println!("Function CID: {}", function_cid);
+    eprintln!("Previous output CID: {}", previous_output_cid);
+    eprintln!("Input CID: {}", input_cid);
+    eprintln!("Function CID: {}", function_cid);
     
     // ipfs endpoint.. default to localhost if not set
     let ipfs_api = env::var("IPFS_API").unwrap_or_else(|_| String::from("/ip4/127.0.0.1/tcp/5001"));
 
-    println!("IPFS API: {}", ipfs_api);
+    eprintln!("IPFS API: {}", ipfs_api);
 
     // temporary dir
     let dir = tempdir()?;
@@ -37,7 +37,7 @@ fn main() -> io::Result<()> {
     //temp dir to string
     let task_dir = dir.path().to_str().unwrap().to_string();
 
-    println!("Temporary directory: {}", &task_dir);
+    eprintln!("Temporary directory: {}", &task_dir);
 
     // Fetch the files associated with the CIDs for previous output and input from IPFS, writing them to disk
     for (cid, name) in [(previous_output_cid, "previous_output.car"), (input_cid, "input.car")].iter() {
@@ -46,11 +46,11 @@ fn main() -> io::Result<()> {
             .output()
             .expect("Failed to execute command");
 
-        println!("Starting to write file {}", name);
+        eprintln!("Starting to write file {}", name);
         fs::write(format!("{}/{}", task_dir, name), output.stdout)?;
-        println!("Finished writing file {}", name);
+        eprintln!("Finished writing file {}", name);
 
-        println!("Fetched file {} with CID {}", name, cid);
+        eprintln!("Fetched file {} with CID {}", name, cid);
     }
 
     //  Create a metadata image for each of the files, containing the size of the file and padding to reach a multiple of 4096 bytes
@@ -58,7 +58,7 @@ fn main() -> io::Result<()> {
         let metadata = fs::metadata(format!("{}/{}", task_dir, name))?;
         let size = metadata.len();
 
-        println!("Starting to create metadata image for file {}", name);
+        eprintln!("Starting to create metadata image for file {}", name);
 
         let mut file = OpenOptions::new()
             .write(true)
@@ -68,19 +68,19 @@ fn main() -> io::Result<()> {
         file.seek(SeekFrom::End(0))?;
         file.write_all(&[0u8; 4096][..4096 - (size % 4096) as usize])?;
 
-        println!("Finished creating metadata image for file {}", name);
+        eprintln!("Finished creating metadata image for file {}", name);
     }
 
 
     // Set the size of each image to the expected size, extending with zero bytes if necessary
     for (size, name) in [(2147483648, "previous_output.car"), (2147483648, "input.car"), (4096, "metadata.img")].iter() {
-        println!("start of setting the size for image {}", name);
+        eprintln!("start of setting the size for image {}", name);
         let file = OpenOptions::new()
             .write(true)
             .open(format!("{}/{}", task_dir, name))?;
         file.set_len(*size)?;
 
-        println!("end of setting the size for image {}", name);
+        eprintln!("end of setting the size for image {}", name);
     }
 
     // Fetch the function image from IPFS
@@ -89,16 +89,16 @@ fn main() -> io::Result<()> {
         .output()
         .expect("Failed to execute command");
 
-    println!("Fetched function image from IPFS with CID {}", function_cid);
+    eprintln!("Fetched function image from IPFS with CID {}", function_cid);
 
     // Create a scratch image of 2GiB
     let scratch_image_path = format!("{}/scratch.img", task_dir);
-    println!("start of creating scratch image");
+    eprintln!("start of creating scratch image");
     let file = OpenOptions::new().write(true).create(true).open(&scratch_image_path)?;
     let size_in_bytes = 2 * 1024 * 1024 * 1024; 
     file.set_len(size_in_bytes)?;
 
-    println!("Created scratch image");
+    eprintln!("Created scratch image");
 
     // Set up paths for the function, metadata, previous output, and input images
     let kernel = "/app/bzImage";
@@ -108,7 +108,7 @@ fn main() -> io::Result<()> {
     let input_image = format!("{}/input.car", task_dir);
     let output_image = format!("{}/output.bin", task_dir);
 
-    println!("Image paths set up");
+    eprintln!("Image paths set up");
 
     let kvm = if Path::new("/dev/kvm").exists() { "-enable-kvm" } else { "" };
 
@@ -147,12 +147,12 @@ fn main() -> io::Result<()> {
         .arg("-cpu")
         .arg("host");
 
-    println!("Command to run QEMU set up");
+    eprintln!("Command to run QEMU set up");
 
     // Execute QEMU command
     let _ = command.output()?;
 
-    println!("QEMU command executed");
+    eprintln!("QEMU command executed");
 
     // Read the result from the output image
     let mut output = Vec::new();
@@ -185,7 +185,7 @@ fn main() -> io::Result<()> {
     output_cid = cid_parts[2].to_string();
 
     eprintln!("OUTPUT_CID={}", output_cid);
-    println!("Output image imported to IPFS");
+    eprintln!("Output image imported to IPFS");
 
     Ok(())
 }
