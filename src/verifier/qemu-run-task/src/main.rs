@@ -6,6 +6,7 @@ use std::path::Path;
 use tempfile::tempdir;
 use sha2::{Sha256, Digest};
 use hex::encode;
+use e2tools::e2cp;
 
 fn main() -> io::Result<()> {
     // Collect arguments passed to the program
@@ -226,23 +227,14 @@ fn main() -> io::Result<()> {
             eprintln!("QEMU command executed");
         }
     }
-
-    // Read the result from the output image
-    let mut output = Vec::new();
-    let mut file = OpenOptions::new().read(true).open(&output_image)?;
-    file.read_to_end(&mut output)?;
-
-    // Compute the SHA-256 hash of the output
-    let mut hasher = Sha256::new();
-    hasher.update(output);
-    let result = hasher.finalize();
-    eprintln!("OUTPUT_HASH={}", encode(result));
+    // Check output drive if it ended in an error first
+    e2cp(&format!("{}/scratch.img:/root/output.car", task_dir), &format!("{}/output.car", task_dir))?;
 
     // Import the output image to IPFS
     let output = Command::new("ipfs")
-        .args(&["--api", &ipfs_api, "dag", "import", &output_image])
+        .args(&["--api", &ipfs_api, "dag", "import", &format!("{}/output.car", task_dir)])
         .output()?;
-    
+
     // Extract the CID of the output from IPFS command output
     let mut output_cid = String::from_utf8(output.stdout).unwrap();
     let lines: Vec<&str> = output_cid.lines().collect();
@@ -256,8 +248,55 @@ fn main() -> io::Result<()> {
     }
     output_cid = cid_parts[2].to_string();
 
-    eprintln!("OUTPUT_CID={}", output_cid);
-    eprintln!("Output image imported to IPFS");
+    // Fetch the output file from IPFS
+    let output = Command::new("ipfs")
+        .args(&["--api", &ipfs_api, "cat", &output_cid, "/output.file"])
+        .output()?;
+
+    // Write the output file
+    fs::write(format!("{}/output.file", task_dir), output.stdout)?;
+
+    // Compute SHA-256 of the output file
+    let output_file = fs::read(format!("{}/output.file", task_dir))?;
+    let mut hasher = Sha256::new();
+    hasher.update(&output_file);
+    let output_sha256 = encode(hasher.finalize());
+
+    // Write the pre-sha256 file
+    fs::write(format!("{}/pre-sha256", task_dir), format!("{}\0{}\0", output_cid, output_sha256))?;
+
+    // Truncate the output binary file to 32 bytes
+    let file = OpenOptions::new()
+        .write(true)
+        .open(format!("{}/output.bin", task_dir))?;
+    file.set_len(32)?;
+
+    // Compute SHA-256 of the pre-sha256 file
+    let pre_sha256_file = fs::read(format!("{}/pre-sha256", task_dir))?;
+    let mut hasher = Sha256::new();
+    hasher.update(&pre_sha256_file);
+    let pre_sha256 = encode(hasher.finalize());
+
+    // Write the sha256 file
+    fs::write(format!("{}/sha256", task_dir), pre_sha256)?;
+
+    // Convert hex to binary
+    let sha256_raw = hex::decode(fs::read_to_string(format!("{}/sha256", task_dir))?.trim()).expect("Decoding failed");
+
+    // Write the binary sha256 file
+    fs::write(format!("{}/sha256.raw", task_dir), sha256_raw)?;
+
+    // Compare the sha256.raw and output.bin files
+    let sha256_raw = fs::read(format!("{}/sha256.raw", task_dir))?;
+    let output_bin = fs::read(format!("{}/output.bin", task_dir))?;
+    if sha256_raw == output_bin {
+        println!("{{\"outputCID\":\"{}\",\"outputFileHash\":\"{}\"}}", output_cid, output_sha256);
+    } else {
+        println!("{{\"error\":\"mismatch in output and sha256\"}}");
+    }
+
+    // Clean up temporary directory
+    dir.close()?;
 
     Ok(())
 }
