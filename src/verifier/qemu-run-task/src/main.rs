@@ -229,15 +229,17 @@ fn main() -> io::Result<()> {
         }
     }
 
+    let mut output_cid = String::new();
     // Copy the output from the scratch.img file to output.car using e2cp
     let e2cp_output = Command::new("e2cp")
-        .arg(format!("{}/scratch.img:/root/output.bin", task_dir))
+        .arg(format!("{}/scratch.img:/output.car", task_dir))
         .arg(format!("{}/output.car", task_dir))
         .output()?;
 
     if !e2cp_output.status.success() {
         eprintln!("e2cp command failed with error: {:?}", e2cp_output.stderr);
         fs::write(format!("{}/output.car", task_dir), "")?;
+        output_cid = String::from("");
     } else {
         eprintln!("Copied output from scratch image to output.car");
     }
@@ -261,12 +263,33 @@ fn main() -> io::Result<()> {
         .args(&["--api", &ipfs_api, "dag", "import", &format!("{}/output.car", task_dir)])
         .output()?;
 
-    let output_cid;
+    
     if !output.status.success() {
-    eprintln!("Failed to import output to IPFS");
-    output_cid = String::from("");
+        eprintln!("Failed to import output to IPFS");
+        output_cid = String::from("");
     } else {
-        output_cid = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let output_stdout = String::from_utf8_lossy(&output.stdout);
+        for line in output_stdout.lines() {
+            if line.contains("pinned root") {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if let Some(part) = parts.get(1) {
+                    output_cid = part.to_string();
+                }
+            }
+        }
+        println!("Output CID: {}", output_cid);
+
+        // extract output files from ipfs
+        let extract_output = Command::new("ipfs")
+            .args(&["--api", &ipfs_api, "cat", &format!("{}/output.file", output_cid)])
+            .output()?;
+
+        if !extract_output.status.success() {
+            eprintln!("Failed to extract output file form ipfs");
+            fs::write(format!("{}/output.file", task_dir), "")?;
+        } else {
+            fs::write(format!("{}/output.file", task_dir), extract_output.stdout)?;
+        }
     }
     println!("Output CID: {}", output_cid);
 
