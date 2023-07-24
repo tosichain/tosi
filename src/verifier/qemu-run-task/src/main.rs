@@ -238,11 +238,11 @@ fn main() -> io::Result<()> {
         .output()?;
 
     if !e2cp_output.status.success() {
-        eprintln!("e2cp command failed with error: {:?}", e2cp_output.stderr);
+        // eprintln!("e2cp command failed with error: {:?}", e2cp_output.stderr);
         let mut file = File::create(format!("{}/output.file", task_dir))?;
-        file.write_all(b"");
+        file.write_all(b"")?;
         // fs::write(format!("{}/output.car", task_dir), "")?;
-        // output_cid = String::from("");
+        //output_cid = String::from("");
     } else {
         eprintln!("Copied output from scratch image");
     }
