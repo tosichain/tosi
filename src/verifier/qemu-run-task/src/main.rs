@@ -6,6 +6,7 @@ use std::path::Path;
 use tempfile::tempdir;
 use sha2::{Sha256, Digest};
 use hex::encode;
+use std::fs::File;
 
 fn main() -> io::Result<()> {
     // Collect arguments passed to the program
@@ -238,10 +239,12 @@ fn main() -> io::Result<()> {
 
     if !e2cp_output.status.success() {
         eprintln!("e2cp command failed with error: {:?}", e2cp_output.stderr);
-        fs::write(format!("{}/output.car", task_dir), "")?;
-        output_cid = String::from("");
+        let mut file = File::create(format!("{}/output.file", task_dir))?;
+        file.write_all(b"");
+        // fs::write(format!("{}/output.car", task_dir), "")?;
+        // output_cid = String::from("");
     } else {
-        eprintln!("Copied output from scratch image to output.car");
+        eprintln!("Copied output from scratch image");
     }
 
     // Read the copied output.car file
