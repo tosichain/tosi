@@ -179,9 +179,9 @@ fn main() -> io::Result<()> {
         let output = command.output()?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            eprintln!("QEMU command failed: {}", stderr);
+            eprintln!("QEMU command failed-kvm: {}", stderr);
         } else {
-            eprintln!("QEMU command executed");
+            eprintln!("QEMU command executed-kvm");
         }
     } else {
         let kernel = "/app/bzImage-nokvm-q35";
@@ -222,11 +222,11 @@ fn main() -> io::Result<()> {
         let output = command.output()?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            eprintln!("QEMU command failed: {}", stderr);
+            eprintln!("QEMU command failed-nokvm: {}", stderr);
         } else {
             let stdout = String::from_utf8_lossy(&output.stdout);
-            eprintln!("QEMU command output: {}", stdout);
-            eprintln!("QEMU command executed");
+            eprintln!("QEMU command output-nokvm: {}", stdout);
+            eprintln!("QEMU command executed-nokvm");
         }
     }
 
