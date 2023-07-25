@@ -19,7 +19,7 @@ fn main() {
     let ipfs_api = env::var("IPFS_API").expect("IPFS_API is not set");
 
     let status = Command::new("ipfs")
-        .arg("--timeout")
+        .arg("--timeout=60s")
         .arg(&ipfs_timeout)
         .arg("--api")
         .arg(&ipfs_api)
