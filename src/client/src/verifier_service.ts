@@ -24,7 +24,7 @@ export async function createDAInfo(
   car: boolean,
 ): Promise<DAInfo | undefined> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
-  const script = car ? "/app/grab-dag-as-car-and-hash.sh" : "/app/grab-and-hash.sh";
+  const script = car ? "/app/grab-dag-as-car-and-hash" : "/app/grab-and-hash";
   const command = `IPFS_API=/dns4/${host}/tcp/${port} TIMEOUT=${timeout}s ${script} ${path}`;
   const result = JSON.parse((await execCommand(config, log, command)).stdout);
   if (result.error) {
@@ -38,7 +38,7 @@ export async function createDAInfo(
 
 export async function prepopulate(config: VerifierServiceConfig, ipfs: IPFS, log: Logger): Promise<void> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
-  const script = "/app/prepopulate.sh";
+  const script = "/app/prepopulate";
   const command = `IPFS_API=/dns4/${host}/tcp/${port} ${script}`;
   await execCommand(config, log, command);
 }
@@ -67,10 +67,21 @@ export async function execTask(
 ): Promise<TaskResult> {
   const { host, port } = ipfs.getIPFS().getEndpointConfig();
   // eslint-disable-next-line prettier/prettier
-  const command = `IPFS_API=/dns4/${host}/tcp/${port} /app/qemu-run-task.sh ${prevOutputCID.toString()} ${inputCID.toString()} ${functionCID.toString()}`;
+  const command = `IPFS_API=/dns4/${host}/tcp/${port} /app/qemu-run-task ${prevOutputCID.toString()} ${inputCID.toString()} ${functionCID.toString()}`;
 
-  const result = await execCommand(config, log, command);
-  return { output: JSON.parse(result.stdout), stderr: result.stderr };
+  try {
+    const result = await execCommand(config, log, command);
+    const output = JSON.parse(result.stdout);
+
+    return { output: output, stderr: result.stderr };
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      log.error(`Error executing task: ${error.message}`);
+    } else {
+      log.error(`Error executing task: ${error}`);
+    }
+    throw error;
+  }
 }
 
 export interface CommandResult {
