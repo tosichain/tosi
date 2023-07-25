@@ -224,8 +224,8 @@ fn main() -> io::Result<()> {
             let stderr = String::from_utf8_lossy(&output.stderr);
             eprintln!("QEMU command failed: {}", stderr);
         } else {
-            // let stdout = String::from_utf8_lossy(&output.stdout);
-            // println!("QEMU command output: {}", stdout);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            eprintln!("QEMU command output: {}", stdout);
             eprintln!("QEMU command executed");
         }
     }
