@@ -66,9 +66,9 @@ WORKDIR /src/multithread-merkle-tree
 
 RUN cargo fetch --locked
 
-RUN cargo build --release
+RUN cargo build --release --locked
 
-RUN cargo install --path . --root /opt/tosi
+RUN cargo install --locked --path . --root /opt/tosi
 
 # =============================================================================
 FROM alpine:3.16.0 as image
